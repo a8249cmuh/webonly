@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>機器學習互動實驗室：線性迴歸、羅吉斯迴歸與 KNN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 滑桿與軌道客製化美化 */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      height: 6px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #6366f1;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: transform 0.1s, background-color 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: #4f46e5;
+    }
+    .probe-cursor {
+      cursor: grab;
+    }
+    .probe-cursor:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased selection:bg-indigo-100 selection:text-indigo-800">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    
+    <!-- 頂部標題與演算法分頁導航 -->
+    <header class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center font-black text-xl shadow-md shadow-indigo-100">
+            ML
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">機器學習互動實驗室</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">即時參數擬合、損失函數視覺化與幾何決策空間探索</p>
+          </div>
+        </div>
+
+        <!-- 演算法標籤切換按鈕組 -->
+        <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1 text-xs font-semibold">
+          <button id="tabBtnLinear" class="tab-btn px-3 py-1.5 rounded-lg transition-all bg-white text-indigo-700 shadow-sm">
+            線性迴歸 (Linear)
+          </button>
+          <button id="tabBtnLogistic" class="tab-btn px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
+            羅吉斯迴歸 (Logistic)
+          </button>
+          <button id="tabBtnKnn" class="tab-btn px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
+            K-近鄰演算法 (KNN)
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4 text-xs sm:text-sm text-slate-600 leading-relaxed" id="moduleDescription">
+        <!-- 內容隨切換演算法動態改變 -->
+      </div>
+    </header>
+
+    <!-- ========================================== -->
+    <!-- 模組 1: 線性迴歸 (Linear Regression) -->
+    <!-- ========================================== -->
+    <section id="sectionLinear" class="module-section space-y-6">
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-6">
+        
+        <!-- 線性迴歸頂部控制列 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+              <span class="font-bold text-sm text-slate-800">線性模型參數</span>
+              <span class="text-xs font-mono text-indigo-700 bg-white px-2.5 py-0.5 border border-slate-200 rounded-full font-semibold" id="lrEquationDisplay">
+                y = -0.42x + 16.00
+              </span>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="btnLrRandom" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg shadow-xs transition">
+                隨機產生樣本
+              </button>
+              <button id="btnLrReset" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg shadow-xs transition">
+                重置預設
+              </button>
+              <button id="btnLrFit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition">
+                一鍵最優解 (OLS)
+              </button>
+            </div>
+          </div>
+
+          <!-- 線性迴歸雙滑桿 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="bg-white p-3 rounded-xl border border-slate-200">
+              <div class="flex justify-between items-center text-xs mb-1">
+                <span class="font-medium text-slate-700">權重 (Weight / 斜率 w)</span>
+                <span class="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded" id="lrWeightText">-0.42</span>
+              </div>
+              <input type="range" id="lrWeightSlider" min="-10" max="5" step="0.01" value="-0.42" class="w-full cursor-pointer">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
+                <span>-10.0</span><span>0.0</span><span>+5.0</span>
+              </div>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl border border-slate-200">
+              <div class="flex justify-between items-center text-xs mb-1">
+                <span class="font-medium text-slate-700">偏差 (Bias / 截距 b)</span>
+                <span class="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded" id="lrBiasText">16.00</span>
+              </div>
+              <input type="range" id="lrBiasSlider" min="0" max="40" step="0.05" value="16.00" class="w-full cursor-pointer">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
+                <span>0.0</span><span>20.0</span><span>40.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8 flex flex-col bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2 text-xs">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-blue-500 inline-block shadow-sm"></span>
+                  <span class="text-slate-600">樣本 (y)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-4 h-0.5 bg-blue-500 inline-block"></span>
+                  <span class="text-slate-600">擬合線 (ŷ)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3.5 h-0.5 bg-orange-500 inline-block border-t border-dashed border-orange-500"></span>
+                  <span class="text-slate-600">殘差 (y - ŷ)</span>
+                </div>
+              </div>
+              <label class="flex items-center gap-1.5 text-slate-600 cursor-pointer select-none">
+                <input type="checkbox" id="lrToggleSquares" class="rounded text-indigo-600 focus:ring-0">
+                <span>顯示平方誤差幾何塊</span>
+              </label>
+            </div>
+
+            <!-- 線性迴歸 SVG 畫布 -->
+            <div class="relative w-full aspect-[16/10] bg-white rounded-lg border border-slate-200 overflow-hidden shadow-inner">
+              <svg id="lrSvg" class="w-full h-full select-none" viewBox="0 0 700 450" preserveAspectRatio="xMidYMid meet">
+                <rect width="100%" height="100%" fill="#ffffff" />
+                <g id="lrGridGroup"></g>
+                <g id="lrSquaresGroup" opacity="0"></g>
+                <g id="lrResidualsGroup"></g>
+                <line id="lrLine" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" />
+                <g id="lrPointsGroup"></g>
+                <g id="lrAxesGroup">
+                  <line x1="60" y1="390" x2="665" y2="390" stroke="#94a3b8" stroke-width="1.5" />
+                  <line x1="60" y1="25" x2="60" y2="390" stroke="#94a3b8" stroke-width="1.5" />
+                  <text x="665" y="415" font-size="12" font-weight="600" fill="#475569" text-anchor="end">x (車重: 千磅)</text>
+                  <text x="25" y="30" font-size="12" font-weight="600" fill="#475569" text-anchor="start">y (油耗: MPG)</text>
+                </g>
+              </svg>
+            </div>
+            <div class="flex justify-between items-center text-[11px] text-slate-500 mt-2">
+              <span>目標：調節斜率與截距，使橘色殘差的平方和 (SSE) 最小化。</span>
+              <span id="lrCountLabel" class="font-mono">樣本數: 20</span>
+            </div>
+          </div>
+
+          <!-- 線性迴歸指標面板 -->
+          <div class="lg:col-span-4 flex flex-col space-y-4">
+            <div class="bg-white border border-slate-200 rounded-xl p-4">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                <span>評估指標</span>
+                <span class="text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-bold">即時同步</span>
+              </h3>
+              <div class="space-y-2.5">
+                <div class="flex justify-between items-center p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                  <span class="text-slate-600">L₁ Loss (MAE 總和)</span>
+                  <span id="lrMetricL1" class="font-mono font-bold text-slate-800">0.00</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                  <span class="text-slate-600">L₂ Loss (SSE 平方和)</span>
+                  <span id="lrMetricL2" class="font-mono font-bold text-slate-800">0.00</span>
+                </div>
+                <div class="flex justify-between items-center p-2.5 rounded-lg bg-indigo-50/70 border border-indigo-200 text-xs">
+                  <span class="font-bold text-indigo-950">MSE 均方誤差 (目標)</span>
+                  <span id="lrMetricMse" class="font-mono font-bold text-base text-indigo-700">0.00</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                    <div class="text-[10px] text-slate-500">RMSE (均方根)</div>
+                    <div id="lrMetricRmse" class="font-mono text-xs font-bold text-slate-800 mt-0.5">0.00</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                    <div class="text-[10px] text-slate-500">R² 決定係數</div>
+                    <div id="lrMetricR2" class="font-mono text-xs font-bold text-slate-800 mt-0.5">0.00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MSE 軌跡歷史圖 -->
+            <div class="bg-white border border-slate-200 rounded-xl p-4 flex-1 flex flex-col">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-700">MSE 損失軌跡</span>
+                <button id="btnLrClearHistory" class="text-[10px] text-slate-400 hover:text-slate-600 underline">重置軌跡</button>
+              </div>
+              <div class="w-full flex-1 min-h-[130px] bg-slate-50 rounded-lg border border-slate-200 relative flex items-center justify-center overflow-hidden">
+                <svg id="lrLossSvg" class="w-full h-full" viewBox="0 0 300 120" preserveAspectRatio="none">
+                  <path id="lrLossArea" fill="rgba(99, 102, 241, 0.15)" d="" />
+                  <path id="lrLossLine" fill="none" stroke="#6366f1" stroke-width="2.5" d="" />
+                </svg>
+                <div id="lrLossPlaceholder" class="text-[11px] text-slate-400 absolute text-center pointer-events-none">
+                  調整滑桿觀察損失變化曲線
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 模組 2: 羅吉斯迴歸 (Logistic Regression) -->
+    <!-- ========================================== -->
+    <section id="sectionLogistic" class="module-section hidden space-y-6">
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-6">
+        
+        <!-- 羅吉斯迴歸頂部控制列 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="font-bold text-sm text-slate-800">Sigmoid 決策邊界參數</span>
+              <span class="text-xs font-mono text-emerald-800 bg-emerald-50 px-2.5 py-0.5 border border-emerald-200 rounded-full font-semibold" id="logitEquationDisplay">
+                P(y=1) = σ(1.20x - 6.00)
+              </span>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="btnLogitRandom" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg shadow-xs transition">
+                隨機產生分類樣本
+              </button>
+              <button id="btnLogitReset" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg shadow-xs transition">
+                預設參數
+              </button>
+              <button id="btnLogitFit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition">
+                一鍵梯度最優收斂 (GD)
+              </button>
+            </div>
+          </div>
+
+          <!-- 羅吉斯迴歸滑桿組 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-3 rounded-xl border border-slate-200">
+              <div class="flex justify-between items-center text-xs mb-1">
+                <span class="font-medium text-slate-700">權重 (Weight w / 陡度)</span>
+                <span class="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded" id="logitWeightText">1.20</span>
+              </div>
+              <input type="range" id="logitWeightSlider" min="-5" max="5" step="0.05" value="1.2" class="w-full cursor-pointer">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
+                <span>-5.0</span><span>0.0</span><span>+5.0</span>
+              </div>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl border border-slate-200">
+              <div class="flex justify-between items-center text-xs mb-1">
+                <span class="font-medium text-slate-700">偏差 (Bias b / 平移)</span>
+                <span class="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded" id="logitBiasText">-6.00</span>
+              </div>
+              <input type="range" id="logitBiasSlider" min="-25" max="10" step="0.1" value="-6.0" class="w-full cursor-pointer">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
+                <span>-25.0</span><span>-7.5</span><span>+10.0</span>
+              </div>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl border border-slate-200">
+              <div class="flex justify-between items-center text-xs mb-1">
+                <span class="font-medium text-slate-700">決策閥值 (Threshold θ)</span>
+                <span class="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded" id="logitThresholdText">0.50</span>
+              </div>
+              <input type="range" id="logitThresholdSlider" min="0.1" max="0.9" step="0.02" value="0.5" class="w-full cursor-pointer">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
+                <span>0.1 (寬鬆)</span><span>0.5</span><span>0.9 (嚴格)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8 flex flex-col bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2 text-xs">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                  <span class="text-slate-600">類別 0 (未通過 / 負例)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                  <span class="text-slate-600">類別 1 (通過 / 正例)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-4 h-0.5 bg-emerald-600 inline-block"></span>
+                  <span class="text-slate-600">Sigmoid 預測機率 σ(z)</span>
+                </div>
+              </div>
+              <div class="text-[11px] font-mono text-slate-500">
+                邊界點 x = -b/w: <strong id="logitBoundaryVal" class="text-slate-800">5.00</strong>
+              </div>
+            </div>
+
+            <!-- 羅吉斯迴歸 SVG 畫布 -->
+            <div class="relative w-full aspect-[16/10] bg-white rounded-lg border border-slate-200 overflow-hidden shadow-inner">
+              <svg id="logitSvg" class="w-full h-full select-none" viewBox="0 0 700 450" preserveAspectRatio="xMidYMid meet">
+                <rect width="100%" height="100%" fill="#ffffff" />
+                <g id="logitGridGroup"></g>
+                <!-- 決策門檻水平參考線 -->
+                <line id="logitThresholdLine" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4" />
+                <!-- 決策邊界垂直線 -->
+                <line id="logitBoundaryLine" stroke="#10b981" stroke-width="2" stroke-dasharray="5,3" />
+                <!-- Sigmoid 曲線路徑 -->
+                <path id="logitCurvePath" fill="none" stroke="#059669" stroke-width="3.5" stroke-linecap="round" />
+                <!-- 機率殘差落差垂直線 -->
+                <g id="logitProbLinesGroup"></g>
+                <!-- 樣本散點 -->
+                <g id="logitPointsGroup"></g>
+                <!-- 座標軸 -->
+                <g id="logitAxesGroup">
+                  <line x1="60" y1="390" x2="665" y2="390" stroke="#94a3b8" stroke-width="1.5" />
+                  <line x1="60" y1="30" x2="60" y2="390" stroke="#94a3b8" stroke-width="1.5" />
+                  <text x="665" y="415" font-size="12" font-weight="600" fill="#475569" text-anchor="end">x (學習時數 / 測試特徵)</text>
+                  <text x="25" y="30" font-size="12" font-weight="600" fill="#475569" text-anchor="start">P (預測正例機率)</text>
+                </g>
+              </svg>
+            </div>
+            <div class="flex justify-between items-center text-[11px] text-slate-500 mt-2">
+              <span>💡 提示：綠色虛線為決策邊界 ($P = \theta$)，左側判定為 0、右側判定為 1。紅色外光暈代表錯誤分類點。</span>
+              <span id="logitSampleCountLabel" class="font-mono">樣本數: 30</span>
+            </div>
+          </div>
+
+          <!-- 羅吉斯迴歸指標與混淆矩陣 -->
+          <div class="lg:col-span-4 flex flex-col space-y-4">
+            <div class="bg-white border border-slate-200 rounded-xl p-4">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                <span>分類損失與評估</span>
+                <span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">二元分類</span>
+              </h3>
+              
+              <div class="space-y-2.5">
+                <!-- Log-Loss (BCE) -->
+                <div class="flex justify-between items-center p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs">
+                  <div>
+                    <div class="font-bold text-emerald-950">交叉熵損失 (Log-Loss)</div>
+                    <div class="text-[10px] text-emerald-700">-1/N Σ [y ln(p) + (1-y)ln(1-p)]</div>
+                  </div>
+                  <span id="logitBceMetric" class="font-mono font-bold text-base text-emerald-700">0.000</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                    <div class="text-[10px] text-slate-500">準確率 (Accuracy)</div>
+                    <div id="logitAccMetric" class="font-mono text-sm font-bold text-slate-800 mt-0.5">0.0%</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                    <div class="text-[10px] text-slate-500">錯誤預測數</div>
+                    <div id="logitErrorCountMetric" class="font-mono text-sm font-bold text-rose-600 mt-0.5">0 / 30</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2x2 混淆矩陣 (Confusion Matrix) -->
+            <div class="bg-white border border-slate-200 rounded-xl p-4 flex-1 flex flex-col justify-between">
+              <div>
+                <span class="text-xs font-bold text-slate-700 mb-2 block">混淆矩陣 (Confusion Matrix)</span>
+                <div class="grid grid-cols-2 gap-2 text-center text-xs">
+                  <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+                    <div class="text-[10px] text-emerald-700">真正例 (TP)</div>
+                    <div id="cmTP" class="font-mono font-bold text-emerald-800 text-base">0</div>
+                  </div>
+                  <div class="bg-rose-50 border border-rose-200 rounded-lg p-2">
+                    <div class="text-[10px] text-rose-700">偽正例 (FP)</div>
+                    <div id="cmFP" class="font-mono font-bold text-rose-800 text-base">0</div>
+                  </div>
+                  <div class="bg-rose-50 border border-rose-200 rounded-lg p-2">
+                    <div class="text-[10px] text-rose-700">偽負例 (FN)</div>
+                    <div id="cmFN" class="font-mono font-bold text-rose-800 text-base">0</div>
+                  </div>
+                  <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+                    <div class="text-[10px] text-emerald-700">真負例 (TN)</div>
+                    <div id="cmTN" class="font-mono font-bold text-emerald-800 text-base">0</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 損失軌跡迷你圖 -->
+              <div class="mt-3 pt-3 border-t border-slate-100">
+                <span class="text-[11px] font-bold text-slate-500 block mb-1">交叉熵 (Log-Loss) 歷史軌跡</span>
+                <div class="w-full h-16 bg-slate-50 rounded border border-slate-200 overflow-hidden">
+                  <svg id="logitLossHistorySvg" class="w-full h-full" viewBox="0 0 300 70" preserveAspectRatio="none">
+                    <path id="logitLossLine" fill="none" stroke="#059669" stroke-width="2" d="" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 模組 3: K-近鄰演算法 (KNN Classification) -->
+    <!-- ========================================== -->
+    <section id="sectionKnn" class="module-section hidden space-y-6">
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-6">
+        
+        <!-- KNN 控制工具列 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse"></span>
+              <span class="font-bold text-sm text-slate-800">KNN 近鄰超參數設定</span>
+              <span class="text-xs font-mono text-violet-800 bg-violet-50 px-2.5 py-0.5 border border-violet-200 rounded-full font-semibold">
+                非參數幾何分類模型
+              </span>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="btnKnnRandom" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg shadow-xs transition">
+                隨機生成分群點
+              </button>
+              <button id="btnKnnRecommend" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white rounded-lg shadow-sm transition">
+                推薦最佳 K 值 (LOOCV)
+              </button>
+            </div>
+          </div>
+
+          <!-- KNN 參數調整 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- K 值滑桿 -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200">
+              <div class="flex justify-between items-center text-xs mb-1">
+                <span class="font-medium text-slate-700">鄰居數量 (K)</span>
+                <span class="font-mono font-bold text-violet-700 bg-violet-50 px-2.5 py-0.5 rounded text-sm" id="knnKText">5</span>
+              </div>
+              <input type="range" id="knnKSlider" min="1" max="15" step="2" value="5" class="w-full cursor-pointer">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
+                <span>K=1 (靈敏)</span><span>K=7</span><span>K=15 (平滑)</span>
+              </div>
+            </div>
+
+            <!-- 距離度量選擇 -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-col justify-between">
+              <span class="font-medium text-xs text-slate-700 mb-1">距離度量 (Metric)</span>
+              <div class="flex gap-2">
+                <button id="btnMetricEuclidean" class="flex-1 py-1.5 text-xs font-semibold rounded-lg border border-violet-500 bg-violet-50 text-violet-700 transition">
+                  歐氏距離 (L₂)
+                </button>
+                <button id="btnMetricManhattan" class="flex-1 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition">
+                  曼哈頓 (L₁)
+                </button>
+              </div>
+            </div>
+
+            <!-- 權重模式選擇 -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-col justify-between">
+              <span class="font-medium text-xs text-slate-700 mb-1">投票權重規則</span>
+              <div class="flex gap-2">
+                <button id="btnWeightUniform" class="flex-1 py-1.5 text-xs font-semibold rounded-lg border border-violet-500 bg-violet-50 text-violet-700 transition">
+                  多數均等決 (Uniform)
+                </button>
+                <button id="btnWeightDistance" class="flex-1 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition">
+                  距離反比 (Weighted)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8 flex flex-col bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2 text-xs">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span>
+                  <span class="text-slate-600">類別 A (藍色)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                  <span class="text-slate-600">類別 B (橙色)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full border-2 border-dashed border-violet-600 inline-block"></span>
+                  <span class="text-violet-700 font-bold">🎯 測試探針 (可拖曳/點擊)</span>
+                </div>
+              </div>
+
+              <!-- 顯示決策背景網格開關 -->
+              <label class="flex items-center gap-1.5 text-slate-600 cursor-pointer select-none">
+                <input type="checkbox" id="knnToggleGrid" class="rounded text-violet-600 focus:ring-0">
+                <span>背景決策熱區</span>
+              </label>
+            </div>
+
+            <!-- KNN 2D SVG 畫布 (包含背景 Canvas 用於渲染熱區) -->
+            <div class="relative w-full aspect-[16/10] bg-white rounded-lg border border-slate-200 overflow-hidden shadow-inner">
+              <!-- 背景決策網格 Canvas -->
+              <canvas id="knnDecisionCanvas" width="70" height="45" class="absolute inset-0 w-full h-full opacity-25 pointer-events-none hidden image-rendering-pixelated"></canvas>
+
+              <svg id="knnSvg" class="w-full h-full select-none relative" viewBox="0 0 700 450" preserveAspectRatio="xMidYMid meet">
+                <rect width="100%" height="100%" fill="transparent" />
+                <g id="knnGridGroup"></g>
+                <!-- K 個最近鄰居的連線與範圍圓 -->
+                <circle id="knnNeighborhoodCircle" cx="-100" cy="-100" r="0" fill="rgba(124, 58, 237, 0.08)" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,4" />
+                <g id="knnNeighborLinesGroup"></g>
+                <!-- 資料散點 -->
+                <g id="knnPointsGroup"></g>
+                <!-- 可拖曳的測試探針點 (Probe) -->
+                <g id="knnProbeGroup" class="probe-cursor">
+                  <circle id="knnProbeHalo" cx="350" cy="225" r="16" fill="rgba(124, 58, 237, 0.25)" class="animate-ping" style="animation-duration: 2s;"></circle>
+                  <circle id="knnProbeCircle" cx="350" cy="225" r="11" fill="#7c3aed" stroke="#ffffff" stroke-width="3" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"></circle>
+                  <text id="knnProbeText" x="350" y="229" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">?</text>
+                </g>
+              </svg>
+            </div>
+            <div class="flex justify-between items-center text-[11px] text-slate-500 mt-2">
+              <span>🖱️️ 滑鼠在畫布上移動或拖曳紫色圓球，即時計算該位置的 $K$ 個近鄰居投票！</span>
+              <span id="knnSampleCountLabel" class="font-mono">樣本數: 40</span>
+            </div>
+          </div>
+
+          <!-- KNN 探針預測與投票統計面板 -->
+          <div class="lg:col-span-4 flex flex-col space-y-4">
+            <!-- 即時預測卡片 -->
+            <div class="bg-white border border-slate-200 rounded-xl p-4">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                <span>探針即時預測</span>
+                <span id="knnPredBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">判定中</span>
+              </h3>
+              
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                <div class="text-xs text-slate-500">目前探針判定為：</div>
+                <div id="knnPredictedClassLabel" class="text-lg font-black text-violet-700 mt-0.5">類別 A (藍色)</div>
+                <div id="knnConfidenceLabel" class="text-xs text-slate-500 font-medium mt-1">得票信心度: 80%</div>
+              </div>
+
+              <!-- 投票條狀比例 -->
+              <div class="mt-4 space-y-2">
+                <div class="flex justify-between text-xs font-semibold">
+                  <span class="text-indigo-600 flex items-center gap-1">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> 類別 A 得分
+                  </span>
+                  <span id="knnScoreA" class="font-mono text-slate-800">4 票</span>
+                </div>
+                <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
+                  <div id="knnBarA" class="h-full bg-indigo-500 transition-all duration-200" style="width: 80%;"></div>
+                  <div id="knnBarB" class="h-full bg-amber-500 transition-all duration-200" style="width: 20%;"></div>
+                </div>
+                <div class="flex justify-between text-xs font-semibold">
+                  <span class="text-amber-600 flex items-center gap-1">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> 類別 B 得分
+                  </span>
+                  <span id="knnScoreB" class="font-mono text-slate-800">1 票</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 近鄰細節清單 -->
+            <div class="bg-white border border-slate-200 rounded-xl p-4 flex-1 flex flex-col">
+              <span class="text-xs font-bold text-slate-700 mb-2 flex justify-between items-center">
+                <span>最近之 K 個鄰居明細</span>
+                <span class="text-[10px] text-slate-400 font-normal">依距離排序</span>
+              </span>
+              <div id="knnNeighborList" class="flex-1 overflow-y-auto space-y-1.5 max-h-48 text-xs pr-1">
+                <!-- 動態注入鄰居清單 -->
+              </div>
+              <div class="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                <span>全域 LOOCV 交叉驗證：</span>
+                <span id="knnLoocvAcc" class="font-mono font-bold text-emerald-600">92.5%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    (function () {
+      /* =========================================================
+         全域分頁切換控制
+      ========================================================= */
+      const tabs = {
+        linear: {
+          btn: document.getElementById('tabBtnLinear'),
+          sec: document.getElementById('sectionLinear'),
+          desc: `<p>調整圖表上方的「<strong class="text-indigo-600 font-semibold">權重 (Weight)</strong>」與「<strong class="text-indigo-600 font-semibold">偏差 (Bias)</strong>」滑桿，找出使 <strong class="text-indigo-600">MSE (均方誤差)</strong> 最小的線性迴歸線 (<span class="font-mono bg-slate-100 px-1 rounded">y = wx + b</span>)。可開啟平方誤差塊或點擊「一鍵最優解」觀察最小平方法 (OLS)。</p>`
+        },
+        logistic: {
+          btn: document.getElementById('tabBtnLogistic'),
+          sec: document.getElementById('sectionLogistic'),
+          desc: `<p>調整「<strong class="text-emerald-700 font-semibold">權重 (w)</strong>」控制 Sigmoid 曲線陡峭度、調整「<strong class="text-emerald-700 font-semibold">偏差 (b)</strong>」控制決策門檻左右平移。目標是將分類的 <strong class="text-emerald-700 font-semibold">交叉熵損失 (Binary Cross-Entropy / Log-Loss)</strong> 降至最低，達成最佳分類準確率。</p>`
+        },
+        knn: {
+          btn: document.getElementById('tabBtnKnn'),
+          sec: document.getElementById('sectionKnn'),
+          desc: `<p>在二維特徵空間中，調整「<strong class="text-violet-700 font-semibold">鄰居數 K</strong>」、「距離度量」與「投票權重」。在畫布上<strong>移動或拖曳紫色探針 🎯</strong>，系統會即時動態連結最近的 $K$ 個鄰居並進行多數決投票分類！</p>`
+        }
+      };
+
+      const descContainer = document.getElementById('moduleDescription');
+
+      function switchTab(targetKey) {
+        Object.keys(tabs).forEach(key => {
+          const item = tabs[key];
+          if (key === targetKey) {
+            item.sec.classList.remove('hidden');
+            item.btn.className = "tab-btn px-3 py-1.5 rounded-lg transition-all bg-white text-indigo-700 shadow-sm";
+            descContainer.innerHTML = item.desc;
+          } else {
+            item.sec.classList.add('hidden');
+            item.btn.className = "tab-btn px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900";
+          }
+        });
+
+        // 觸發對應視圖更新
+        if (targetKey === 'linear') LinearModule.update();
+        if (targetKey === 'logistic') LogisticModule.update();
+        if (targetKey === 'knn') KnnModule.update();
+      }
+
+      tabs.linear.btn.addEventListener('click', () => switchTab('linear'));
+      tabs.logistic.btn.addEventListener('click', () => switchTab('logistic'));
+      tabs.knn.btn.addEventListener('click', () => switchTab('knn'));
+
+      /* =========================================================
+         模組 1：線性迴歸模組 (Linear Regression)
+      ========================================================= */
+      const LinearModule = (function () {
+        const state = {
+          xMin: 0, xMax: 4.5,
+          yMin: 0, yMax: 26,
+          svgW: 700, svgH: 450,
+          pad: { top: 30, right: 40, bottom: 60, left: 60 },
+          w: -0.42,
+          b: 16.00,
+          points: [],
+          lossHistory: [],
+          showSquares: false,
+          animId: null
+        };
+
+        const dom = {
+          wSlider: document.getElementById('lrWeightSlider'),
+          bSlider: document.getElementById('lrBiasSlider'),
+          wText: document.getElementById('lrWeightText'),
+          bText: document.getElementById('lrBiasText'),
+          eqText: document.getElementById('lrEquationDisplay'),
+          gridGroup: document.getElementById('lrGridGroup'),
+          squaresGroup: document.getElementById('lrSquaresGroup'),
+          resGroup: document.getElementById('lrResidualsGroup'),
+          line: document.getElementById('lrLine'),
+          ptsGroup: document.getElementById('lrPointsGroup'),
+          l1: document.getElementById('lrMetricL1'),
+          l2: document.getElementById('lrMetricL2'),
+          mse: document.getElementById('lrMetricMse'),
+          rmse: document.getElementById('lrMetricRmse'),
+          r2: document.getElementById('lrMetricR2'),
+          lossLine: document.getElementById('lrLossLine'),
+          lossArea: document.getElementById('lrLossArea'),
+          lossPlaceholder: document.getElementById('lrLossPlaceholder'),
+          toggleSquares: document.getElementById('lrToggleSquares'),
+          btnFit: document.getElementById('btnLrFit'),
+          btnRandom: document.getElementById('btnLrRandom'),
+          btnReset: document.getElementById('btnLrReset'),
+          btnClearHistory: document.getElementById('btnLrClearHistory'),
+          countLabel: document.getElementById('lrCountLabel')
+        };
+
+        function toX(x) {
+          const w = state.svgW - state.pad.left - state.pad.right;
+          return state.pad.left + ((x - state.xMin) / (state.xMax - state.xMin)) * w;
+        }
+
+        function toY(y) {
+          const h = state.svgH - state.pad.top - state.pad.bottom;
+          return state.pad.top + ((state.yMax - y) / (state.yMax - state.yMin)) * h;
+        }
+
+        function generateData(isDefault = false) {
+          const pts = [];
+          if (isDefault) {
+            const xs = [2.0, 2.05, 2.2, 2.25, 2.38, 2.45, 2.6, 2.7, 2.85, 2.9, 3.15, 3.25, 3.32, 3.4, 3.45, 3.58, 3.65, 3.78, 3.82, 3.95];
+            const noises = [-0.2, 0.5, 3.8, 1.5, 0.4, 3.0, 1.2, 0.1, 1.4, 2.8, -1.5, 0.6, 1.3, -3.2, 1.2, 0.5, 1.1, 1.4, 1.2, -1.8];
+            for (let i = 0; i < xs.length; i++) {
+              let y = -4.5 * (xs[i] - 2.5) + 16.5 + (noises[i] || 0) * 1.1;
+              pts.push({ x: xs[i], y: Math.max(1, Math.min(24.5, y)) });
+            }
+          } else {
+            const slope = -3.5 - Math.random() * 2.2;
+            const intercept = 27 + Math.random() * 4;
+            for (let i = 0; i < 20; i++) {
+              const x = 1.8 + Math.random() * 2.2;
+              let y = slope * x + intercept + (Math.random() - 0.5) * 5.5;
+              pts.push({ x: Number(x.toFixed(2)), y: Math.max(2, Math.min(24.5, Number(y.toFixed(2)))) });
+            }
+            pts.sort((a, b) => a.x - b.x);
+          }
+          return pts;
+        }
+
+        function calcOLS() {
+          const n = state.points.length;
+          if (n === 0) return { w: 0, b: 0 };
+          let sumX = 0, sumY = 0;
+          state.points.forEach(p => { sumX += p.x; sumY += p.y; });
+          const mx = sumX / n, my = sumY / n;
+          let num = 0, den = 0;
+          state.points.forEach(p => {
+            num += (p.x - mx) * (p.y - my);
+            den += (p.x - mx) * (p.x - mx);
+          });
+          const optW = den !== 0 ? num / den : 0;
+          const optB = my - optW * mx;
+          return { w: Number(optW.toFixed(3)), b: Number(optB.toFixed(3)) };
+        }
+
+        function renderGrid() {
+          dom.gridGroup.innerHTML = '';
+          for (let x = 0; x <= 4.5; x += 0.5) {
+            const sx = toX(x);
+            const isMain = Number.isInteger(x);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", sx); line.setAttribute("y1", state.pad.top);
+            line.setAttribute("x2", sx); line.setAttribute("y2", state.svgH - state.pad.bottom);
+            line.setAttribute("stroke", isMain ? "#e2e8f0" : "#f8fafc");
+            line.setAttribute("stroke-width", "1");
+            dom.gridGroup.appendChild(line);
+
+            if (isMain) {
+              const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+              t.setAttribute("x", sx); t.setAttribute("y", state.svgH - state.pad.bottom + 18);
+              t.setAttribute("font-size", "11"); t.setAttribute("fill", "#64748b");
+              t.setAttribute("text-anchor", "middle"); t.textContent = x.toString();
+              dom.gridGroup.appendChild(t);
+            }
+          }
+
+          for (let y = 0; y <= 25; y += 5) {
+            const sy = toY(y);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", state.pad.left); line.setAttribute("y1", sy);
+            line.setAttribute("x2", state.svgW - state.pad.right); line.setAttribute("y2", sy);
+            line.setAttribute("stroke", "#e2e8f0"); line.setAttribute("stroke-width", "1");
+            dom.gridGroup.appendChild(line);
+
+            const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            t.setAttribute("x", state.pad.left - 10); t.setAttribute("y", sy + 4);
+            t.setAttribute("font-size", "11"); t.setAttribute("fill", "#64748b");
+            t.setAttribute("text-anchor", "end"); t.textContent = y.toString();
+            dom.gridGroup.appendChild(t);
+          }
+        }
+
+        function renderPoints() {
+          dom.ptsGroup.innerHTML = '';
+          state.points.forEach(p => {
+            const cx = toX(p.x);
+            const cy = toY(p.y);
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", cx); circle.setAttribute("cy", cy); circle.setAttribute("r", "5");
+            circle.setAttribute("fill", "#3b82f6"); circle.setAttribute("stroke", "#ffffff");
+            circle.setAttribute("stroke-width", "2");
+            dom.ptsGroup.appendChild(circle);
+          });
+        }
+
+        function updateVisuals() {
+          dom.wSlider.value = state.w;
+          dom.bSlider.value = state.b;
+          dom.wText.textContent = (state.w >= 0 ? '+' : '') + state.w.toFixed(3);
+          dom.bText.textContent = state.b.toFixed(3);
+          const sign = state.b >= 0 ? '+' : '-';
+          dom.eqText.textContent = `y = ${state.w.toFixed(2)}x ${sign} ${Math.abs(state.b).toFixed(2)}`;
+
+          // 繪製迴歸線
+          const x1 = state.xMin, y1 = state.w * x1 + state.b;
+          const x2 = state.xMax, y2 = state.w * x2 + state.b;
+          dom.line.setAttribute("x1", toX(x1)); dom.line.setAttribute("y1", toY(y1));
+          dom.line.setAttribute("x2", toX(x2)); dom.line.setAttribute("y2", toY(y2));
+
+          // 殘差與平方方塊
+          dom.resGroup.innerHTML = '';
+          dom.squaresGroup.innerHTML = '';
+          let l1 = 0, l2 = 0, sumY = 0;
+          state.points.forEach(p => sumY += p.y);
+          const meanY = sumY / (state.points.length || 1);
+          let tss = 0;
+
+          state.points.forEach(p => {
+            const yHat = state.w * p.x + state.b;
+            const diff = p.y - yHat;
+            l1 += Math.abs(diff);
+            l2 += diff * diff;
+            tss += (p.y - meanY) * (p.y - meanY);
+
+            const sx = toX(p.x), sy = toY(p.y), syHat = toY(yHat);
+
+            const resLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            resLine.setAttribute("x1", sx); resLine.setAttribute("y1", sy);
+            resLine.setAttribute("x2", sx); resLine.setAttribute("y2", syHat);
+            resLine.setAttribute("stroke", "#f97316"); resLine.setAttribute("stroke-width", "2.5");
+            resLine.setAttribute("stroke-linecap", "round");
+            dom.resGroup.appendChild(resLine);
+
+            if (state.showSquares) {
+              const side = Math.abs(syHat - sy);
+              if (side > 0.5) {
+                const sq = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                sq.setAttribute("x", sx);
+                sq.setAttribute("y", Math.min(sy, syHat));
+                sq.setAttribute("width", side); sq.setAttribute("height", side);
+                sq.setAttribute("fill", "#fb923c"); sq.setAttribute("fill-opacity", "0.22");
+                sq.setAttribute("stroke", "#ea580c"); sq.setAttribute("stroke-width", "1");
+                sq.setAttribute("stroke-dasharray", "2,2");
+                dom.squaresGroup.appendChild(sq);
+              }
+            }
+          });
+
+          const n = state.points.length || 1;
+          const mse = l2 / n;
+          const rmse = Math.sqrt(mse);
+          const r2 = tss > 0 ? (1 - l2 / tss) : 0;
+
+          dom.l1.textContent = l1.toFixed(2);
+          dom.l2.textContent = l2.toFixed(2);
+          dom.mse.textContent = mse.toFixed(2);
+          dom.rmse.textContent = rmse.toFixed(2);
+          dom.r2.textContent = r2.toFixed(3);
+
+          recordLoss(mse);
+        }
+
+        function recordLoss(mse) {
+          state.lossHistory.push(mse);
+          if (state.lossHistory.length > 40) state.lossHistory.shift();
+
+          if (state.lossHistory.length < 2) {
+            dom.lossPlaceholder.style.display = "block";
+            dom.lossLine.setAttribute("d", "");
+            dom.lossArea.setAttribute("d", "");
+            return;
+          }
+          dom.lossPlaceholder.style.display = "none";
+
+          const w = 300, h = 120, px = 15, py = 15;
+          const max = Math.max(...state.lossHistory, 15);
+          const min = Math.min(...state.lossHistory, 0);
+          const range = (max - min) || 1;
+
+          let d = "";
+          state.lossHistory.forEach((v, i) => {
+            const x = px + (i / (state.lossHistory.length - 1)) * (w - px * 2);
+            const y = h - py - ((v - min) / range) * (h - py * 2);
+            d += (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+          });
+
+          dom.lossLine.setAttribute("d", d);
+          dom.lossArea.setAttribute("d", `${d} L ${w - px} ${h} L ${px} ${h} Z`);
+        }
+
+        function animateTo(tw, tb) {
+          if (state.animId) cancelAnimationFrame(state.animId);
+          const sw = state.w, sb = state.b;
+          const start = performance.now();
+          function step(now) {
+            const t = Math.min(1, (now - start) / 600);
+            const ease = 1 - Math.pow(1 - t, 3);
+            state.w = sw + (tw - sw) * ease;
+            state.b = sb + (tb - sb) * ease;
+            updateVisuals();
+            if (t < 1) state.animId = requestAnimationFrame(step);
+          }
+          state.animId = requestAnimationFrame(step);
+        }
+
+        // 事件綁定
+        dom.wSlider.addEventListener('input', e => { state.w = parseFloat(e.target.value); updateVisuals(); });
+        dom.bSlider.addEventListener('input', e => { state.b = parseFloat(e.target.value); updateVisuals(); });
+        dom.toggleSquares.addEventListener('change', e => {
+          state.showSquares = e.target.checked;
+          dom.squaresGroup.setAttribute("opacity", state.showSquares ? "1" : "0");
+          updateVisuals();
+        });
+        dom.btnFit.addEventListener('click', () => {
+          const opt = calcOLS();
+          animateTo(opt.w, opt.b);
+        });
+        dom.btnRandom.addEventListener('click', () => {
+          state.points = generateData(false);
+          renderPoints();
+          updateVisuals();
+        });
+        dom.btnReset.addEventListener('click', () => {
+          state.points = generateData(true);
+          renderPoints();
+          animateTo(-0.42, 16.00);
+        });
+        dom.btnClearHistory.addEventListener('click', () => {
+          state.lossHistory = [];
+          updateVisuals();
+        });
+
+        function init() {
+          renderGrid();
+          state.points = generateData(true);
+          renderPoints();
+          updateVisuals();
+        }
+
+        return { init, update: updateVisuals };
+      })();
+
+      /* =========================================================
+         模組 2：羅吉斯迴歸模組 (Logistic Regression)
+      ========================================================= */
+      const LogisticModule = (function () {
+        const state = {
+          xMin: 0, xMax: 10,
+          yMin: 0, yMax: 1,
+          svgW: 700, svgH: 450,
+          pad: { top: 35, right: 40, bottom: 60, left: 60 },
+          w: 1.2,
+          b: -6.0,
+          threshold: 0.5,
+          points: [],
+          lossHistory: [],
+          animId: null
+        };
+
+        const dom = {
+          wSlider: document.getElementById('logitWeightSlider'),
+          bSlider: document.getElementById('logitBiasSlider'),
+          thSlider: document.getElementById('logitThresholdSlider'),
+          wText: document.getElementById('logitWeightText'),
+          bText: document.getElementById('logitBiasText'),
+          thText: document.getElementById('logitThresholdText'),
+          eqText: document.getElementById('logitEquationDisplay'),
+          boundaryVal: document.getElementById('logitBoundaryVal'),
+          gridGroup: document.getElementById('logitGridGroup'),
+          curvePath: document.getElementById('logitCurvePath'),
+          thLine: document.getElementById('logitThresholdLine'),
+          bdLine: document.getElementById('logitBoundaryLine'),
+          ptsGroup: document.getElementById('logitPointsGroup'),
+          probLinesGroup: document.getElementById('logitProbLinesGroup'),
+          bceMetric: document.getElementById('logitBceMetric'),
+          accMetric: document.getElementById('logitAccMetric'),
+          errCountMetric: document.getElementById('logitErrorCountMetric'),
+          cmTP: document.getElementById('cmTP'),
+          cmFP: document.getElementById('cmFP'),
+          cmFN: document.getElementById('cmFN'),
+          cmTN: document.getElementById('cmTN'),
+          lossLine: document.getElementById('logitLossLine'),
+          btnFit: document.getElementById('btnLogitFit'),
+          btnRandom: document.getElementById('btnLogitRandom'),
+          btnReset: document.getElementById('btnLogitReset')
+        };
+
+        function sigmoid(z) {
+          return 1 / (1 + Math.exp(-Math.max(-25, Math.min(25, z))));
+        }
+
+        function toX(x) {
+          const w = state.svgW - state.pad.left - state.pad.right;
+          return state.pad.left + ((x - state.xMin) / (state.xMax - state.xMin)) * w;
+        }
+
+        function toY(y) {
+          const h = state.svgH - state.pad.top - state.pad.bottom;
+          return state.pad.top + ((state.yMax - y) / (state.yMax - state.yMin)) * h;
+        }
+
+        function generateData() {
+          const pts = [];
+          // 產生 30 個點：前 15 個以低 x 為主 (類別 0)，後 15 個以高 x 為主 (類別 1)，具備微量重疊邊界
+          for (let i = 0; i < 15; i++) {
+            const x = Math.max(0.5, Math.min(6.2, 1.2 + Math.random() * 4.2));
+            pts.push({ x: Number(x.toFixed(2)), y: 0 });
+          }
+          for (let i = 0; i < 15; i++) {
+            const x = Math.max(3.8, Math.min(9.5, 4.3 + Math.random() * 4.9));
+            pts.push({ x: Number(x.toFixed(2)), y: 1 });
+          }
+          pts.sort((a, b) => a.x - b.x);
+          return pts;
+        }
+
+        function renderGrid() {
+          dom.gridGroup.innerHTML = '';
+          // X 軸 (0 ~ 10)
+          for (let x = 0; x <= 10; x += 1) {
+            const sx = toX(x);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", sx); line.setAttribute("y1", state.pad.top);
+            line.setAttribute("x2", sx); line.setAttribute("y2", state.svgH - state.pad.bottom);
+            line.setAttribute("stroke", "#f1f5f9"); line.setAttribute("stroke-width", "1");
+            dom.gridGroup.appendChild(line);
+
+            const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            t.setAttribute("x", sx); t.setAttribute("y", state.svgH - state.pad.bottom + 18);
+            t.setAttribute("font-size", "11"); t.setAttribute("fill", "#64748b");
+            t.setAttribute("text-anchor", "middle"); t.textContent = x.toString();
+            dom.gridGroup.appendChild(t);
+          }
+
+          // Y 軸 (0, 0.5, 1.0)
+          [0, 0.25, 0.5, 0.75, 1.0].forEach(y => {
+            const sy = toY(y);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", state.pad.left); line.setAttribute("y1", sy);
+            line.setAttribute("x2", state.svgW - state.pad.right); line.setAttribute("y2", sy);
+            line.setAttribute("stroke", y === 0.5 ? "#e2e8f0" : "#f1f5f9");
+            line.setAttribute("stroke-width", "1");
+            dom.gridGroup.appendChild(line);
+
+            const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            t.setAttribute("x", state.pad.left - 10); t.setAttribute("y", sy + 4);
+            t.setAttribute("font-size", "11"); t.setAttribute("fill", "#64748b");
+            t.setAttribute("text-anchor", "end"); t.textContent = y.toFixed(1);
+            dom.gridGroup.appendChild(t);
+          });
+        }
+
+        function updateVisuals() {
+          dom.wSlider.value = state.w;
+          dom.bSlider.value = state.b;
+          dom.thSlider.value = state.threshold;
+          dom.wText.textContent = (state.w >= 0 ? '+' : '') + state.w.toFixed(2);
+          dom.bText.textContent = state.b.toFixed(2);
+          dom.thText.textContent = state.threshold.toFixed(2);
+
+          const sign = state.b >= 0 ? '+' : '-';
+          dom.eqText.textContent = `P(y=1) = σ(${state.w.toFixed(2)}x ${sign} ${Math.abs(state.b).toFixed(2)})`;
+
+          // 決策邊界點 x: w * x + b = ln(th / (1 - th))
+          let boundaryX = 0;
+          if (Math.abs(state.w) > 0.001) {
+            const logitTh = Math.log(state.threshold / (1 - state.threshold));
+            boundaryX = (logitTh - state.b) / state.w;
+            dom.boundaryVal.textContent = boundaryX.toFixed(2);
+          } else {
+            dom.boundaryVal.textContent = "無定義 (w≈0)";
+          }
+
+          // 繪製閥值水平線
+          const thY = toY(state.threshold);
+          dom.thLine.setAttribute("x1", state.pad.left); dom.thLine.setAttribute("y1", thY);
+          dom.thLine.setAttribute("x2", state.svgW - state.pad.right); dom.thLine.setAttribute("y2", thY);
+
+          // 繪製垂直決策邊界線
+          if (boundaryX >= state.xMin && boundaryX <= state.xMax) {
+            const bxPx = toX(boundaryX);
+            dom.bdLine.setAttribute("x1", bxPx); dom.bdLine.setAttribute("y1", state.pad.top);
+            dom.bdLine.setAttribute("x2", bxPx); dom.bdLine.setAttribute("y2", state.svgH - state.pad.bottom);
+            dom.bdLine.style.display = "block";
+          } else {
+            dom.bdLine.style.display = "none";
+          }
+
+          // 繪製 Sigmoid 曲線路徑
+          let curveD = "";
+          const steps = 80;
+          for (let i = 0; i <= steps; i++) {
+            const x = state.xMin + (i / steps) * (state.xMax - state.xMin);
+            const prob = sigmoid(state.w * x + state.b);
+            const px = toX(x);
+            const py = toY(prob);
+            curveD += (i === 0 ? `M ${px} ${py}` : ` L ${px} ${py}`);
+          }
+          dom.curvePath.setAttribute("d", curveD);
+
+          // 計算指標、繪製資料點與殘差垂線
+          dom.ptsGroup.innerHTML = '';
+          dom.probLinesGroup.innerHTML = '';
+
+          let totalBce = 0;
+          let tp = 0, fp = 0, fn = 0, tn = 0;
+          const eps = 1e-7;
+
+          state.points.forEach(p => {
+            const prob = sigmoid(state.w * p.x + state.b);
+            const pred = prob >= state.threshold ? 1 : 0;
+            const isError = pred !== p.y;
+
+            // 統計混淆矩陣
+            if (p.y === 1 && pred === 1) tp++;
+            else if (p.y === 0 && pred === 1) fp++;
+            else if (p.y === 1 && pred === 0) fn++;
+            else if (p.y === 0 && pred === 0) tn++;
+
+            // BCE 損失累加
+            const loss_i = -(p.y * Math.log(prob + eps) + (1 - p.y) * Math.log(1 - prob + eps));
+            totalBce += loss_i;
+
+            const sx = toX(p.x);
+            // 輕微上下 jitter 讓重疊點清晰可見
+            const jitterY = (p.y === 1 ? 0.98 : 0.02) + (Math.sin(p.x * 15) * 0.035);
+            const sy = toY(jitterY);
+            const sProbY = toY(prob);
+
+            // 垂線 (預測機率與真實標籤落差)
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", sx); line.setAttribute("y1", sy);
+            line.setAttribute("x2", sx); line.setAttribute("y2", sProbY);
+            line.setAttribute("stroke", isError ? "#f43f5e" : "#cbd5e1");
+            line.setAttribute("stroke-width", isError ? "2" : "1");
+            line.setAttribute("stroke-dasharray", isError ? "2,2" : "1,2");
+            dom.probLinesGroup.appendChild(line);
+
+            // 錯誤外環
+            if (isError) {
+              const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              ring.setAttribute("cx", sx); ring.setAttribute("cy", sy);
+              ring.setAttribute("r", "10"); ring.setAttribute("fill", "none");
+              ring.setAttribute("stroke", "#f43f5e"); ring.setAttribute("stroke-width", "2");
+              dom.ptsGroup.appendChild(ring);
+            }
+
+            // 散點核心
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", sx); circle.setAttribute("cy", sy);
+            circle.setAttribute("r", "6");
+            circle.setAttribute("fill", p.y === 1 ? "#10b981" : "#f43f5e");
+            circle.setAttribute("stroke", "#ffffff"); circle.setAttribute("stroke-width", "2");
+            dom.ptsGroup.appendChild(circle);
+          });
+
+          const n = state.points.length || 1;
+          const bce = totalBce / n;
+          const acc = ((tp + tn) / n) * 100;
+          const errCount = fp + fn;
+
+          dom.bceMetric.textContent = bce.toFixed(3);
+          dom.accMetric.textContent = acc.toFixed(1) + "%";
+          dom.errCountMetric.textContent = `${errCount} / ${n}`;
+
+          dom.cmTP.textContent = tp;
+          dom.cmFP.textContent = fp;
+          dom.cmFN.textContent = fn;
+          dom.cmTN.textContent = tn;
+
+          // 記錄損失折線
+          state.lossHistory.push(bce);
+          if (state.lossHistory.length > 30) state.lossHistory.shift();
+          renderLossHistory();
+        }
+
+        function renderLossHistory() {
+          if (state.lossHistory.length < 2) return;
+          const w = 300, h = 70, px = 10, py = 8;
+          const max = Math.max(...state.lossHistory, 1.5);
+          const min = Math.min(...state.lossHistory, 0);
+          const range = (max - min) || 1;
+
+          let d = "";
+          state.lossHistory.forEach((v, i) => {
+            const x = px + (i / (state.lossHistory.length - 1)) * (w - px * 2);
+            const y = h - py - ((v - min) / range) * (h - py * 2);
+            d += (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+          });
+          dom.lossLine.setAttribute("d", d);
+        }
+
+        // 梯度下降自動最佳化擬合
+        function gradientDescentOptimal() {
+          let currW = state.w, currB = state.b;
+          const lr = 0.08;
+          const epochs = 120;
+          const n = state.points.length;
+
+          for (let ep = 0; ep < epochs; ep++) {
+            let gradW = 0, gradB = 0;
+            for (let i = 0; i < n; i++) {
+              const p = state.points[i];
+              const prob = sigmoid(currW * p.x + currB);
+              const err = prob - p.y;
+              gradW += err * p.x;
+              gradB += err;
+            }
+            currW -= (lr * gradW) / n;
+            currB -= (lr * gradB) / n;
+          }
+
+          // 動畫補間平滑過渡
+          if (state.animId) cancelAnimationFrame(state.animId);
+          const startW = state.w, startB = state.b;
+          const start = performance.now();
+          function step(now) {
+            const t = Math.min(1, (now - start) / 500);
+            const ease = 1 - Math.pow(1 - t, 3);
+            state.w = startW + (currW - startW) * ease;
+            state.b = startB + (currB - startB) * ease;
+            updateVisuals();
+            if (t < 1) state.animId = requestAnimationFrame(step);
+          }
+          state.animId = requestAnimationFrame(step);
+        }
+
+        // 事件綁定
+        dom.wSlider.addEventListener('input', e => { state.w = parseFloat(e.target.value); updateVisuals(); });
+        dom.bSlider.addEventListener('input', e => { state.b = parseFloat(e.target.value); updateVisuals(); });
+        dom.thSlider.addEventListener('input', e => { state.threshold = parseFloat(e.target.value); updateVisuals(); });
+        dom.btnFit.addEventListener('click', gradientDescentOptimal);
+        dom.btnRandom.addEventListener('click', () => {
+          state.points = generateData();
+          updateVisuals();
+        });
+        dom.btnReset.addEventListener('click', () => {
+          state.w = 1.2; state.b = -6.0; state.threshold = 0.5;
+          updateVisuals();
+        });
+
+        function init() {
+          renderGrid();
+          state.points = generateData();
+          updateVisuals();
+        }
+
+        return { init, update: updateVisuals };
+      })();
+
+      /* =========================================================
+         模組 3：K-近鄰演算法模組 (K-Nearest Neighbors)
+      ========================================================= */
+      const KnnModule = (function () {
+        const state = {
+          svgW: 700, svgH: 450,
+          k: 5,
+          metric: 'euclidean', // 'euclidean' | 'manhattan'
+          weightMode: 'uniform', // 'uniform' | 'distance'
+          showGrid: false,
+          points: [],
+          probe: { x: 350, y: 225 },
+          isDraggingProbe: false
+        };
+
+        const dom = {
+          kSlider: document.getElementById('knnKSlider'),
+          kText: document.getElementById('knnKText'),
+          btnEuclidean: document.getElementById('btnMetricEuclidean'),
+          btnManhattan: document.getElementById('btnMetricManhattan'),
+          btnUniform: document.getElementById('btnWeightUniform'),
+          btnDistance: document.getElementById('btnWeightDistance'),
+          btnRandom: document.getElementById('btnKnnRandom'),
+          btnRecommend: document.getElementById('btnKnnRecommend'),
+          toggleGrid: document.getElementById('knnToggleGrid'),
+          canvas: document.getElementById('knnDecisionCanvas'),
+          svg: document.getElementById('knnSvg'),
+          gridGroup: document.getElementById('knnGridGroup'),
+          ptsGroup: document.getElementById('knnPointsGroup'),
+          linesGroup: document.getElementById('knnNeighborLinesGroup'),
+          circle: document.getElementById('knnNeighborhoodCircle'),
+          probeGroup: document.getElementById('knnProbeGroup'),
+          probeCircle: document.getElementById('knnProbeCircle'),
+          probeText: document.getElementById('knnProbeText'),
+          probeHalo: document.getElementById('knnProbeHalo'),
+          predBadge: document.getElementById('knnPredBadge'),
+          predLabel: document.getElementById('knnPredictedClassLabel'),
+          confLabel: document.getElementById('knnConfidenceLabel'),
+          scoreA: document.getElementById('knnScoreA'),
+          scoreB: document.getElementById('knnScoreB'),
+          barA: document.getElementById('knnBarA'),
+          barB: document.getElementById('knnBarB'),
+          neighborList: document.getElementById('knnNeighborList'),
+          loocvAcc: document.getElementById('knnLoocvAcc'),
+          countLabel: document.getElementById('knnSampleCountLabel')
+        };
+
+        function dist(x1, y1, x2, y2) {
+          if (state.metric === 'manhattan') {
+            return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+          }
+          return Math.hypot(x1 - x2, y1 - y2);
+        }
+
+        function generateData() {
+          const pts = [];
+          // 類別 A (藍色，左側偏上聚落)
+          for (let i = 0; i < 20; i++) {
+            const cx = 220 + (Math.random() - 0.5) * 220;
+            const cy = 180 + (Math.random() - 0.5) * 190;
+            pts.push({ x: Math.max(60, Math.min(640, cx)), y: Math.max(50, Math.min(400, cy)), cls: 0 });
+          }
+          // 類別 B (橙色，右側偏下聚落)
+          for (let i = 0; i < 20; i++) {
+            const cx = 480 + (Math.random() - 0.5) * 220;
+            const cy = 280 + (Math.random() - 0.5) * 190;
+            pts.push({ x: Math.max(60, Math.min(640, cx)), y: Math.max(50, Math.min(400, cy)), cls: 1 });
+          }
+          return pts;
+        }
+
+        function renderPoints() {
+          dom.ptsGroup.innerHTML = '';
+          state.points.forEach(p => {
+            const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            c.setAttribute("cx", p.x); c.setAttribute("cy", p.y); c.setAttribute("r", "6");
+            c.setAttribute("fill", p.cls === 0 ? "#6366f1" : "#f59e0b");
+            c.setAttribute("stroke", "#ffffff"); c.setAttribute("stroke-width", "2");
+            dom.ptsGroup.appendChild(c);
+          });
+        }
+
+        function evaluateAt(qx, qy, excludeIndex = -1) {
+          const distances = [];
+          for (let i = 0; i < state.points.length; i++) {
+            if (i === excludeIndex) continue;
+            const p = state.points[i];
+            const d = dist(qx, qy, p.x, p.y);
+            distances.push({ index: i, point: p, dist: d });
+          }
+          distances.sort((a, b) => a.dist - b.dist);
+
+          const kNearest = distances.slice(0, Math.min(state.k, distances.length));
+          let scoreA = 0, scoreB = 0;
+
+          kNearest.forEach(n => {
+            const weight = state.weightMode === 'distance' ? 1 / (Math.max(1, n.dist)) : 1;
+            if (n.point.cls === 0) scoreA += weight;
+            else scoreB += weight;
+          });
+
+          const total = scoreA + scoreB || 1;
+          const probA = scoreA / total;
+          const predCls = probA >= 0.5 ? 0 : 1;
+
+          return { kNearest, scoreA, scoreB, probA, predCls };
+        }
+
+        function updateVisuals() {
+          dom.kSlider.value = state.k;
+          dom.kText.textContent = state.k;
+
+          // 計算探針位置的 KNN
+          const res = evaluateAt(state.probe.x, state.probe.y);
+
+          // 更新探針位置
+          dom.probeCircle.setAttribute("cx", state.probe.x);
+          dom.probeCircle.setAttribute("cy", state.probe.y);
+          dom.probeHalo.setAttribute("cx", state.probe.x);
+          dom.probeHalo.setAttribute("cy", state.probe.y);
+          dom.probeText.setAttribute("x", state.probe.x);
+          dom.probeText.setAttribute("y", state.probe.y + 4);
+
+          const themeColor = res.predCls === 0 ? "#6366f1" : "#f59e0b";
+          dom.probeCircle.setAttribute("fill", themeColor);
+
+          // 繪製與 K 個鄰居的連線
+          dom.linesGroup.innerHTML = '';
+          dom.neighborList.innerHTML = '';
+
+          let maxDist = 0;
+          res.kNearest.forEach((n, idx) => {
+            if (n.dist > maxDist) maxDist = n.dist;
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", state.probe.x); line.setAttribute("y1", state.probe.y);
+            line.setAttribute("x2", n.point.x); line.setAttribute("y2", n.point.y);
+            line.setAttribute("stroke", n.point.cls === 0 ? "#818cf8" : "#fbbf24");
+            line.setAttribute("stroke-width", "1.8");
+            line.setAttribute("stroke-dasharray", "3,3");
+            dom.linesGroup.appendChild(line);
+
+            // 側欄列表項目
+            const item = document.createElement("div");
+            item.className = "flex justify-between items-center p-1.5 rounded bg-slate-50 border border-slate-100";
+            item.innerHTML = `
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full ${n.point.cls === 0 ? 'bg-indigo-500' : 'bg-amber-500'}"></span>
+                <span class="font-medium text-slate-700">#${idx + 1} ${n.point.cls === 0 ? '類別 A' : '類別 B'}</span>
+              </div>
+              <span class="font-mono text-slate-500 text-[11px]">${n.dist.toFixed(1)} px</span>
+            `;
+            dom.neighborList.appendChild(item);
+          });
+
+          // 探針最外圍近鄰半徑圓
+          if (res.kNearest.length > 0 && state.metric === 'euclidean') {
+            dom.circle.setAttribute("cx", state.probe.x);
+            dom.circle.setAttribute("cy", state.probe.y);
+            dom.circle.setAttribute("r", maxDist);
+            dom.circle.style.display = "block";
+          } else {
+            dom.circle.style.display = "none";
+          }
+
+          // 更新卡片指標
+          const isA = res.predCls === 0;
+          dom.predBadge.textContent = isA ? "預測為 A" : "預測為 B";
+          dom.predBadge.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${isA ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`;
+          dom.predLabel.textContent = isA ? "類別 A (藍色)" : "類別 B (橙色)";
+          dom.predLabel.className = `text-lg font-black mt-0.5 ${isA ? 'text-indigo-600' : 'text-amber-600'}`;
+
+          const conf = isA ? res.probA : (1 - res.probA);
+          dom.confLabel.textContent = `得票信心度: ${(conf * 100).toFixed(1)}%`;
+
+          dom.scoreA.textContent = state.weightMode === 'uniform' ? `${res.scoreA} 票` : res.scoreA.toFixed(2);
+          dom.scoreB.textContent = state.weightMode === 'uniform' ? `${res.scoreB} 票` : res.scoreB.toFixed(2);
+          dom.barA.style.width = `${(res.probA * 100).toFixed(1)}%`;
+          dom.barB.style.width = `${((1 - res.probA) * 100).toFixed(1)}%`;
+
+          // 計算 LOOCV 交叉驗證
+          calcLOOCV();
+
+          // 重新繪製背景決策熱區
+          if (state.showGrid) renderDecisionCanvas();
+        }
+
+        function calcLOOCV() {
+          let correct = 0;
+          const n = state.points.length;
+          if (n === 0) return;
+          for (let i = 0; i < n; i++) {
+            const p = state.points[i];
+            const pred = evaluateAt(p.x, p.y, i).predCls;
+            if (pred === p.cls) correct++;
+          }
+          const acc = (correct / n) * 100;
+          dom.loocvAcc.textContent = `${acc.toFixed(1)}%`;
+          return acc;
+        }
+
+        function renderDecisionCanvas() {
+          const ctx = dom.canvas.getContext('2d');
+          const cw = dom.canvas.width;
+          const ch = dom.canvas.height;
+          const imgData = ctx.createImageData(cw, ch);
+          const data = imgData.data;
+
+          for (let cy = 0; cy < ch; cy++) {
+            const py = (cy / ch) * state.svgH;
+            for (let cx = 0; cx < cw; cx++) {
+              const px = (cx / cw) * state.svgW;
+              const res = evaluateAt(px, py);
+              const idx = (cy * cw + cx) * 4;
+              if (res.predCls === 0) {
+                // 藍色區
+                data[idx] = 99; data[idx + 1] = 102; data[idx + 2] = 241; data[idx + 3] = 160;
+              } else {
+                // 橙色區
+                data[idx] = 245; data[idx + 1] = 158; data[idx + 2] = 11; data[idx + 3] = 160;
+              }
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+        }
+
+        // 自動推薦最佳 K (測試 1, 3, 5, 7, 9, 11, 13, 15)
+        function recommendBestK() {
+          const candidateKs = [1, 3, 5, 7, 9, 11, 13, 15];
+          let bestK = state.k;
+          let bestAcc = -1;
+          const origK = state.k;
+
+          candidateKs.forEach(k => {
+            state.k = k;
+            const acc = calcLOOCV();
+            if (acc > bestAcc) {
+              bestAcc = acc;
+              bestK = k;
+            }
+          });
+
+          state.k = bestK;
+          updateVisuals();
+        }
+
+        // 探針拖曳與畫布點擊事件
+        function handlePointer(e) {
+          const rect = dom.svg.getBoundingClientRect();
+          const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+          const x = ((clientX - rect.left) / rect.width) * state.svgW;
+          const y = ((clientY - rect.top) / rect.height) * state.svgH;
+
+          state.probe.x = Math.max(20, Math.min(state.svgW - 20, x));
+          state.probe.y = Math.max(20, Math.min(state.svgH - 20, y));
+          updateVisuals();
+        }
+
+        dom.probeGroup.addEventListener('mousedown', () => { state.isDraggingProbe = true; });
+        dom.probeGroup.addEventListener('touchstart', () => { state.isDraggingProbe = true; }, { passive: true });
+
+        window.addEventListener('mousemove', e => {
+          if (state.isDraggingProbe) handlePointer(e);
+        });
+        window.addEventListener('touchmove', e => {
+          if (state.isDraggingProbe) handlePointer(e);
+        }, { passive: true });
+
+        window.addEventListener('mouseup', () => { state.isDraggingProbe = false; });
+        window.addEventListener('touchend', () => { state.isDraggingProbe = false; });
+
+        // 點擊畫布直接移動探針
+        dom.svg.addEventListener('click', e => {
+          handlePointer(e);
+        });
+
+        // 控制器事件
+        dom.kSlider.addEventListener('input', e => {
+          state.k = parseInt(e.target.value, 10);
+          updateVisuals();
+        });
+
+        dom.btnEuclidean.addEventListener('click', () => {
+          state.metric = 'euclidean';
+          dom.btnEuclidean.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg border border-violet-500 bg-violet-50 text-violet-700 transition";
+          dom.btnManhattan.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition";
+          updateVisuals();
+        });
+
+        dom.btnManhattan.addEventListener('click', () => {
+          state.metric = 'manhattan';
+          dom.btnManhattan.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg border border-violet-500 bg-violet-50 text-violet-700 transition";
+          dom.btnEuclidean.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition";
+          updateVisuals();
+        });
+
+        dom.btnUniform.addEventListener('click', () => {
+          state.weightMode = 'uniform';
+          dom.btnUniform.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg border border-violet-500 bg-violet-50 text-violet-700 transition";
+          dom.btnDistance.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition";
+          updateVisuals();
+        });
+
+        dom.btnDistance.addEventListener('click', () => {
+          state.weightMode = 'distance';
+          dom.btnDistance.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg border border-violet-500 bg-violet-50 text-violet-700 transition";
+          dom.btnUniform.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition";
+          updateVisuals();
+        });
+
+        dom.btnRandom.addEventListener('click', () => {
+          state.points = generateData();
+          renderPoints();
+          updateVisuals();
+        });
+
+        dom.btnRecommend.addEventListener('click', recommendBestK);
+
+        dom.toggleGrid.addEventListener('change', e => {
+          state.showGrid = e.target.checked;
+          if (state.showGrid) {
+            dom.canvas.classList.remove('hidden');
+            renderDecisionCanvas();
+          } else {
+            dom.canvas.classList.add('hidden');
+          }
+        });
+
+        function init() {
+          state.points = generateData();
+          renderPoints();
+          updateVisuals();
+        }
+
+        return { init, update: updateVisuals };
+      })();
+
+      // 頁面初始化
+      LinearModule.init();
+      LogisticModule.init();
+      KnnModule.init();
+      switchTab('linear');
+    })();
+  </script>
+</body>
+</html>
