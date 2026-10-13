@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>貓狗 AI 辨識輸送帶 × 混淆矩陣動態實驗室 Onion.Jung</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cat: {
+              light: '#fef3c7',
+              DEFAULT: '#f59e0b',
+              dark: '#b45309'
+            },
+            dog: {
+              light: '#e0e7ff',
+              DEFAULT: '#6366f1',
+              dark: '#4338ca'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 滑桿自訂美化 */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      height: 6px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4f46e5;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: transform 0.1s, background-color 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    /* 輸送帶履帶滾動條紋 */
+    .conveyor-belt {
+      background: repeating-linear-gradient(
+        90deg,
+        #334155,
+        #334155 18px,
+        #1e293b 18px,
+        #1e293b 36px
+      );
+      animation: beltMove 1.5s linear infinite;
+    }
+    .conveyor-paused {
+      animation-play-state: paused !important;
+    }
+    @keyframes beltMove {
+      from { background-position: 0 0; }
+      to { background-position: 36px 0; }
+    }
+    /* 掃描射線光效 */
+    @keyframes scannerGlow {
+      0%, 100% { opacity: 0.2; transform: translateY(-3px); }
+      50% { opacity: 0.9; transform: translateY(3px); }
+    }
+    .scanner-beam {
+      animation: scannerGlow 1.2s ease-in-out infinite;
+    }
+    /* 科幻 HUD 瞄準角標動效 */
+    .hud-corner {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-color: #22d3ee;
+      border-style: solid;
+    }
+    /* 數字跳動放大 */
+    .num-bounce {
+      animation: numBump 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes numBump {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.35); filter: drop-shadow(0 0 8px rgba(99,102,241,0.6)); }
+      100% { transform: scale(1); }
+    }
+    /* 飛入動畫 */
+    .fly-item {
+      transition: all 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    /* 網格陰影與漸層 */
+    .matrix-tile {
+      transition: background-color 0.3s, border-color 0.3s, transform 0.2s;
+    }
+    .matrix-tile:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased selection:bg-indigo-100 selection:text-indigo-800">
+  
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-5">
+    
+    <!-- 頂部標題與核心設定列 -->
+    <header class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-indigo-100">
+            🐱🐶
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">貓狗辨識輸送帶 × 混淆矩陣實驗室</h1>
+              <span class="text-[14px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">正例 (Positive) = 貓 🐱</span>
+              <span class="text-[14px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">負例 (Negative) = 狗 🐶</span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">觀察小動物排隊通過 AI 掃描機，看分類決策如何即時落入混淆矩陣四大象限！</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 調節參數工具條 -->
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600">
+        <div class="flex items-center gap-5 flex-wrap">
+          <!-- 速度調整 -->
+          <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span class="font-semibold text-slate-500">輸送帶速度：</span>
+            <input type="range" id="sliderSpeed" min="400" max="2200" step="100" value="1200" class="w-24">
+            <span id="speedLabel" class="font-mono text-slate-700 font-bold">一般</span>
+          </div>
+
+          <!-- 模型預設辨識準確率 (控制產生誤判機率) -->
+          <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span class="font-semibold text-slate-500">AI 聰明程度 (基本準確率)：</span>
+            <input type="range" id="sliderModelAccuracy" min="40" max="98" step="2" value="82" class="w-28">
+            <span id="modelAccuracyLabel" class="font-mono text-indigo-700 font-bold">82%</span>
+          </div>
+
+          <!-- 貓狗出現比例 -->
+          <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span class="font-semibold text-slate-500">貓咪出現機率：</span>
+            <select id="selectCatRatio" class="bg-white border border-slate-300 rounded-lg px-2 py-0.5 font-semibold text-slate-700 focus:outline-none">
+              <option value="0.5">50% 貓 / 50% 狗 (均衡)</option>
+              <option value="0.8">80% 貓 (多數貓)</option>
+              <option value="0.2">20% 貓 (罕見貓)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="font-mono text-slate-500 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-bold">
+          已辨識總數 N = <span id="totalCountDisplay" class="text-indigo-600 font-black">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ======================================================== -->
+    <!-- 輸送帶列隊展示區 (Conveyor Belt & AI Scanner) -->
+    <!-- ======================================================== -->
+    <div class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs relative overflow-hidden">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">動物排隊進場中（由右至左前進）</span>
+        </div>
+        <!-- 辨識控制按鈕組 -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="btnPlayPause" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition active:scale-95">
+            <span id="playIcon">▶</span> <span id="playText">開始自動辨識</span>
+          </button>
+          <button id="btnStep" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl transition active:scale-95 shadow-xs">
+            <span>⏭️</span> 辨識下一隻
+          </button>
+          <button id="btnBatch20" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition active:scale-95">
+            <span>⚡</span> 批次 +20 隻
+          </button>
+          <button id="btnReset" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition active:scale-95">
+            <span>🔄</span> 清空歸零
+          </button>
+        </div>
+		
+        <div id="scannerStatusText" class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+          AI 掃描儀：待命中
+        </div>
+      </div>
+
+      <!-- 輸送帶視覺主容器 (SVG + HTML 結合) -->
+      <div class="relative w-full h-44 bg-slate-900 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-inner flex flex-col justify-between">
+        
+        <!-- 背景頂部導軌 -->
+        <div class="w-full h-3 bg-slate-800 border-b border-slate-700 flex justify-between px-4">
+          <div class="w-1.5 h-full bg-slate-600"></div>
+          <div class="w-1.5 h-full bg-slate-600"></div>
+          <div class="w-1.5 h-full bg-slate-600"></div>
+          <div class="w-1.5 h-full bg-slate-600"></div>
+        </div>
+
+        <!-- 辨識中動畫掃描室：精準鎖定在第一隻小動物 (#1) 正上方與四周 -->
+        <!-- 軌道 padding-left 為 32px (pl-8)，單張卡片寬度 w-24 (96px)，掃描艙設置 left: 24px, width: 112px，完整包覆第一隻 -->
+        <div class="absolute left-6 top-1.5 bottom-6 w-28 z-20 pointer-events-none flex flex-col items-center justify-between">
+          <!-- 頂部機械探測傳感器吊臂頭 -->
+          <div class="w-16 h-2 bg-gradient-to-b from-cyan-400 to-slate-700 rounded-b-md shadow-[0_0_8px_#22d3ee] flex items-center justify-center">
+            <span class="w-2 h-1 bg-cyan-200 rounded-full animate-pulse"></span>
+          </div>
+
+          <!-- 掃描門框外型 (HUD 四角瞄準線風格) -->
+          <div class="w-full h-[112px] border-2 border-dashed border-cyan-400/90 rounded-2xl bg-cyan-950/30 backdrop-blur-[0.5px] relative flex flex-col items-center justify-between p-1.5 shadow-[0_0_18px_rgba(6,182,212,0.35)]">
+            <!-- HUD 四角標 -->
+            <div class="hud-corner top-0 left-0 border-t-2 border-l-2 rounded-tl-sm"></div>
+            <div class="hud-corner top-0 right-0 border-t-2 border-r-2 rounded-tr-sm"></div>
+            <div class="hud-corner bottom-0 left-0 border-b-2 border-l-2 rounded-bl-sm"></div>
+            <div class="hud-corner bottom-0 right-0 border-b-2 border-r-2 rounded-br-sm"></div>
+
+            <div class="w-full flex justify-between items-center text-[9px] text-cyan-300 font-mono font-bold px-0.5">
+              <span class="tracking-tighter">SCANNER</span>
+              <span id="scanStatusBadge" class="bg-cyan-500/20 px-1 py-0.2 rounded text-[8px] text-cyan-200">READY</span>
+            </div>
+            
+            <!-- 垂直雷射掃描線 (精準掃過第 1 隻中心) -->
+            <div id="laserBeam" class="w-full h-1 bg-gradient-to-r from-transparent via-cyan-300 to-transparent shadow-[0_0_8px_#22d3ee] scanner-beam"></div>
+
+            <div id="scanFeedbackText" class="text-[9px] font-mono text-cyan-200 font-bold bg-slate-950/85 px-1.5 py-0.5 rounded border border-cyan-700/80 max-w-full truncate text-center shadow-xs">
+              等待受測者...
+            </div>
+          </div>
+        </div>
+
+        <!-- 動態排隊小動物軌道 (靠 JS 動態位移渲染) -->
+        <div id="queueTrack" class="relative w-full h-28 z-10 flex items-center select-none overflow-hidden pl-8">
+          <!-- 卡片由 JS 動態生成並往左移動 -->
+        </div>
+
+        <!-- 底部滾動輸送帶 (黑黃安全斜紋與滾軸) -->
+        <div class="w-full h-7 bg-slate-800 border-t-2 border-slate-700 flex flex-col justify-end relative">
+          <div id="conveyorPattern" class="w-full h-4 conveyor-belt"></div>
+          <div class="w-full h-1 bg-slate-950"></div>
+        </div>
+      </div>
+
+      <!-- 剛辨識完成的即時結果徽章 -->
+      <div class="mt-3 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400 font-semibold">最新一筆判定：</span>
+          <span id="lastDecisionBadge" class="font-mono text-xs px-2.5 py-0.5 rounded-lg bg-slate-100 border border-slate-200 font-bold text-slate-700">
+            尚無紀錄，點擊「開始」或「辨識下一隻」
+          </span>
+        </div>
+        <div class="flex items-center gap-3 text-[11px] font-medium text-slate-500">
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 真正例 (TP: 貓判為貓)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 偽負例 (FN: 貓判為狗)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 偽正例 (FP: 狗判為貓)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> 真負例 (TN: 狗判為狗)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 主視覺：左側 SVG 混淆矩陣 (7 欄) + 右側四大指標卡 (5 欄) -->
+    <!-- ======================================================== -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      
+      <!-- 左側：SVG 混淆矩陣即時視覺化 (7 欄) -->
+      <div class="lg:col-span-7 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3 flex flex-col justify-between">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-indigo-600 animate-pulse"></span>
+            <h2 class="text-sm font-bold text-slate-800">貓狗混淆矩陣（2×2 幾何象限）</h2>
+          </div>
+          <span id="activeFocusLabel" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-200">
+            點選右側指標卡高亮所屬區域
+          </span>
+        </div>
+
+        <!-- 混淆矩陣本體 SVG -->
+        <div class="w-full aspect-[16/11] bg-slate-50/70 rounded-xl border border-slate-200 p-2 overflow-hidden flex items-center justify-center relative">
+          <svg id="matrixSvg" class="w-full h-full select-none" viewBox="0 0 740 490">
+            <defs>
+              <filter id="tileShadow" x="-5%" y="-5%" width="110%" height="110%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.12"/>
+              </filter>
+            </defs>
+
+            <!-- 頂端欄標題：預測類別 -->
+            <text x="440" y="24" font-size="15" font-weight="900" fill="#334155" text-anchor="middle" letter-spacing="1">
+              AI 預測類別 (PREDICTED CLASS)
+            </text>
+            <text x="320" y="48" font-size="15" font-weight="bold" fill="#d97706" text-anchor="middle">預測為貓 🐱 (Positive = 1)</text>
+            <text x="560" y="48" font-size="15" font-weight="bold" fill="#4338ca" text-anchor="middle">預測為狗 🐶 (Negative = 0)</text>
+
+            <!-- 左側列標題：真實類別 -->
+            <g transform="translate(24, 270) rotate(-90)">
+              <text x="0" y="0" font-size="15" font-weight="900" fill="#334155" text-anchor="middle" letter-spacing="1">
+                真實動物身分 (ACTUAL CLASS)
+              </text>
+            </g>
+            <text x="180" y="175" font-size="15" font-weight="bold" fill="#d97706" text-anchor="end">真實為貓 🐱</text>
+            <text x="180" y="355" font-size="15" font-weight="bold" fill="#4338ca" text-anchor="end">真實為狗 🐶</text>
+
+            <!-- ================= 四大象限方塊 ================= -->
+
+            <!-- 1. TP：真正例 (左上：貓判為貓) -->
+            <g id="tileTP" class="cursor-pointer">
+              <rect id="bgTP" x="200" y="85" width="235" height="170" rx="14" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5" filter="url(#tileShadow)"/>
+              <text x="218" y="116" font-size="15" font-weight="900" fill="#065f46">真正例 (True Positive, TP)</text>
+              <text x="218" y="137" font-size="12" fill="#047857" font-weight="600">實際上是貓，AI 猜對是貓！</text>
+              <text id="countTP" x="317" y="202" font-size="38" font-weight="900" fill="#047857" text-anchor="middle" font-family="monospace">0</text>
+              <text id="pctTP" x="317" y="228" font-size="11" font-weight="bold" fill="#059669" text-anchor="middle">0.0% of Total</text>
+              <!-- 迷你小頭像計數預覽 -->
+              <!--<text id="emojiTP" x="410" y="118" font-size="16" text-anchor="end"> ✓</text>-->
+            </g>
+
+            <!-- 2. FN：偽負例 (右上：貓判為狗，漏報貓) -->
+            <g id="tileFN" class="cursor-pointer">
+              <rect id="bgFN" x="445" y="85" width="235" height="170" rx="14" fill="#fff1f2" stroke="#f43f5e" stroke-width="2" filter="url(#tileShadow)"/>
+              <text x="463" y="116" font-size="15" font-weight="900" fill="#9f1239">偽負例 (False Negative, FN)</text>
+              <text x="463" y="137" font-size="12" fill="#be123c" font-weight="600">實際上是貓，AI 誤判成狗！(漏貓)</text>
+              <text id="countFN" x="562" y="202" font-size="38" font-weight="900" fill="#be123c" text-anchor="middle" font-family="monospace">0</text>
+              <text id="pctFN" x="562" y="228" font-size="11" font-weight="bold" fill="#e11d48" text-anchor="middle">0.0% of Total</text>
+              <!--<text id="emojiFN" x="655" y="118" font-size="16" text-anchor="end"> ✗</text>-->
+            </g>
+
+            <!-- 3. FP：偽正例 (左下：狗判為貓，虛報貓) -->
+            <g id="tileFP" class="cursor-pointer">
+              <rect id="bgFP" x="200" y="265" width="235" height="170" rx="14" fill="#fff7ed" stroke="#f97316" stroke-width="2" filter="url(#tileShadow)"/>
+              <text x="218" y="296" font-size="15" font-weight="900" fill="#9a3412">偽正例 (False Positive, FP)</text>
+              <text x="218" y="317" font-size="12" fill="#c2410c" font-weight="600">實際上是狗，AI 誤判成貓！(虛驚)</text>
+              <text id="countFP" x="317" y="382" font-size="38" font-weight="900" fill="#c2410c" text-anchor="middle" font-family="monospace">0</text>
+              <text id="pctFP" x="317" y="408" font-size="11" font-weight="bold" fill="#ea580c" text-anchor="middle">0.0% of Total</text>
+              <!--<text id="emojiFP" x="410" y="298" font-size="16" text-anchor="end"> ✗</text>-->
+            </g>
+
+            <!-- 4. TN：真負例 (右下：狗判為狗) -->
+            <g id="tileTN" class="cursor-pointer">
+              <rect id="bgTN" x="445" y="265" width="235" height="170" rx="14" fill="#eef2ff" stroke="#6366f1" stroke-width="2" filter="url(#tileShadow)"/>
+              <text x="463" y="296" font-size="15" font-weight="900" fill="#312e81">真負例 (True Negative, TN)</text>
+              <text x="463" y="317" font-size="12" fill="#4338ca" font-weight="600">實際上是狗，AI 猜對是狗！</text>
+              <text id="countTN" x="562" y="382" font-size="38" font-weight="900" fill="#3730a3" text-anchor="middle" font-family="monospace">0</text>
+              <text id="pctTN" x="562" y="408" font-size="11" font-weight="bold" fill="#4f46e5" text-anchor="middle">0.0% of Total</text>
+              <!--<text id="emojiTN" x="655" y="298" font-size="16" text-anchor="end"> ✓</text>-->
+            </g>
+
+            <!-- 動態虛線高亮框 (與右側指標連動) -->
+            <rect id="highlightFrame" x="0" y="0" width="0" height="0" fill="none" stroke="#4f46e5" stroke-width="3" stroke-dasharray="8,5" rx="16" opacity="0" pointer-events="none"/>
+            <text id="highlightCaption" x="0" y="0" font-size="12" font-weight="bold" fill="#4f46e5" opacity="0" pointer-events="none"></text>
+          </svg>
+        </div>
+
+        <!-- 輔助說明小列 -->
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+          <span>💡 綠色/藍色對角線代表「猜對的」；紅色/橘色代表「猜錯的」。</span>
+          <span class="font-mono text-slate-400">貓=正例 / 狗=負例</span>
+        </div>
+      </div>
+
+      <!-- 右側：四大評估指標即時看板 (5 欄) -->
+      <div class="lg:col-span-5 space-y-3">
+        
+        <!-- 指標卡 1: Accuracy 正確率 -->
+        <div id="cardAccuracy" class="metric-card cursor-pointer bg-white border border-slate-200 rounded-2xl p-3.5 transition-all hover:border-blue-400 shadow-xs">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+              <h3 class="font-bold text-xs sm:text-sm text-slate-900">1. 正確率 (Accuracy)</h3>
+            </div>
+            <span id="badgeAccuracy" class="font-mono font-black text-sm sm:text-base text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
+              0.0%
+            </span>
+          </div>
+
+          <div class="bg-slate-50 px-2 py-1.5 rounded-lg font-mono text-[11px] text-slate-700 mb-1.5 border border-slate-100 flex items-center justify-between">
+            <span>公式：(TP + TN) / 總數 N</span>
+            <span id="formulaAccuracy" class="text-blue-700 font-bold">0 / 0</span>
+          </div>
+
+          <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-1">
+            <div id="barAccuracy" class="bg-blue-600 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            <strong>白話意義：</strong>無論貓狗，AI 總共猜對了幾隻？
+          </p>
+        </div>
+
+        <!-- 指標卡 2: Precision 精確率 -->
+        <div id="cardPrecision" class="metric-card cursor-pointer bg-white border border-slate-200 rounded-2xl p-3.5 transition-all hover:border-emerald-400 shadow-xs">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <h3 class="font-bold text-xs sm:text-sm text-slate-900">2. 精確率 (Precision / 查準率)</h3>
+            </div>
+            <span id="badgePrecision" class="font-mono font-black text-sm sm:text-base text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+              0.0%
+            </span>
+          </div>
+
+          <div class="bg-slate-50 px-2 py-1.5 rounded-lg font-mono text-[11px] text-slate-700 mb-1.5 border border-slate-100 flex items-center justify-between">
+            <span>公式：TP / (TP + FP)</span>
+            <span id="formulaPrecision" class="text-emerald-700 font-bold">0 / (0 + 0)</span>
+          </div>
+
+          <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-1">
+            <div id="barPrecision" class="bg-emerald-600 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            <strong>白話意義：</strong>只要 AI 喊出<strong>「這是貓！」</strong>，裡面有多少真的是貓？（重視<strong>不把狗誤認成貓</strong>）
+          </p>
+        </div>
+
+        <!-- 指標卡 3: Recall 召回率 -->
+        <div id="cardRecall" class="metric-card cursor-pointer bg-white border border-slate-200 rounded-2xl p-3.5 transition-all hover:border-amber-400 shadow-xs">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+              <h3 class="font-bold text-xs sm:text-sm text-slate-900">3. 召回率 (Recall / 查全率)</h3>
+            </div>
+            <span id="badgeRecall" class="font-mono font-black text-sm sm:text-base text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">
+              0.0%
+            </span>
+          </div>
+
+          <div class="bg-slate-50 px-2 py-1.5 rounded-lg font-mono text-[11px] text-slate-700 mb-1.5 border border-slate-100 flex items-center justify-between">
+            <span>公式：TP / (TP + FN)</span>
+            <span id="formulaRecall" class="text-amber-700 font-bold">0 / (0 + 0)</span>
+          </div>
+
+          <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-1">
+            <div id="barRecall" class="bg-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            <strong>白話意義：</strong>隊伍裡<strong>所有真正存在的貓咪</strong>中，AI 成功找出了幾隻？（重視<strong>不漏掉任何一隻貓</strong>）
+          </p>
+        </div>
+
+        <!-- 指標卡 4: F1-Score -->
+        <div id="cardF1" class="metric-card cursor-pointer bg-white border border-slate-200 rounded-2xl p-3.5 transition-all hover:border-purple-400 shadow-xs">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-purple-500"></span>
+              <h3 class="font-bold text-xs sm:text-sm text-slate-900">4. F1 值 (F1-Score / 調和平均)</h3>
+            </div>
+            <span id="badgeF1" class="font-mono font-black text-sm sm:text-base text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded-lg border border-purple-200">
+              0.0%
+            </span>
+          </div>
+
+          <div class="bg-slate-50 px-2 py-1.5 rounded-lg font-mono text-[11px] text-slate-700 mb-1.5 border border-slate-100 flex items-center justify-between">
+            <span>公式：2 × (P × R) / (P + R)</span>
+            <span id="formulaF1" class="text-purple-700 font-bold">2×P×R / (P+R)</span>
+          </div>
+
+          <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-1">
+            <div id="barF1" class="bg-purple-600 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            <strong>白話意義：</strong>精確率與召回率的調和綜合指標，避免偏食（一邊極高但另一邊極低）。
+          </p>
+        </div>
+
+        <!-- 動態解說看板 -->
+        <div id="metricExplanationBox" class="bg-indigo-50/70 border border-indigo-200/80 rounded-2xl p-3.5 text-xs text-slate-700 space-y-1">
+          <!-- 隨選擇動態注入 -->
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- 底部：貓狗案例對應真實世界的四大業務場景說明 -->
+    <!-- ======================================================== -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
+      <div class="border-b border-slate-100 pb-2 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🎓</span> 貓狗辨識如何對應真實世界的機器學習決策？
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">「把貓看成狗 (FN)」和「把狗看成貓 (FP)」，在不同商業業務下的代價截然不同！</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        
+        <!-- Accuracy -->
+        <div class="p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-blue-900 text-sm">正確率 (Accuracy)</span>
+            <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">總體滿意度</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            <strong>🐱 貓狗隱喻：</strong>「不管是什麼動物，AI 總共猜對了幾隻？」
+          </p>
+          <div class="p-2 rounded-lg bg-white border border-blue-100 text-slate-700">
+            <strong>🏢 適用地點：</strong>
+            貓狗數量大致五五波 (50% vs 50%) 的寵物咖啡廳照片分類相簿。
+          </div>
+        </div>
+
+        <!-- Precision -->
+        <div class="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-emerald-900 text-sm">精確率 (Precision)</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">絕不抓錯 (低FP)</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            <strong>🐱 貓狗隱喻：</strong>「AI 堅稱是貓的盒子裡，絕對不能混進一隻狗狗！」
+          </p>
+          <div class="p-2 rounded-lg bg-white border border-emerald-100 text-slate-700">
+            <strong>🏢 適用地點：</strong>
+            <strong>純貓專屬頂級貓糧試吃推薦</strong>。若把狗狗推薦成貓糧會被飼主投訴；或如<strong>垃圾郵件過濾</strong>。
+          </div>
+        </div>
+
+        <!-- Recall -->
+        <div class="p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-900 text-sm">召回率 (Recall)</span>
+            <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">絕不漏掉 (低FN)</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            <strong>🐱 貓狗隱喻：</strong>「所有走過輸送帶的貓貓，哪怕把狗看錯，也絕不能放走任何一隻貓！」
+          </p>
+          <div class="p-2 rounded-lg bg-white border border-amber-100 text-slate-700">
+            <strong>🏢 適用地點：</strong>
+            <strong>罕見傳染病寵物篩檢</strong>、<strong>機場走私活體動物 X 光檢驗</strong>。寧可誤報複查，絕不漏網。
+          </div>
+        </div>
+
+        <!-- F1-Score -->
+        <div class="p-3.5 rounded-xl border border-purple-200 bg-purple-50/40 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-purple-900 text-sm">F1 值 (F1-Score)</span>
+            <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[10px]">調和平均值</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            <strong>🐱 貓狗隱喻：</strong>「既不想漏掉小貓，又不想抓錯小狗，防止 AI 取巧躺平。」
+          </p>
+          <div class="p-2 rounded-lg bg-white border border-purple-100 text-slate-700">
+            <strong>🏢 適用地點：</strong>
+            街頭流浪貓狗智慧巡檢監控（貓咪很罕見，但模型必須同時兼顧不亂抓與不漏抓）。
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // 核心資料狀態
+      const state = {
+        // 矩陣數值
+        tp: 0, // 實際貓，預測貓
+        fn: 0, // 實際貓，預測狗 (漏報)
+        fp: 0, // 實際狗，預測貓 (虛驚)
+        tn: 0, // 實際狗，預測狗
+        
+        // 排程與自動播放
+        isPlaying: false,
+        timerId: null,
+        speedMs: 1200,
+        modelAccuracy: 0.82,
+        catRatio: 0.5,
+        isProcessing: false,
+        
+        // 佇列動物 (即將進入掃描器的待測隊列，保持 7 隻)
+        queue: [],
+        
+        // 當前高亮指標
+        activeMetric: "accuracy", // 'accuracy' | 'precision' | 'recall' | 'f1'
+        
+        // 累計紀錄
+        totalScanned: 0
+      };
+
+      // 快取 DOM 元素
+      const dom = {
+        btnPlayPause: document.getElementById("btnPlayPause"),
+        playIcon: document.getElementById("playIcon"),
+        playText: document.getElementById("playText"),
+        btnStep: document.getElementById("btnStep"),
+        btnBatch20: document.getElementById("btnBatch20"),
+        btnReset: document.getElementById("btnReset"),
+        sliderSpeed: document.getElementById("sliderSpeed"),
+        speedLabel: document.getElementById("speedLabel"),
+        sliderModelAccuracy: document.getElementById("sliderModelAccuracy"),
+        modelAccuracyLabel: document.getElementById("modelAccuracyLabel"),
+        selectCatRatio: document.getElementById("selectCatRatio"),
+        totalCountDisplay: document.getElementById("totalCountDisplay"),
+        
+        // 輸送帶軌道與掃描器
+        queueTrack: document.getElementById("queueTrack"),
+        conveyorPattern: document.getElementById("conveyorPattern"),
+        scannerStatusText: document.getElementById("scannerStatusText"),
+        scanStatusBadge: document.getElementById("scanStatusBadge"),
+        scanFeedbackText: document.getElementById("scanFeedbackText"),
+        laserBeam: document.getElementById("laserBeam"),
+        lastDecisionBadge: document.getElementById("lastDecisionBadge"),
+
+        // SVG 格子
+        countTP: document.getElementById("countTP"),
+        pctTP: document.getElementById("pctTP"),
+        countFN: document.getElementById("countFN"),
+        pctFN: document.getElementById("pctFN"),
+        countFP: document.getElementById("countFP"),
+        pctFP: document.getElementById("pctFP"),
+        countTN: document.getElementById("countTN"),
+        pctTN: document.getElementById("pctTN"),
+
+        tileTP: document.getElementById("tileTP"),
+        tileFN: document.getElementById("tileFN"),
+        tileFP: document.getElementById("tileFP"),
+        tileTN: document.getElementById("tileTN"),
+        bgTP: document.getElementById("bgTP"),
+        bgFN: document.getElementById("bgFN"),
+        bgFP: document.getElementById("bgFP"),
+        bgTN: document.getElementById("bgTN"),
+
+        highlightFrame: document.getElementById("highlightFrame"),
+        highlightCaption: document.getElementById("highlightCaption"),
+        activeFocusLabel: document.getElementById("activeFocusLabel"),
+
+        // 指標卡片
+        cardAccuracy: document.getElementById("cardAccuracy"),
+        badgeAccuracy: document.getElementById("badgeAccuracy"),
+        formulaAccuracy: document.getElementById("formulaAccuracy"),
+        barAccuracy: document.getElementById("barAccuracy"),
+
+        cardPrecision: document.getElementById("cardPrecision"),
+        badgePrecision: document.getElementById("badgePrecision"),
+        formulaPrecision: document.getElementById("formulaPrecision"),
+        barPrecision: document.getElementById("barPrecision"),
+
+        cardRecall: document.getElementById("cardRecall"),
+        badgeRecall: document.getElementById("badgeRecall"),
+        formulaRecall: document.getElementById("formulaRecall"),
+        barRecall: document.getElementById("barRecall"),
+
+        cardF1: document.getElementById("cardF1"),
+        badgeF1: document.getElementById("badgeF1"),
+        formulaF1: document.getElementById("formulaF1"),
+        barF1: document.getElementById("barF1"),
+
+        metricExplanationBox: document.getElementById("metricExplanationBox")
+      };
+
+      // 貓狗品種名稱產生庫
+      const CAT_NAMES = ["橘貓", "虎斑", "三花", "美短", "暹羅", "布偶貓", "黑貓", "賓士貓"];
+      const DOG_NAMES = ["柴犬", "柯基", "黃金獵犬", "貴賓", "哈士奇", "邊境牧羊", "米克斯", "臘腸狗"];
+
+      // 隨機產生一隻小動物實體
+      function createAnimalItem() {
+        const isCat = Math.random() < state.catRatio;
+        const actualType = isCat ? "cat" : "dog";
+        const nameList = isCat ? CAT_NAMES : DOG_NAMES;
+        const breed = nameList[Math.floor(Math.random() * nameList.length)];
+
+        // 決定 AI 是否猜對 (依設定準確率)
+        const isCorrect = Math.random() < state.modelAccuracy;
+        let predictedType;
+        if (isCorrect) {
+          predictedType = actualType;
+        } else {
+          predictedType = isCat ? "dog" : "cat";
+        }
+
+        // 置信度 (80%~99% 或 52%~78%)
+        const conf = isCorrect 
+          ? (0.80 + Math.random() * 0.19).toFixed(2)
+          : (0.52 + Math.random() * 0.26).toFixed(2);
+
+        return {
+          id: 'item_' + Math.random().toString(36).substring(2, 9),
+          actual: actualType, // 'cat' | 'dog'
+          predicted: predictedType, // 'cat' | 'dog'
+          breed: breed,
+          conf: parseFloat(conf),
+          icon: isCat ? '🐱' : '🐶'
+        };
+      }
+
+      // 初始化隊列
+      function initQueue() {
+        state.queue = [];
+        for (let i = 0; i < 7; i++) {
+          state.queue.push(createAnimalItem());
+        }
+        renderQueueVisuals();
+        updateScannerReadyHUD();
+      }
+
+      // 更新掃描框待命狀態
+      function updateScannerReadyHUD() {
+        if (state.queue.length === 0) return;
+        const currentTarget = state.queue[0];
+        dom.scanStatusBadge.textContent = "READY";
+        dom.scanStatusBadge.className = "bg-cyan-500/20 px-1 rounded text-cyan-200 text-[8px]";
+        dom.scanFeedbackText.textContent = `待測：${currentTarget.icon} ${currentTarget.breed}`;
+      }
+
+      // 繪製輸送帶上的動物卡片
+      function renderQueueVisuals() {
+        dom.queueTrack.innerHTML = '';
+        
+        state.queue.forEach((item, index) => {
+          const card = document.createElement("div");
+          const isAtScanner = index === 0;
+          
+          card.className = `flex-shrink-0 w-24 h-24 rounded-xl border-2 p-2 flex flex-col items-center justify-between transition-all duration-300 mr-3 shadow-sm ${
+            item.actual === 'cat' 
+              ? 'bg-amber-50/95 border-amber-300 text-amber-900' 
+              : 'bg-indigo-50/95 border-indigo-300 text-indigo-900'
+          } ${isAtScanner ? 'scale-100 ring-2 ring-cyan-400 border-cyan-300 shadow-[0_0_14px_rgba(34,211,238,0.35)]' : 'opacity-85'}`;
+
+          card.innerHTML = `
+            <div class="w-full flex justify-between items-center text-[10px] font-bold">
+              <span class="px-1.5 py-0.2 rounded ${item.actual === 'cat' ? 'bg-amber-200 text-amber-800' : 'bg-indigo-200 text-indigo-800'}">
+                ${item.actual === 'cat' ? '貓咪' : '狗狗'}
+              </span>
+              <span class="${isAtScanner ? 'text-cyan-400 font-black animate-pulse' : 'text-slate-400 font-mono'}">
+                ${isAtScanner ? 'TARGET' : '#' + (index + 1)}
+              </span>
+            </div>
+            
+            <div class="text-3xl my-0.5 filter drop-shadow">
+              ${item.icon}
+            </div>
+
+            <div class="text-center w-full">
+              <div class="text-[11px] font-black truncate">${item.breed}</div>
+            </div>
+          `;
+          
+          dom.queueTrack.appendChild(card);
+        });
+      }
+
+      // 執行單次辨識：嚴格保證下方判定文字與當前掃描框內小動物 100% 精準對齊
+      function processNextAnimal() {
+        if (state.queue.length === 0) {
+          state.queue.push(createAnimalItem());
+        }
+
+        // 鎖定當前正位於掃描器框線內的目標動物 (第 0 位)
+        const currentAnimal = state.queue[0];
+        state.totalScanned++;
+
+        // 1. 設置掃描器狀態與文字：此時畫面上看到的卡片就是 currentAnimal
+        dom.scannerStatusText.textContent = `AI 掃描儀：正在分析 ${currentAnimal.breed}...`;
+        dom.scanStatusBadge.textContent = "SCANNING";
+        dom.scanStatusBadge.className = "bg-cyan-400 text-slate-900 font-bold px-1 rounded animate-pulse text-[8px]";
+        dom.scanFeedbackText.textContent = `${currentAnimal.icon} → 判定為: ${currentAnimal.predicted === 'cat' ? '貓 🐱' : '狗 🐶'}`;
+
+        // 2. 判斷落入的混淆矩陣象限
+        let badgeColor = "";
+        let desc = "";
+
+        if (currentAnimal.actual === "cat" && currentAnimal.predicted === "cat") {
+          state.tp++;
+          badgeColor = "bg-emerald-100 text-emerald-800 border-emerald-300";
+          desc = `真正例 TP：這是一隻 ${currentAnimal.breed} 🐱，AI 辨識正確為「貓咪」！(置信度 ${(currentAnimal.conf*100).toFixed(0)}%)`;
+          bumpTile("countTP", dom.bgTP, "#10b981");
+
+        } else if (currentAnimal.actual === "cat" && currentAnimal.predicted === "dog") {
+          state.fn++;
+          badgeColor = "bg-rose-100 text-rose-800 border-rose-300";
+          desc = `偽負例 FN (漏報)：這是一隻 ${currentAnimal.breed} 🐱，但 AI 誤判成「狗狗」🐶！`;
+          bumpTile("countFN", dom.bgFN, "#f43f5e");
+
+        } else if (currentAnimal.actual === "dog" && currentAnimal.predicted === "cat") {
+          state.fp++;
+          badgeColor = "bg-amber-100 text-amber-800 border-amber-300";
+          desc = `偽正例 FP (虛報)：這是一隻 ${currentAnimal.breed} 🐶，但 AI 誤判成「貓咪」🐱！`;
+          bumpTile("countFP", dom.bgFP, "#f97316");
+
+        } else if (currentAnimal.actual === "dog" && currentAnimal.predicted === "dog") {
+          state.tn++;
+          badgeColor = "bg-indigo-100 text-indigo-800 border-indigo-300";
+          desc = `真負例 TN：這是一隻 ${currentAnimal.breed} 🐶，AI 辨識正確為「狗狗」！(置信度 ${(currentAnimal.conf*100).toFixed(0)}%)`;
+          bumpTile("countTN", dom.bgTN, "#6366f1");
+        }
+
+        // 3. 即時更新下方判定結果徽章，確保與當前畫面中的動物完全相同！
+        dom.lastDecisionBadge.className = `font-mono text-xs px-3 py-1 rounded-xl border font-bold truncate max-w-full ${badgeColor}`;
+        dom.lastDecisionBadge.textContent = desc;
+
+        // 更新混淆矩陣數字與指標
+        updateMetricsAndMatrix();
+
+        // 4. 等待觀看辨識結果後，才平滑推進隊列（出框並補充新小動物）
+        const stayDuration = Math.max(380, state.speedMs * 0.65);
+        setTimeout(() => {
+          state.queue.shift(); // 移除已經辨識完成的動物
+          state.queue.push(createAnimalItem()); // 補入隊列末尾
+          renderQueueVisuals();
+          updateScannerReadyHUD();
+          dom.scannerStatusText.textContent = "AI 掃描儀：運算完畢，下一個進場";
+        }, stayDuration);
+      }
+
+      // 矩陣數字跳動與邊框閃爍
+      function bumpTile(countTextId, bgRect, glowColor) {
+        const textEl = document.getElementById(countTextId);
+        if (!textEl) return;
+        textEl.classList.remove("num-bounce");
+        void textEl.offsetWidth;
+        textEl.classList.add("num-bounce");
+
+        const prevStroke = bgRect.getAttribute("stroke");
+        const prevWidth = bgRect.getAttribute("stroke-width");
+        bgRect.setAttribute("stroke-width", "4.5");
+        bgRect.setAttribute("stroke", glowColor);
+        setTimeout(() => {
+          bgRect.setAttribute("stroke-width", prevWidth || "2");
+          bgRect.setAttribute("stroke", prevStroke || "#e2e8f0");
+        }, 400);
+      }
+
+      // 計算評估指標
+      function calculateStats() {
+        const { tp, fn, fp, tn } = state;
+        const total = tp + fn + fp + tn;
+
+        const accuracy = total > 0 ? (tp + tn) / total : 0;
+        
+        const precDen = tp + fp;
+        const precision = precDen > 0 ? tp / precDen : 0;
+
+        const recDen = tp + fn;
+        const recall = recDen > 0 ? tp / recDen : 0;
+
+        const f1Den = precision + recall;
+        const f1 = f1Den > 0 ? (2 * precision * recall) / f1Den : 0;
+
+        return { total, accuracy, precision, recall, f1, precDen, recDen };
+      }
+
+      // 更新混淆矩陣及四大指標卡
+      function updateMetricsAndMatrix() {
+        const { tp, fn, fp, tn } = state;
+        const m = calculateStats();
+
+        // 1. 總數
+        dom.totalCountDisplay.textContent = m.total;
+
+        // 2. 矩陣象限數字
+        dom.countTP.textContent = tp;
+        dom.countFN.textContent = fn;
+        dom.countFP.textContent = fp;
+        dom.countTN.textContent = tn;
+
+        const pTP = m.total > 0 ? ((tp / m.total) * 100).toFixed(1) : "0.0";
+        const pFN = m.total > 0 ? ((fn / m.total) * 100).toFixed(1) : "0.0";
+        const pFP = m.total > 0 ? ((fp / m.total) * 100).toFixed(1) : "0.0";
+        const pTN = m.total > 0 ? ((tn / m.total) * 100).toFixed(1) : "0.0";
+
+        dom.pctTP.textContent = `${pTP}% of Total`;
+        dom.pctFN.textContent = `${pFN}% of Total`;
+        dom.pctFP.textContent = `${pFP}% of Total`;
+        dom.pctTN.textContent = `${pTN}% of Total`;
+
+        // 3. 四大指標卡
+        // Accuracy
+        dom.badgeAccuracy.textContent = `${(m.accuracy * 100).toFixed(1)}%`;
+        dom.formulaAccuracy.textContent = `${tp + tn} / ${m.total}`;
+        dom.barAccuracy.style.width = `${m.accuracy * 100}%`;
+
+        // Precision
+        dom.badgePrecision.textContent = `${(m.precision * 100).toFixed(1)}%`;
+        dom.formulaPrecision.textContent = `${tp} / (${tp} + ${fp}) = ${tp}/${m.precDen}`;
+        dom.barPrecision.style.width = `${m.precision * 100}%`;
+
+        // Recall
+        dom.badgeRecall.textContent = `${(m.recall * 100).toFixed(1)}%`;
+        dom.formulaRecall.textContent = `${tp} / (${tp} + ${fn}) = ${tp}/${m.recDen}`;
+        dom.barRecall.style.width = `${m.recall * 100}%`;
+
+        // F1
+        dom.badgeF1.textContent = `${(m.f1 * 100).toFixed(1)}%`;
+        dom.barF1.style.width = `${m.f1 * 100}%`;
+
+        // 4. 更新幾何高亮與解說
+        updateHighlightVisuals(m);
+      }
+
+      // 指標幾何區域高亮
+      function updateHighlightVisuals(m) {
+        // 重設卡片外框
+        [dom.cardAccuracy, dom.cardPrecision, dom.cardRecall, dom.cardF1].forEach(c => {
+          c.classList.remove("ring-2", "ring-indigo-500", "bg-indigo-50/20");
+        });
+
+        // 重設透明度
+        [dom.bgTP, dom.bgFN, dom.bgFP, dom.bgTN].forEach(r => r.setAttribute("opacity", "1"));
+
+        const frame = dom.highlightFrame;
+        const caption = dom.highlightCaption;
+
+        if (state.activeMetric === "accuracy") {
+          dom.cardAccuracy.classList.add("ring-2", "ring-blue-500", "bg-blue-50/20");
+          dom.activeFocusLabel.textContent = "目前聚焦：正確率 (TP 與 TN 對角線合計)";
+          dom.activeFocusLabel.className = "text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200";
+
+          frame.setAttribute("x", "190");
+          frame.setAttribute("y", "75");
+          frame.setAttribute("width", "495");
+          frame.setAttribute("height", "365");
+          frame.setAttribute("stroke", "#3b82f6");
+          frame.setAttribute("opacity", "1");
+
+          caption.setAttribute("x", "200");
+          caption.setAttribute("y", "68");
+          caption.setAttribute("fill", "#2563eb");
+          caption.textContent = "分母：全部動物 (N) | 分子：猜對的貓 (TP) + 猜對的狗 (TN)";
+          caption.setAttribute("opacity", "1");
+
+          dom.metricExplanationBox.innerHTML = `
+            <div class="font-bold text-blue-900 flex items-center gap-1.5 mb-0.5">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              <strong>正確率 (Accuracy) 當前診斷：</strong>
+            </div>
+            <p>
+              在走過輸送帶的 <strong>${m.total}</strong> 隻動物中，AI 總共猜對了 <strong>${state.tp + state.tn}</strong> 隻，整體正確率為 <strong>${(m.accuracy * 100).toFixed(1)}%</strong>。
+            </p>
+            <p class="text-slate-500 text-[11px] pt-0.5">
+              ⚠️ 注意：如果隊伍裡 95% 都是狗狗，AI 就算全部無腦猜「狗」，Accuracy 也會高達 95%，但其實它一隻貓都認不出來！
+            </p>
+          `;
+
+        } else if (state.activeMetric === "precision") {
+          dom.cardPrecision.classList.add("ring-2", "ring-emerald-500", "bg-emerald-50/20");
+          dom.activeFocusLabel.textContent = "目前聚焦：精確率 (看左直行：AI 判定是貓的群體)";
+          dom.activeFocusLabel.className = "text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200";
+
+          frame.setAttribute("x", "192");
+          frame.setAttribute("y", "75");
+          frame.setAttribute("width", "250");
+          frame.setAttribute("height", "365");
+          frame.setAttribute("stroke", "#10b981");
+          frame.setAttribute("opacity", "1");
+
+          caption.setAttribute("x", "200");
+          caption.setAttribute("y", "68");
+          caption.setAttribute("fill", "#059669");
+          caption.textContent = "分母：AI 說「是貓」的整組 (TP + FP) | 分子：真正是貓 (TP)";
+          caption.setAttribute("opacity", "1");
+
+          dom.bgFN.setAttribute("opacity", "0.25");
+          dom.bgTN.setAttribute("opacity", "0.25");
+
+          dom.metricExplanationBox.innerHTML = `
+            <div class="font-bold text-emerald-900 flex items-center gap-1.5 mb-0.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <strong>精確率 (Precision) 當前診斷：</strong>
+            </div>
+            <p>
+              AI 共大喊了 <strong>${m.precDen}</strong> 次「這是貓咪！」，其中確實是貓的有 <strong>${state.tp}</strong> 隻，被冤枉誤判的狗有 <strong>${state.fp}</strong> 隻。精確率為 <strong>${(m.precision * 100).toFixed(1)}%</strong>。
+            </p>
+            <p class="text-slate-500 text-[11px] pt-0.5">
+              🎯 核心思想：<strong>「寧可少抓，絕不把狗看成貓」</strong>。
+            </p>
+          `;
+
+        } else if (state.activeMetric === "recall") {
+          dom.cardRecall.classList.add("ring-2", "ring-amber-500", "bg-amber-50/20");
+          dom.activeFocusLabel.textContent = "目前聚焦：召回率 (看上一橫列：真實為貓的群體)";
+          dom.activeFocusLabel.className = "text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200";
+
+          frame.setAttribute("x", "190");
+          frame.setAttribute("y", "75");
+          frame.setAttribute("width", "495");
+          frame.setAttribute("height", "185");
+          frame.setAttribute("stroke", "#f59e0b");
+          frame.setAttribute("opacity", "1");
+
+          caption.setAttribute("x", "200");
+          caption.setAttribute("y", "68");
+          caption.setAttribute("fill", "#d97706");
+          caption.textContent = "分母：真實存在的所有貓咪 (TP + FN) | 分子：成功認出的貓 (TP)";
+          caption.setAttribute("opacity", "1");
+
+          dom.bgFP.setAttribute("opacity", "0.25");
+          dom.bgTN.setAttribute("opacity", "0.25");
+
+          dom.metricExplanationBox.innerHTML = `
+            <div class="font-bold text-amber-900 flex items-center gap-1.5 mb-0.5">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+              <strong>召回率 (Recall) 當前診斷：</strong>
+            </div>
+            <p>
+              輸送帶上總共出現了 <strong>${m.recDen}</strong> 隻貓咪，AI 成功揪出了 <strong>${state.tp}</strong> 隻，有 <strong>${state.fn}</strong> 隻貓被不小心當成狗溜走了！召回率為 <strong>${(m.recall * 100).toFixed(1)}%</strong>。
+            </p>
+            <p class="text-slate-500 text-[11px] pt-0.5">
+              🎯 核心思想：<strong>「一隻貓都不能少，寧可誤抓狗狗也不漏放貓咪」</strong>。
+            </p>
+          `;
+
+        } else if (state.activeMetric === "f1") {
+          dom.cardF1.classList.add("ring-2", "ring-purple-500", "bg-purple-50/20");
+          dom.activeFocusLabel.textContent = "目前聚焦：F1-Score (Precision 與 Recall 的調和平均)";
+          dom.activeFocusLabel.className = "text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-md border border-purple-200";
+
+          frame.setAttribute("x", "190");
+          frame.setAttribute("y", "75");
+          frame.setAttribute("width", "495");
+          frame.setAttribute("height", "365");
+          frame.setAttribute("stroke", "#8b5cf6");
+          frame.setAttribute("opacity", "1");
+
+          caption.setAttribute("x", "200");
+          caption.setAttribute("y", "68");
+          caption.setAttribute("fill", "#7c3aed");
+          caption.textContent = `調和平均數：2 × (${(m.precision*100).toFixed(0)}% × ${(m.recall*100).toFixed(0)}%) / (P + R)`;
+          caption.setAttribute("opacity", "1");
+
+          dom.metricExplanationBox.innerHTML = `
+            <div class="font-bold text-purple-900 flex items-center gap-1.5 mb-0.5">
+              <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+              <strong>F1-Score 綜合指數診斷：</strong>
+            </div>
+            <p>
+              當前 F1 得分為 <strong>${(m.f1 * 100).toFixed(1)}%</strong>。調和平均數能嚴格制裁只追求單一偏門的模型。
+            </p>
+            <p class="text-slate-500 text-[11px] pt-0.5">
+              💡 只要精確率或召回率其中一項崩盤（例如 Recall=0%），F1 值就會立刻跌至 0。
+            </p>
+          `;
+        }
+      }
+
+      // 批次產生 N 隻
+      function batchProcess(count) {
+        for (let i = 0; i < count; i++) {
+          const item = createAnimalItem();
+          state.totalScanned++;
+          if (item.actual === "cat" && item.predicted === "cat") state.tp++;
+          else if (item.actual === "cat" && item.predicted === "dog") state.fn++;
+          else if (item.actual === "dog" && item.predicted === "cat") state.fp++;
+          else if (item.actual === "dog" && item.predicted === "dog") state.tn++;
+        }
+        dom.lastDecisionBadge.textContent = `⚡ 已批次快速辨識 ${count} 隻小動物！`;
+        dom.lastDecisionBadge.className = "font-mono text-xs px-2.5 py-0.5 rounded-lg border font-bold bg-amber-50 text-amber-900 border-amber-300";
+        updateMetricsAndMatrix();
+      }
+
+      // 播放/暫停控制器
+      function togglePlay() {
+        state.isPlaying = !state.isPlaying;
+        if (state.isPlaying) {
+          dom.playIcon.textContent = "⏸";
+          dom.playText.textContent = "暫停辨識";
+          dom.btnPlayPause.className = "inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition active:scale-95";
+          dom.conveyorPattern.classList.remove("conveyor-paused");
+          
+          processNextAnimal();
+          state.timerId = setInterval(processNextAnimal, state.speedMs);
+        } else {
+          dom.playIcon.textContent = "▶";
+          dom.playText.textContent = "開始自動辨識";
+          dom.btnPlayPause.className = "inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition active:scale-95";
+          dom.conveyorPattern.classList.add("conveyor-paused");
+          
+          clearInterval(state.timerId);
+          state.timerId = null;
+        }
+      }
+
+      // 重置所有數值
+      function resetExperiment() {
+        if (state.isPlaying) togglePlay();
+        state.tp = 0;
+        state.fn = 0;
+        state.fp = 0;
+        state.tn = 0;
+        state.totalScanned = 0;
+
+        dom.lastDecisionBadge.textContent = "數值已歸零，準備就緒！";
+        dom.lastDecisionBadge.className = "font-mono text-xs px-2.5 py-0.5 rounded-lg border font-bold bg-slate-100 text-slate-700 border-slate-200";
+        dom.scanFeedbackText.textContent = "等待受測者...";
+
+        initQueue();
+        updateMetricsAndMatrix();
+      }
+
+      // 事件監聽綁定
+      dom.btnPlayPause.addEventListener("click", togglePlay);
+      dom.btnStep.addEventListener("click", () => {
+        if (state.isPlaying) togglePlay();
+        processNextAnimal();
+      });
+      dom.btnBatch20.addEventListener("click", () => batchProcess(20));
+      dom.btnReset.addEventListener("click", resetExperiment);
+
+      // 滑桿事件
+      dom.sliderSpeed.addEventListener("input", e => {
+        state.speedMs = 2600 - parseInt(e.target.value, 10);
+        const val = parseInt(e.target.value, 10);
+        if (val < 800) dom.speedLabel.textContent = "緩慢";
+        else if (val < 1600) dom.speedLabel.textContent = "一般";
+        else dom.speedLabel.textContent = "極速 🚀";
+
+        if (state.isPlaying) {
+          clearInterval(state.timerId);
+          state.timerId = setInterval(processNextAnimal, state.speedMs);
+        }
+      });
+
+      dom.sliderModelAccuracy.addEventListener("input", e => {
+        const acc = parseInt(e.target.value, 10);
+        state.modelAccuracy = acc / 100;
+        dom.modelAccuracyLabel.textContent = `${acc}%`;
+      });
+
+      dom.selectCatRatio.addEventListener("change", e => {
+        state.catRatio = parseFloat(e.target.value);
+        initQueue();
+      });
+
+      // 卡片點擊高亮聚焦
+      dom.cardAccuracy.addEventListener("click", () => { state.activeMetric = "accuracy"; updateMetricsAndMatrix(); });
+      dom.cardPrecision.addEventListener("click", () => { state.activeMetric = "precision"; updateMetricsAndMatrix(); });
+      dom.cardRecall.addEventListener("click", () => { state.activeMetric = "recall"; updateMetricsAndMatrix(); });
+      dom.cardF1.addEventListener("click", () => { state.activeMetric = "f1"; updateMetricsAndMatrix(); });
+
+      // 點擊 SVG 象限格子亦可聚焦
+      dom.tileTP.addEventListener("click", () => { state.activeMetric = "precision"; updateMetricsAndMatrix(); });
+      dom.tileFP.addEventListener("click", () => { state.activeMetric = "precision"; updateMetricsAndMatrix(); });
+      dom.tileFN.addEventListener("click", () => { state.activeMetric = "recall"; updateMetricsAndMatrix(); });
+      dom.tileTN.addEventListener("click", () => { state.activeMetric = "accuracy"; updateMetricsAndMatrix(); });
+
+      // 初始化進入
+      dom.conveyorPattern.classList.add("conveyor-paused");
+      initQueue();
+      updateMetricsAndMatrix();
+    })();
+  </script>
+</body>
+</html>
