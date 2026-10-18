@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K折交叉驗證（K-Fold Cross-Validation）互動動畫實驗室</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontSize: {
+            'base': '15px',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 全域文字標準鎖定 15px */
+    body {
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    /* 滑桿美化 */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      height: 7px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #6366f1;
+      cursor: pointer;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      transition: transform 0.1s, background-color 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #4f46e5;
+    }
+    /* 動態呼吸光暈 */
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.4)); }
+      50% { filter: drop-shadow(0 0 12px rgba(244, 63, 94, 0.8)); }
+    }
+    .val-pulse {
+      animation: pulseGlow 1.6s infinite ease-in-out;
+    }
+    /* 平滑過渡 */
+    .smooth-transition {
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* 數字跳動動畫 */
+    @keyframes scoreBump {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .score-bump {
+      animation: scoreBump 0.3s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased selection:bg-indigo-100 selection:text-indigo-800 p-2 sm:p-4 w-full">
+
+  <div class="w-full space-y-3 sm:space-y-4">
+    
+    <!-- 頂部頁頭區 -->
+    <header class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs w-full">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-600 text-white flex items-center justify-center font-black text-2xl shadow-md shrink-0">
+            🔄
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">K 折交叉驗證（K-Fold Cross-Validation）互動實驗室</h1>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">機器學習必修評估法</span>
+            </div>
+            <p class="text-[15px] text-slate-600 mt-0.5">為什麼不能只測一次試卷？透過動態輪替動畫，親眼看資料如何「輪流當主考官」，測出 AI 真正的泛化實力！</p>
+          </div>
+        </div>
+
+        <!-- 快捷控制按鈕群 -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="btnPlayPause" class="px-4 py-2 rounded-xl font-bold text-[15px] bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition active:scale-95 flex items-center gap-1.5">
+            <span id="playIcon">▶</span>
+            <span id="playText">開始自動巡迴</span>
+          </button>
+          <button id="btnStepNext" class="px-3.5 py-2 rounded-xl font-semibold text-[15px] bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition active:scale-95 shadow-xs">
+            ⏭️ 下一輪 (Next Fold)
+          </button>
+          <button id="btnShuffleData" class="px-3.5 py-2 rounded-xl font-semibold text-[15px] bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition">
+            🎲 重新打散資料 (Shuffle)
+          </button>
+        </div>
+      </div>
+
+      <!-- 核心觀念三點快懂橫幅 -->
+      <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-[15px]">
+        <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/60">
+          <span class="font-bold text-blue-900 flex items-center gap-1.5 mb-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+            1. 訓練集（Training Fold）
+          </span>
+          <p class="text-slate-600 text-[14px]">
+            每次挑選 <strong class="text-blue-700">K - 1</strong> 折的資料給 AI 認真讀書背題，學習規律。
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl border border-rose-200 bg-rose-50/60">
+          <span class="font-bold text-rose-900 flex items-center gap-1.5 mb-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            2. 驗證集（Validation Fold）
+          </span>
+          <p class="text-slate-600 text-[14px]">
+            嚴格扣留 <strong class="text-rose-600">1 折</strong> 沒看過的全新考卷，當作該輪的大考驗收。
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/60">
+          <span class="font-bold text-emerald-900 flex items-center gap-1.5 mb-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+            3. 平均成績（Mean CV Score）
+          </span>
+          <p class="text-slate-600 text-[14px]">
+            輪流考完 K 輪後計算平均分數，徹底消除「剛好抽中簡單考卷」的運氣偏誤！
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要展示區域：左 7 欄 SVG 動態分割可視化 + 右 5 欄折數設定與輪替成績單 -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
+      
+      <!-- 左側：SVG 動態分割與輪替軌跡畫布 (7 欄) -->
+      <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3">
+        
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+          <div class="flex items-center gap-2 font-bold text-slate-800 text-[15px]">
+            <span id="statusIndicatorDot" class="w-3 h-3 rounded-full bg-rose-500 animate-pulse"></span>
+            <span id="canvasCurrentRoundText">目前進行：第 1 輪驗證（Fold 1 當考官）</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200" id="dataRatioBadge">
+              訓練 80% : 驗證 20%
+            </span>
+          </div>
+        </div>
+
+        <!-- SVG 畫布本體 -->
+        <div class="w-full aspect-[16/11] bg-slate-900 rounded-xl border border-slate-700 overflow-hidden relative shadow-inner flex items-center justify-center p-2">
+          
+          <svg id="cvSvg" class="w-full h-full select-none" viewBox="0 0 740 500">
+            <defs>
+              <!-- 網格底圖 -->
+              <pattern id="gridPattern" width="37" height="37" patternUnits="userSpaceOnUse">
+                <path d="M 37 0 L 0 0 0 37" fill="none" stroke="#1e293b" stroke-width="1"/>
+              </pattern>
+
+              <!-- 驗證集高亮光暈濾鏡 -->
+              <filter id="valGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#f43f5e" flood-opacity="0.6"/>
+              </filter>
+            </defs>
+
+            <!-- 網格底板 -->
+            <rect width="100%" height="100%" fill="#0b1120" />
+            <rect width="100%" height="100%" fill="url(#gridPattern)" />
+
+            <!-- 頂部整體資料集總覽色帶 (Raw Dataset) -->
+            <g id="rawDatasetGroup" transform="translate(60, 20)">
+              <text x="0" y="16" font-size="13" font-weight="bold" fill="#94a3b8">原始資料總覽 (全體 N 個樣本)：</text>
+              <g id="rawBlocksContainer" transform="translate(0, 25)"></g>
+            </g>
+
+            <!-- 流程向下箭頭 -->
+            <path d="M 370 78 L 370 98 M 365 92 L 370 98 L 375 92" stroke="#64748b" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+            <!-- K 輪驗證對照視覺矩陣容器 (動態渲染 K 橫列) -->
+            <g id="kFoldRowsGroup" transform="translate(60, 115)"></g>
+
+            <!-- 射線連結與游標指針 (追蹤當前啟用的 Validation Fold) -->
+            <g id="pointerIndicatorGroup"></g>
+          </svg>
+
+          <!-- 畫布浮動說明標記 -->
+          <div class="absolute bottom-3 left-4 text-xs font-mono text-slate-400 bg-slate-950/85 px-3 py-1.5 rounded-lg border border-slate-700/80 pointer-events-none flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span>紅色方塊 = 當輪考卷（Validation Set）｜藍色方塊 = 平時作業題（Training Set）</span>
+          </div>
+        </div>
+
+        <!-- 圖例與折數分配比例摘要 -->
+        <div class="flex flex-wrap items-center justify-between text-[15px] text-slate-600 pt-1 gap-2 border-t border-slate-100">
+          <div class="flex flex-wrap items-center gap-3.5">
+            <span class="flex items-center gap-1.5">
+              <span class="w-3.5 h-3.5 rounded bg-blue-600 inline-block"></span>
+              <strong>訓練集 (Training)</strong>
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-3.5 h-3.5 rounded bg-rose-500 inline-block"></span>
+              <strong>驗證集 (Validation)</strong>
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-4 h-1 border-t-2 border-dashed border-cyan-400 inline-block"></span>
+              <strong>正在受測中</strong>
+            </span>
+          </div>
+
+          <div class="font-mono text-slate-500 font-bold" id="samplePartitionDisplay">
+            總樣本: 100 筆 ｜ 每折: 20 筆
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 右側：設定控制、輪替大考成績單與白話解析 (5 欄) -->
+      <div class="lg:col-span-5 space-y-3.5">
+        
+        <!-- 卡片 1：K 折設定控制器 -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>⚙️</span>
+              <span>設定交叉驗證折數 (K-Folds)</span>
+            </h2>
+            <span id="currentKBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800 font-mono">
+              K = 5 折
+            </span>
+          </div>
+
+          <!-- K 值滑桿 -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-[15px] font-semibold text-slate-700">
+              <span>切分折數（分割份數）：</span>
+              <span id="sliderKText" class="font-mono font-bold text-indigo-700">5 等份 (最常見黃金比例)</span>
+            </div>
+            
+            <input type="range" id="kSlider" min="2" max="10" step="1" value="5" class="w-full">
+            
+            <div class="flex justify-between text-xs text-slate-400 font-bold px-1 font-mono">
+              <span>K=2 (對半拆)</span>
+              <span class="text-indigo-600">K=5 (標準)</span>
+              <span class="text-purple-600">K=10 (大型嚴格)</span>
+            </div>
+          </div>
+
+          <!-- 一鍵快捷折數切換 -->
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <button id="btnPresetK3" class="py-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition">
+              3 折 (快速)
+            </button>
+            <button id="btnPresetK5" class="py-2 text-[14px] font-bold rounded-xl border-2 border-indigo-500 bg-indigo-50 text-indigo-800 transition">
+              5 折 (標準 ⭐)
+            </button>
+            <button id="btnPresetK10" class="py-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition">
+              10 折 (細緻)
+            </button>
+          </div>
+        </div>
+
+        <!-- 卡片 2：各輪驗證分數成績單（最關鍵教學指標） -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-1.5">
+              <span>📊</span>
+              <span>各輪模擬大考成績單 (CV Score)</span>
+            </h3>
+            <span class="text-xs font-mono text-slate-400">準確率 Accuracy</span>
+          </div>
+
+          <!-- 各折即時分數條列表容器 -->
+          <div id="foldScoreList" class="space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar text-[15px]">
+            <!-- 由 JS 動態注入各折成績條 -->
+          </div>
+
+          <!-- 最終加總平均得分看板 -->
+          <div class="mt-3 p-3.5 rounded-xl bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border border-indigo-200/80 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-indigo-900">總合平均指標 (FINAL CV SCORE)</div>
+              <div class="text-slate-600 text-[14px] mt-0.5">消除單一考卷偏見的真實模型實力</div>
+            </div>
+            <div class="text-right">
+              <span id="meanScoreDisplay" class="font-mono text-2xl sm:text-3xl font-black text-indigo-700 score-bump">
+                87.4%
+              </span>
+              <div id="stdScoreDisplay" class="text-xs font-mono text-slate-500 font-bold">標準差: ±1.8%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 卡片 3：生活化白話解析 -->
+        <div id="storyCard" class="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-4 text-[15px] space-y-2 leading-relaxed">
+          <!-- 由 JS 動態注入白話說明 -->
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- 底部：真實世界中為什麼必須做交叉驗證？ -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs space-y-3.5">
+      <div class="border-b border-slate-100 pb-2.5">
+        <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span>💡</span> 為什麼業界工程師一定要做「交叉驗證」？
+        </h2>
+        <p class="text-[15px] text-slate-500 mt-0.5">如果你只切一次 80% 訓練與 20% 測試，很有可能被「運氣」欺騙了！</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-[15px]">
+        
+        <!-- 避免運氣成分 -->
+        <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/40 space-y-2">
+          <div class="font-bold text-blue-900 text-base">🎯 避免考卷偏頗 (運氣不好)</div>
+          <p class="text-slate-700 leading-relaxed text-[14px]">
+            如果不小心把最難的題目全部剛好分進了 20% 的測試集，AI 會顯得成績極爛；反之抽到送分題又會過度自信。<strong>輪流當一次考官</strong>才能看清全貌！
+          </p>
+        </div>
+
+        <!-- 珍貴資料充分利用 -->
+        <div class="p-4 rounded-xl border border-purple-200 bg-purple-50/40 space-y-2">
+          <div class="font-bold text-purple-900 text-base">💎 每一筆資料都物盡其用</div>
+          <p class="text-slate-700 leading-relaxed text-[14px]">
+            在醫療罕見疾病或資料量很少時，不可能浪費大把資料只當一次性測試集。K 折讓<strong>所有樣本都有機會被訓練，也都有機會被拿來驗證測試</strong>。
+          </p>
+        </div>
+
+        <!-- 超參數調校黃金指標 -->
+        <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-2">
+          <div class="font-bold text-emerald-900 text-base">🛡️ 模型調優與防過擬合 (Overfitting)</div>
+          <p class="text-slate-700 leading-relaxed text-[14px]">
+            當我們在調整演算法超參數（例如：KNN 的 K 值、SVM 的 C 值）時，如果只在同一張試卷調到 100 分，上線還是會翻車。只有在 <strong>K 折平均下都能拿高分</strong>的模型，才是真正穩健的好模型！
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // 核心狀態
+      const state = {
+        k: 5,               // 折數 K (2 ~ 10)
+        currentFold: 0,     // 當前正在測試的折數索引 (0 ~ k-1)
+        isPlaying: false,   // 是否正在自動巡迴動畫
+        timerId: null,      // 自動播放定時器
+        speedMs: 1400,      // 每一輪切換間隔毫秒
+        totalSamples: 100,  // 假想資料集總樣本數
+        foldScores: []      // 各折評估成績 (模擬準確率)
+      };
+
+      // 快取 DOM 元素
+      const dom = {
+        btnPlayPause: document.getElementById("btnPlayPause"),
+        playIcon: document.getElementById("playIcon"),
+        playText: document.getElementById("playText"),
+        btnStepNext: document.getElementById("btnStepNext"),
+        btnShuffleData: document.getElementById("btnShuffleData"),
+        kSlider: document.getElementById("kSlider"),
+        sliderKText: document.getElementById("sliderKText"),
+        currentKBadge: document.getElementById("currentKBadge"),
+        btnPresetK3: document.getElementById("btnPresetK3"),
+        btnPresetK5: document.getElementById("btnPresetK5"),
+        btnPresetK10: document.getElementById("btnPresetK10"),
+        cvSvg: document.getElementById("cvSvg"),
+        rawBlocksContainer: document.getElementById("rawBlocksContainer"),
+        kFoldRowsGroup: document.getElementById("kFoldRowsGroup"),
+        pointerIndicatorGroup: document.getElementById("pointerIndicatorGroup"),
+        canvasCurrentRoundText: document.getElementById("canvasCurrentRoundText"),
+        statusIndicatorDot: document.getElementById("statusIndicatorDot"),
+        dataRatioBadge: document.getElementById("dataRatioBadge"),
+        samplePartitionDisplay: document.getElementById("samplePartitionDisplay"),
+        foldScoreList: document.getElementById("foldScoreList"),
+        meanScoreDisplay: document.getElementById("meanScoreDisplay"),
+        stdScoreDisplay: document.getElementById("stdScoreDisplay"),
+        storyCard: document.getElementById("storyCard")
+      };
+
+      // 隨機常態分佈產生器，模擬逼真的模型評估分數 (82% ~ 94%)
+      function generateMockScores() {
+        state.foldScores = [];
+        const base = 87.0 + (Math.random() - 0.5) * 4.0;
+        for (let i = 0; i < state.k; i++) {
+          const noise = (Math.random() + Math.random() - 1) * 3.8;
+          const score = Math.max(72.0, Math.min(98.5, base + noise));
+          state.foldScores.push(parseFloat(score.toFixed(1)));
+        }
+      }
+
+      // 繪製頂部原始資料總覽長條 (全體資料分成 K 個色塊)
+      function renderRawDataBanner() {
+        dom.rawBlocksContainer.innerHTML = '';
+        const totalW = 620;
+        const h = 26;
+        const k = state.k;
+        const blockW = totalW / k;
+
+        for (let i = 0; i < k; i++) {
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", i * blockW + 1.5);
+          rect.setAttribute("y", "0");
+          rect.setAttribute("width", blockW - 3);
+          rect.setAttribute("height", h);
+          rect.setAttribute("rx", "5");
+          rect.setAttribute("fill", "#334155");
+          rect.setAttribute("stroke", "#475569");
+          rect.setAttribute("stroke-width", "1.5");
+
+          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          txt.setAttribute("x", i * blockW + blockW / 2);
+          txt.setAttribute("y", h / 2 + 4.5);
+          txt.setAttribute("font-size", "11");
+          txt.setAttribute("font-weight", "bold");
+          txt.setAttribute("fill", "#cbd5e1");
+          txt.setAttribute("text-anchor", "middle");
+          txt.textContent = `區塊 ${i + 1}`;
+
+          g.appendChild(rect);
+          g.appendChild(txt);
+          dom.rawBlocksContainer.appendChild(g);
+        }
+      }
+
+      // 繪製 K-Fold 橫列矩陣 (核心視覺)
+      function renderKFoldRows() {
+        dom.kFoldRowsGroup.innerHTML = '';
+        const k = state.k;
+        const totalW = 620;
+        const rowH = Math.min(32, 280 / k);
+        const gapY = Math.min(10, 100 / k);
+        const blockW = totalW / k;
+
+        for (let r = 0; r < k; r++) {
+          const isCurrentActive = r === state.currentFold;
+          const rowG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          rowG.setAttribute("transform", `translate(0, ${r * (rowH + gapY)})`);
+          rowG.setAttribute("class", "smooth-transition");
+          rowG.style.cursor = "pointer";
+          rowG.addEventListener("click", () => {
+            selectFold(r);
+          });
+
+          // 橫列開頭文字標籤 (例如：第 1 輪 / Iteration 1)
+          const rowLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          rowLabel.setAttribute("x", "-8");
+          rowLabel.setAttribute("y", rowH / 2 + 4.5);
+          rowLabel.setAttribute("font-size", "12");
+          rowLabel.setAttribute("font-weight", isCurrentActive ? "900" : "bold");
+          rowLabel.setAttribute("fill", isCurrentActive ? "#38bdf8" : "#94a3b8");
+          rowLabel.setAttribute("text-anchor", "end");
+          rowLabel.textContent = `第 ${r + 1} 輪:`;
+          rowG.appendChild(rowLabel);
+
+          // 該列的 K 個子區塊 (剛好第 r 個為 Validation，其餘為 Training)
+          for (let c = 0; c < k; c++) {
+            const isValidation = c === r;
+            const blockG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", c * blockW + 1.5);
+            rect.setAttribute("y", "0");
+            rect.setAttribute("width", blockW - 3);
+            rect.setAttribute("height", rowH);
+            rect.setAttribute("rx", "6");
+
+            // 樣式區分：驗證集 (紅色) vs 訓練集 (藍色)
+            if (isValidation) {
+              rect.setAttribute("fill", isCurrentActive ? "#f43f5e" : "#e11d48");
+              rect.setAttribute("stroke", "#ffffff");
+              rect.setAttribute("stroke-width", isCurrentActive ? "2.5" : "1.5");
+              if (isCurrentActive) {
+                rect.setAttribute("class", "val-pulse");
+              }
+            } else {
+              rect.setAttribute("fill", isCurrentActive ? "#2563eb" : "#1e293b");
+              rect.setAttribute("stroke", isCurrentActive ? "#3b82f6" : "#334155");
+              rect.setAttribute("stroke-width", "1");
+              rect.setAttribute("opacity", isCurrentActive ? "1" : "0.5");
+            }
+
+            // 文字標記 (Val / Train)
+            const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            txt.setAttribute("x", c * blockW + blockW / 2);
+            txt.setAttribute("y", rowH / 2 + 4.5);
+            txt.setAttribute("font-size", k > 8 ? "10" : "11");
+            txt.setAttribute("font-weight", "black");
+            txt.setAttribute("fill", isValidation ? "#ffffff" : (isCurrentActive ? "#93c5fd" : "#64748b"));
+            txt.setAttribute("text-anchor", "middle");
+            txt.textContent = isValidation ? "驗證集" : "訓練";
+
+            blockG.appendChild(rect);
+            blockG.appendChild(txt);
+            rowG.appendChild(blockG);
+          }
+
+          // 該列右側分數徽章
+          const scoreBadge = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          scoreBadge.setAttribute("x", totalW + 12);
+          scoreBadge.setAttribute("y", rowH / 2 + 5);
+          scoreBadge.setAttribute("font-size", "12");
+          scoreBadge.setAttribute("font-family", "monospace");
+          scoreBadge.setAttribute("font-weight", isCurrentActive ? "900" : "bold");
+          scoreBadge.setAttribute("fill", isCurrentActive ? "#4ade80" : "#64748b");
+          scoreBadge.setAttribute("text-anchor", "start");
+          scoreBadge.textContent = `${state.foldScores[r]}%`;
+          rowG.appendChild(scoreBadge);
+
+          dom.kFoldRowsGroup.appendChild(rowG);
+        }
+      }
+
+      // 更新右側成績單與統計數值
+      function updateScoreboards() {
+        const k = state.k;
+        const cur = state.currentFold;
+        dom.foldScoreList.innerHTML = '';
+
+        let sum = 0;
+        state.foldScores.forEach((score, idx) => {
+          sum += score;
+          const isCurrent = idx === cur;
+
+          const row = document.createElement("div");
+          row.className = `p-2.5 rounded-xl border flex items-center justify-between transition-all duration-200 ${
+            isCurrent
+              ? "bg-rose-50/90 border-rose-300 ring-2 ring-rose-400 shadow-xs"
+              : "bg-slate-50 border-slate-200 opacity-80"
+          }`;
+
+          row.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full ${isCurrent ? 'bg-rose-500 animate-pulse' : 'bg-blue-500'}"></span>
+              <span class="font-bold text-slate-800 text-[14px]">
+                第 ${idx + 1} 輪 (Fold ${idx + 1})
+              </span>
+              ${isCurrent ? '<span class="text-xs font-bold px-1.5 py-0.2 rounded bg-rose-200 text-rose-800">當前考官</span>' : ''}
+            </div>
+
+            <div class="flex items-center gap-2">
+              <div class="w-20 sm:w-24 bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                <div class="${isCurrent ? 'bg-rose-500' : 'bg-indigo-600'} h-full transition-all duration-300" style="width: ${score}%"></div>
+              </div>
+              <span class="font-mono font-bold text-[14px] ${isCurrent ? 'text-rose-700 font-black' : 'text-slate-700'} min-w-[46px] text-right">
+                ${score}%
+              </span>
+            </div>
+          `;
+
+          // 點擊成績卡亦可跳轉至該輪
+          row.addEventListener("click", () => selectFold(idx));
+          dom.foldScoreList.appendChild(row);
+        });
+
+        // 計算平均分與標準差
+        const mean = sum / k;
+        let sqDiffSum = 0;
+        state.foldScores.forEach(s => sqDiffSum += Math.pow(s - mean, 2));
+        const std = Math.sqrt(sqDiffSum / k);
+
+        dom.meanScoreDisplay.textContent = `${mean.toFixed(1)}%`;
+        dom.stdScoreDisplay.textContent = `標準差: ±${std.toFixed(1)}%（分數越集中越穩定）`;
+
+        // 更新頂部與摘要文字
+        dom.canvasCurrentRoundText.textContent = `目前進行：第 ${cur + 1} 輪驗證（Fold ${cur + 1} 擔任唯一獨立考官）`;
+        const valRatio = Math.round(100 / k);
+        const trainRatio = 100 - valRatio;
+        dom.dataRatioBadge.textContent = `訓練 ${trainRatio}% : 驗證 ${valRatio}%`;
+        dom.samplePartitionDisplay.textContent = `總樣本: ${state.totalSamples} 筆 ｜ 每一折約: ${Math.round(state.totalSamples / k)} 筆`;
+
+        // 更新白話故事解析
+        updateStoryCard(cur, mean, valRatio);
+      }
+
+      // 更新白話生活解析框
+      function updateStoryCard(cur, mean, valRatio) {
+        dom.storyCard.innerHTML = `
+          <div class="font-bold text-indigo-950 flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+            <strong>這時候正在發生什麼事？</strong>
+          </div>
+          <p class="text-slate-700 text-[14px]">
+            在第 <strong>${cur + 1}</strong> 輪中，模型使用其餘 <strong>${100 - valRatio}%</strong> 的訓練資料進行學習，完成後立刻在被扣留的 <strong>第 ${cur + 1} 折（${valRatio}% 的全新試卷）</strong> 上大考驗收，拿到 <strong>${state.foldScores[cur]}%</strong>！
+          </p>
+          <div class="p-2.5 rounded-lg bg-white border border-indigo-100 text-[14px] text-indigo-900 font-medium">
+            💡 <strong>為何看平均值 ${mean.toFixed(1)}% 最準？</strong><br>
+            每一份考卷的難易度與偏門陷阱都不相同。透過 <strong>${state.k} 次輪流大考</strong>，我們確認模型不是靠「運氣碰巧蒙對」，而是具備扎實的泛化實力！
+          </div>
+        `;
+      }
+
+      // 手動選擇特定 Fold 輪數
+      function selectFold(foldIndex) {
+        state.currentFold = foldIndex;
+        renderKFoldRows();
+        updateScoreboards();
+      }
+
+      // 前進至下一輪
+      function nextFold() {
+        state.currentFold = (state.currentFold + 1) % state.k;
+        renderKFoldRows();
+        updateScoreboards();
+      }
+
+      // 播放 / 暫停巡迴
+      function togglePlay() {
+        state.isPlaying = !state.isPlaying;
+        if (state.isPlaying) {
+          dom.playIcon.textContent = "⏸";
+          dom.playText.textContent = "暫停巡迴";
+          dom.btnPlayPause.className = "px-4 py-2 rounded-xl font-bold text-[15px] bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition active:scale-95 flex items-center gap-1.5";
+          state.timerId = setInterval(nextFold, state.speedMs);
+        } else {
+          dom.playIcon.textContent = "▶";
+          dom.playText.textContent = "開始自動巡迴";
+          dom.btnPlayPause.className = "px-4 py-2 rounded-xl font-bold text-[15px] bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition active:scale-95 flex items-center gap-1.5";
+          clearInterval(state.timerId);
+          state.timerId = null;
+        }
+      }
+
+      // 重新設定折數 K
+      function setK(newK) {
+        state.k = newK;
+        state.currentFold = 0;
+        dom.kSlider.value = newK;
+        dom.currentKBadge.textContent = `K = ${newK} 折`;
+
+        // 滑桿描述標籤
+        let desc = `${newK} 等份`;
+        if (newK === 2) desc = "2 等份 (各半拆分，訓練量少)";
+        else if (newK === 5) desc = "5 等份 (最常見黃金比例 ⭐)";
+        else if (newK === 10) desc = "10 等份 (大型模型嚴格檢驗)";
+        dom.sliderKText.textContent = desc;
+
+        // 預設按鈕外框高亮
+        dom.btnPresetK3.className = newK === 3 ? "py-2 text-[14px] font-bold rounded-xl border-2 border-indigo-500 bg-indigo-50 text-indigo-800 transition" : "py-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition";
+        dom.btnPresetK5.className = newK === 5 ? "py-2 text-[14px] font-bold rounded-xl border-2 border-indigo-500 bg-indigo-50 text-indigo-800 transition" : "py-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition";
+        dom.btnPresetK10.className = newK === 10 ? "py-2 text-[14px] font-bold rounded-xl border-2 border-indigo-500 bg-indigo-50 text-indigo-800 transition" : "py-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition";
+
+        generateMockScores();
+        renderRawDataBanner();
+        renderKFoldRows();
+        updateScoreboards();
+      }
+
+      // 事件監聽綁定
+      dom.btnPlayPause.addEventListener("click", togglePlay);
+      dom.btnStepNext.addEventListener("click", () => {
+        if (state.isPlaying) togglePlay();
+        nextFold();
+      });
+      dom.btnShuffleData.addEventListener("click", () => {
+        generateMockScores();
+        renderKFoldRows();
+        updateScoreboards();
+      });
+
+      // 滑桿調節 K
+      dom.kSlider.addEventListener("input", (e) => {
+        setK(parseInt(e.target.value, 10));
+      });
+
+      // 快捷預設按鈕
+      dom.btnPresetK3.addEventListener("click", () => setK(3));
+      dom.btnPresetK5.addEventListener("click", () => setK(5));
+      dom.btnPresetK10.addEventListener("click", () => setK(10));
+
+      // 初始化進入
+      setK(5);
+    })();
+  </script>
+</body>
+</html>
