@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滲流臨界點模擬器 (Percolation Threshold)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #08090d;
+            color: #e2e8f0;
+        }
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* 自定義發光效果 */
+        .neon-glow-gold {
+            text-shadow: 0 0 10px rgba(245, 158, 11, 0.6), 0 0 20px rgba(245, 158, 11, 0.3);
+        }
+        .neon-glow-cyan {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.6), 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+        /* 自定義拉桿外觀 */
+        input[type="range"] {
+            -webkit-appearance: none;
+            background: #1e2230;
+            border-radius: 9999px;
+            height: 8px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fbbf24;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+            transition: all 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #f59e0b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-3 md:p-6 selection:bg-amber-500 selection:text-black">
+
+    <header class="w-full max-w-5xl mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-gray-800/80 pb-4">
+        <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono mb-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                統計物理學 · 滲流相變現象
+            </div>
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                臨界面：為什麼 58% 跟 0% 效果幾乎一樣？
+            </h1>
+            <p class="text-gray-400 text-xs md:text-sm mt-1">
+                二維正方形晶格節點滲流臨界值為 <span class="text-amber-400 font-mono font-semibold">p ≈ 59.27%</span>。低於此門檻，無限尺度下貫通機率為 0；一旦突破，通道瞬間爆發貫穿。
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button id="theoryBtn" class="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition">
+                原理科普
+            </button>
+            <button id="monteCarloBtn" class="text-xs px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition flex items-center gap-1">
+                <span>⚡ 跑 100 次蒙地卡羅驗證</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- 左側：畫布與即時狀態（復刻影片畫面） -->
+        <div class="lg:col-span-7 flex flex-col items-center">
+            <!-- 模擬器畫布容器 -->
+            <div class="relative p-2.5 rounded-2xl bg-gradient-to-b from-[#12151f] to-[#0c0e15] border border-gray-800 shadow-2xl w-full flex flex-col items-center">
+                <!-- 頂部彈幕感浮動標語 -->
+                <div class="w-full flex justify-between items-center text-[11px] font-mono text-gray-500 px-2 py-1 mb-1 border-b border-gray-800/60">
+                    <span id="dimensionLabel">GRID: 50 × 50 (2,500 格)</span>
+                    <span id="directionLabel">DIRECTION: TOP ➔ BOTTOM</span>
+                </div>
+
+                <!-- Canvas -->
+                <div class="relative w-full aspect-square max-w-[480px] flex items-center justify-center overflow-hidden rounded-xl bg-[#090b10] border border-gray-900 shadow-inner">
+                    <canvas id="percolationCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                </div>
+
+                <!-- 復刻影片底部數據看板 -->
+                <div class="w-full grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-gray-800/80 px-4 pb-1">
+                    <div class="flex flex-col items-center justify-center border-r border-gray-800">
+                        <span class="text-[11px] font-mono tracking-wider text-gray-400">CELLS LIT (點亮比例)</span>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span id="actualLitPercent" class="text-2xl md:text-3xl font-extrabold mono-font text-amber-400">0.0%</span>
+                            <span id="targetProbLabel" class="text-xs text-gray-500 mono-font">(設定: 59%)</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="text-[11px] font-mono tracking-wider text-gray-400">PERCOLATES (是否貫通)</span>
+                        <div class="mt-1">
+                            <span id="percolateStatus" class="text-2xl md:text-3xl font-extrabold mono-font text-gray-600">NO</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-[11px] text-gray-500 mt-2 text-center">
+                提示：滑鼠可在網格上點擊或拖曳，手動切換單格狀態，觀察通道斷開與導通。
+            </p>
+        </div>
+
+        <div class="lg:col-span-5 flex flex-col gap-4">
+            <!-- 模式切換：一次點亮一格功能面板 -->
+            <div class="bg-[#10131d] border border-amber-500/30 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 px-2.5 py-0.5 bg-amber-500 text-black text-[10px] font-bold uppercase rounded-bl-lg">
+                    新功能
+                </div>
+                <h2 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <span>🎯</span> 逐格點亮模式 (點到貫通為止)
+                </h2>
+                <p class="text-[11px] text-gray-400 mb-3">
+                    每次隨機點亮 1 格未點亮的暗格，並在即時貫通的那一瞬間立即停止，檢視觸發相變所需填滿的臨界比例。
+                </p>
+
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <button id="stepOneBtn" class="py-2 px-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-medium border border-gray-700 transition flex items-center justify-center gap-1">
+                        <span>+1</span> 點亮一格
+                    </button>
+                    <button id="autoStepBtn" class="py-2 px-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition flex items-center justify-center gap-1 shadow-md shadow-amber-500/10">
+                        <span id="stepPlayIcon">▶</span> 自動點到通
+                    </button>
+                    <button id="clearGridBtn" class="py-2 px-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white text-xs border border-gray-800 transition">
+                        清空重來
+                    </button>
+                </div>
+
+                <!-- 點亮速度選擇器 -->
+                <div class="flex items-center justify-between text-xs text-gray-400 pt-1 border-t border-gray-800/80">
+                    <span>點亮速度：</span>
+                    <div class="flex gap-1.5" id="speedOptions">
+                        <button data-speed="1" class="speed-btn px-2 py-0.5 rounded text-[11px] bg-gray-800 text-gray-300 hover:bg-gray-700">1格/步</button>
+                        <button data-speed="5" class="speed-btn px-2 py-0.5 rounded text-[11px] bg-amber-500/30 text-amber-300 font-semibold">5格/步</button>
+                        <button data-speed="20" class="speed-btn px-2 py-0.5 rounded text-[11px] bg-gray-800 text-gray-300 hover:bg-gray-700">極速 20格</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="bg-[#10131d] border border-gray-800/90 rounded-2xl p-5 shadow-lg">
+                <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    全域機率調節面板
+                </h2>
+
+                <!-- 點亮機率滑桿 -->
+                <div class="space-y-2 mb-5">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-300 font-medium">開孔 / 努力機率 (p)</span>
+                        <span id="sliderValueText" class="mono-font text-amber-400 font-bold text-base">59.0%</span>
+                    </div>
+                    <input id="probSlider" type="range" min="0" max="100" step="0.5" value="59" class="w-full accent-amber-500">
+                    <div class="flex justify-between text-[10px] text-gray-500 font-mono pt-1">
+                        <span>0%</span>
+                        <span class="text-amber-400/80 cursor-pointer hover:underline" id="quick58Btn">58.0% (未及門檻)</span>
+                        <span class="text-emerald-400 font-semibold cursor-pointer hover:underline" id="quickCriticalBtn">59.3% (臨界點)</span>
+                        <span class="text-amber-400/80 cursor-pointer hover:underline" id="quick61Btn">61.0% (突破)</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+
+                <!-- 網格大小 -->
+                <div class="space-y-2 mb-5">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-300">地圖解析度 (N × N)</span>
+                        <span id="gridSizeLabel" class="mono-font text-gray-400">50 × 50</span>
+                    </div>
+                    <input id="gridSizeSlider" type="range" min="20" max="100" step="5" value="50" class="w-full">
+                    <p class="text-[10px] text-gray-500">
+                        維度越接近無限大（如 100+），58% 與 60% 之間的「陡峭相變跳躍」越絕對。
+                    </p>
+                </div>
+
+                <!-- 按鈕功能區 -->
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button id="regenerateBtn" class="py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs tracking-wider transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        重新隨機抽樣
+                    </button>
+                    <button id="autoSweepBtn" class="py-2.5 px-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium text-xs tracking-wider border border-gray-700 transition flex items-center justify-center gap-1.5">
+                        <span id="sweepIcon">▶</span> 自動連續升壓
+                    </button>
+                </div>
+            </div>
+
+            <!-- 臨界相變機率曲線圖 (S型曲線) -->
+            <div class="bg-[#10131d] border border-gray-800/90 rounded-2xl p-4 shadow-lg flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                        滲流貫穿機率相變曲線 (S-Curve)
+                    </h3>
+                    <span class="text-[10px] font-mono text-cyan-400/80">理論臨界 $p_c \approx 0.5927$</span>
+                </div>
+                <div class="relative w-full h-32 bg-[#090b11] rounded-lg border border-gray-800/80 p-1">
+                    <canvas id="curveCanvas" class="w-full h-full block"></canvas>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-gray-400 mt-2 px-1">
+                    <span>0% (必不通)</span>
+                    <span class="text-amber-400">59.27% 陡峭躍升</span>
+                    <span>100% (必通)</span>
+                </div>
+            </div>
+
+            <!-- 即時統計與洞見：含連通面積比例 -->
+            <div class="p-3.5 rounded-xl bg-gray-900/60 border border-gray-800/80 text-xs space-y-2">
+                <div class="flex items-center justify-between text-gray-400">
+                    <span class="flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        貫通通道總面積 (連通佔比):
+                    </span>
+                    <span id="percolatingAreaLabel" class="mono-font text-amber-300 font-bold text-sm">0 格 (0.0%)</span>
+                </div>
+                <div class="flex items-center justify-between text-gray-400">
+                    <span>最大連通叢集 (Giant Cluster):</span>
+                    <span id="largestClusterSize" class="mono-font text-white font-medium">0 格 (0%)</span>
+                </div>
+                <div class="flex items-center justify-between text-gray-400">
+                    <span>最短貫穿路徑長度:</span>
+                    <span id="pathLength" class="mono-font text-amber-300 font-medium">無</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="infoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#121622] border border-gray-700 max-w-lg w-full rounded-2xl p-6 shadow-2xl relative text-sm">
+            <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <span>💡</span> 什麼是「滲流理論」與 58% 效應？
+            </h3>
+            <div class="space-y-3 text-gray-300 text-xs md:text-sm leading-relaxed">
+                <p>
+                    <strong class="text-amber-400">1. 物理起源：</strong> 滲流模型最早用來研究咖啡粉滴濾咖啡、多孔介質中的水流或多孔金屬導電。當導通介質的比例低於臨界值時，液體無法流到底部。
+                </p>
+                <p>
+                    <strong class="text-amber-400">2. 為什麼是 59.27%？</strong> 在 2D 正方形網格的「節點滲流」中，數學上嚴格證明臨界閾值 $p_c \approx 0.592746$。低於這個數值，網格被孤立島嶼隔斷；高於這個數值，無限大的連通團簇必然誕生。
+                </p>
+                <p>
+                    <strong class="text-amber-400">3. 人生啟示與迷思：</strong> 許多人在努力了 50%、58% 時，發現結果和「0% 的人」看起來沒有區別（路依然不通），因此感到沮喪放棄。但只要跨過關鍵的 1.3% 到達 60%，系統將發生質變，瞬間全線貫通！
+                </p>
+            </div>
+            <button id="closeModalBtn" class="mt-5 w-full py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium text-xs transition">
+                了解，回到模擬器
+            </button>
+        </div>
+    </div>
+
+    <!-- 底部版權/來源資訊 -->
+    <footer class="mt-6 text-center text-xs text-gray-600 font-mono">
+        PERCOLATION THRESHOLD SIMULATOR · INTERACTIVE PHYSICS EXPERIMENT
+    </footer>
+
+    <script>
+        // 常數與配置
+        const THEORETICAL_PC = 0.592746; // 理論臨界值
+        let N = 50;                     // 網格大小 N x N
+        let p = 0.59;                   // 開孔機率 (0 ~ 1)
+        let grid = [];                  // 0: 空格, 1: 點亮/導通
+        let clusterIds = [];            // 儲存每個格子的 Cluster ID
+        let percolatingClusters = new Set(); // 能連通頂部與底部的 Cluster ID 集合
+        let shortestPathCells = new Set();   // 最短貫通通道格點集合
+        let isSweeping = false;
+        let sweepTimer = null;
+
+        // 逐格點亮狀態
+        let isAutoStepping = false;
+        let autoStepTimer = null;
+        let stepSpeed = 5; // 每次循環添加幾格
+
+        // DOM 元素引用
+        const canvas = document.getElementById('percolationCanvas');
+        const ctx = canvas.getContext('2d');
+        const curveCanvas = document.getElementById('curveCanvas');
+        const curveCtx = curveCanvas.getContext('2d');
+
+        const probSlider = document.getElementById('probSlider');
+        const sliderValueText = document.getElementById('sliderValueText');
+        const gridSizeSlider = document.getElementById('gridSizeSlider');
+        const gridSizeLabel = document.getElementById('gridSizeLabel');
+        const dimensionLabel = document.getElementById('dimensionLabel');
+        const actualLitPercent = document.getElementById('actualLitPercent');
+        const targetProbLabel = document.getElementById('targetProbLabel');
+        const percolateStatus = document.getElementById('percolateStatus');
+        const largestClusterSizeEl = document.getElementById('largestClusterSize');
+        const pathLengthEl = document.getElementById('pathLength');
+        const percolatingAreaLabel = document.getElementById('percolatingAreaLabel');
+
+        const regenerateBtn = document.getElementById('regenerateBtn');
+        const autoSweepBtn = document.getElementById('autoSweepBtn');
+        const sweepIcon = document.getElementById('sweepIcon');
+        const quick58Btn = document.getElementById('quick58Btn');
+        const quickCriticalBtn = document.getElementById('quickCriticalBtn');
+        const quick61Btn = document.getElementById('quick61Btn');
+        const theoryBtn = document.getElementById('theoryBtn');
+        const infoModal = document.getElementById('infoModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const monteCarloBtn = document.getElementById('monteCarloBtn');
+
+        // 新功能按鈕
+        const stepOneBtn = document.getElementById('stepOneBtn');
+        const autoStepBtn = document.getElementById('autoStepBtn');
+        const stepPlayIcon = document.getElementById('stepPlayIcon');
+        const clearGridBtn = document.getElementById('clearGridBtn');
+        const speedOptions = document.getElementById('speedOptions');
+
+        // 初始化網格狀態
+        function initializeGrid(presetEmpty = false) {
+            stopAllAnimations();
+            grid = new Array(N * N).fill(0);
+            clusterIds = new Array(N * N).fill(-1);
+            let litCount = 0;
+
+            if (!presetEmpty) {
+                for (let i = 0; i < N * N; i++) {
+                    if (Math.random() < p) {
+                        grid[i] = 1;
+                        litCount++;
+                    }
+                }
+            }
+
+            analyzePercolation();
+            render();
+            updateUI(litCount);
+        }
+
+        function stopAllAnimations() {
+            if (isSweeping) {
+                clearInterval(sweepTimer);
+                isSweeping = false;
+                sweepIcon.textContent = '▶';
+                autoSweepBtn.classList.remove('bg-amber-600', 'text-white');
+            }
+            if (isAutoStepping) {
+                clearInterval(autoStepTimer);
+                isAutoStepping = false;
+                stepPlayIcon.textContent = '▶';
+                autoStepBtn.classList.remove('bg-rose-600', 'text-white');
+                autoStepBtn.classList.add('bg-amber-500', 'text-black');
+            }
+        }
+
+        // 點亮單個/多個隨機暗格
+        function lightRandomCells(count = 1) {
+            // 找出所有仍為 0 的暗格索引
+            const emptyIndices = [];
+            for (let i = 0; i < N * N; i++) {
+                if (grid[i] === 0) emptyIndices.push(i);
+            }
+
+            if (emptyIndices.length === 0) {
+                stopAllAnimations();
+                return { added: 0, percolated: true };
+            }
+
+            const toAdd = Math.min(count, emptyIndices.length);
+            for (let k = 0; k < toAdd; k++) {
+                const randIndex = Math.floor(Math.random() * emptyIndices.length);
+                const cellIdx = emptyIndices[randIndex];
+                grid[cellIdx] = 1;
+                // 交換並移除以避免重複選取
+                emptyIndices[randIndex] = emptyIndices[emptyIndices.length - 1];
+                emptyIndices.pop();
+            }
+
+            const analysis = analyzePercolation();
+            let currentLit = 0;
+            for (let i = 0; i < N * N; i++) {
+                if (grid[i] === 1) currentLit++;
+            }
+            
+            p = currentLit / (N * N);
+            probSlider.value = (p * 100).toFixed(1);
+            sliderValueText.textContent = `${(p * 100).toFixed(1)}%`;
+
+            render();
+            updateUI(currentLit);
+            drawCurve();
+
+            return {
+                added: toAdd,
+                percolated: analysis.percolates,
+                litRatio: (currentLit / (N * N)) * 100
+            };
+        }
+
+        // 單步點擊觸發
+        stepOneBtn.addEventListener('click', () => {
+            stopAllAnimations();
+            const res = lightRandomCells(1);
+            if (res.percolated) {
+                showCustomMessage(`🎉 恭喜貫通！\n當前點亮格數達到相變門檻，總點亮比例：${res.litRatio.toFixed(2)}%`);
+            }
+        });
+
+        // 自動連續點亮直到貫通為止
+        autoStepBtn.addEventListener('click', () => {
+            if (isAutoStepping) {
+                stopAllAnimations();
+            } else {
+                // 如果已經貫通，先詢問或直接提示重新開始
+                if (percolatingClusters.size > 0) {
+                    initializeGrid(true); // 從空網格開始
+                }
+
+                isAutoStepping = true;
+                stepPlayIcon.textContent = '⏹ 暫停';
+                autoStepBtn.classList.remove('bg-amber-500', 'text-black');
+                autoStepBtn.classList.add('bg-rose-600', 'text-white');
+
+                autoStepTimer = setInterval(() => {
+                    const res = lightRandomCells(stepSpeed);
+                    if (res.percolated || res.added === 0) {
+                        stopAllAnimations();
+                        const total = N * N;
+                        let percArea = 0;
+                        for (let i = 0; i < total; i++) {
+                            if (grid[i] === 1 && percolatingClusters.has(clusterIds[i])) {
+                                percArea++;
+                            }
+                        }
+                        const percRatio = ((percArea / total) * 100).toFixed(2);
+                        showCustomMessage(`⚡ 系統已瞬間貫通相變！\n\n• 觸發貫通時總開孔率：${res.litRatio.toFixed(2)}%\n• 貫通通道所屬面積：${percArea} 格 (${percRatio}%)\n• 與理論臨界點 59.27% 誤差：${Math.abs(res.litRatio - 59.27).toFixed(2)}%`);
+                    }
+                }, 35);
+            }
+        });
+
+        // 清空重來
+        clearGridBtn.addEventListener('click', () => {
+            initializeGrid(true);
+            drawCurve();
+        });
+
+        // 速度選擇切換
+        speedOptions.addEventListener('click', (e) => {
+            const btn = e.target.closest('.speed-btn');
+            if (!btn) return;
+            document.querySelectorAll('.speed-btn').forEach(b => {
+                b.className = 'speed-btn px-2 py-0.5 rounded text-[11px] bg-gray-800 text-gray-300 hover:bg-gray-700';
+            });
+            btn.className = 'speed-btn px-2 py-0.5 rounded text-[11px] bg-amber-500/30 text-amber-300 font-semibold';
+            stepSpeed = parseInt(btn.dataset.speed, 10);
+        });
+
+        // 並查集 (Union-Find / Disjoint Set Union) 結構用於高效判定連通塊
+        class UnionFind {
+            constructor(size) {
+                this.parent = new Int32Array(size);
+                this.size = new Int32Array(size);
+                for (let i = 0; i < size; i++) {
+                    this.parent[i] = i;
+                    this.size[i] = 1;
+                }
+            }
+            find(i) {
+                let root = i;
+                while (root !== this.parent[root]) {
+                    root = this.parent[root];
+                }
+                // 路徑壓縮
+                let curr = i;
+                while (curr !== root) {
+                    let nxt = this.parent[curr];
+                    this.parent[curr] = root;
+                    curr = nxt;
+                }
+                return root;
+            }
+            union(i, j) {
+                let rootI = this.find(i);
+                let rootJ = this.find(j);
+                if (rootI !== rootJ) {
+                    if (this.size[rootI] < this.size[rootJ]) {
+                        this.parent[rootI] = rootJ;
+                        this.size[rootJ] += this.size[rootI];
+                    } else {
+                        this.parent[rootJ] = rootI;
+                        this.size[rootI] += this.size[rootJ];
+                    }
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // 滲流分析與尋路算法
+        function analyzePercolation() {
+            const uf = new UnionFind(N * N);
+            
+            // 四向相鄰連通
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    const idx = r * N + c;
+                    if (grid[idx] !== 1) continue;
+
+                    // 向右檢查
+                    if (c + 1 < N && grid[idx + 1] === 1) {
+                        uf.union(idx, idx + 1);
+                    }
+                    // 向下檢查
+                    if (r + 1 < N && grid[idx + N] === 1) {
+                        uf.union(idx, idx + N);
+                    }
+                }
+            }
+
+            // 記錄頂部開孔格子與底部開孔格子的所屬集合
+            const topRoots = new Set();
+            for (let c = 0; c < N; c++) {
+                if (grid[c] === 1) {
+                    topRoots.add(uf.find(c));
+                }
+            }
+
+            percolatingClusters.clear();
+            const bottomRoots = new Set();
+            for (let c = 0; c < N; c++) {
+                const bIdx = (N - 1) * N + c;
+                if (grid[bIdx] === 1) {
+                    const root = uf.find(bIdx);
+                    bottomRoots.add(root);
+                    if (topRoots.has(root)) {
+                        percolatingClusters.add(root);
+                    }
+                }
+            }
+
+            // 標記每個格子的代表根節點
+            let maxClusterCount = 0;
+            for (let i = 0; i < N * N; i++) {
+                if (grid[i] === 1) {
+                    const root = uf.find(i);
+                    clusterIds[i] = root;
+                    if (uf.size[root] > maxClusterCount) {
+                        maxClusterCount = uf.size[root];
+                    }
+                } else {
+                    clusterIds[i] = -1;
+                }
+            }
+
+            // 尋找黃金高亮路徑 (BFS 最短貫穿路徑)
+            shortestPathCells.clear();
+            if (percolatingClusters.size > 0) {
+                findShortestPercolatingPath();
+            }
+
+            return {
+                percolates: percolatingClusters.size > 0,
+                maxClusterCount: maxClusterCount
+            };
+        }
+
+        // 使用 BFS 找出從第一行到最後一行的最短通道
+        function findShortestPercolatingPath() {
+            const queue = [];
+            const visited = new Int8Array(N * N);
+            const parent = new Int32Array(N * N).fill(-1);
+
+            // 將所有屬於 percolatingClusters 的第 0 行節點入隊
+            for (let c = 0; c < N; c++) {
+                if (grid[c] === 1 && percolatingClusters.has(clusterIds[c])) {
+                    queue.push(c);
+                    visited[c] = 1;
+                }
+            }
+
+            let endIdx = -1;
+
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                const r = Math.floor(curr / N);
+                const c = curr % N;
+
+                if (r === N - 1) {
+                    endIdx = curr;
+                    break;
+                }
+
+                // 4 向探索
+                const neighbors = [];
+                if (c > 0) neighbors.push(curr - 1);
+                if (c < N - 1) neighbors.push(curr + 1);
+                if (r > 0) neighbors.push(curr - N);
+                if (r < N - 1) neighbors.push(curr + N);
+
+                for (let nxt of neighbors) {
+                    if (!visited[nxt] && grid[nxt] === 1 && percolatingClusters.has(clusterIds[nxt])) {
+                        visited[nxt] = 1;
+                        parent[nxt] = curr;
+                        queue.push(nxt);
+                    }
+                }
+            }
+
+            // 回溯路徑
+            if (endIdx !== -1) {
+                let curr = endIdx;
+                while (curr !== -1) {
+                    shortestPathCells.add(curr);
+                    curr = parent[curr];
+                }
+            }
+        }
+
+        // 畫布渲染邏輯
+        function render() {
+            // 自適應 High-DPI
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const size = Math.floor(rect.width);
+            
+            if (canvas.width !== size * dpr || canvas.height !== size * dpr) {
+                canvas.width = size * dpr;
+                canvas.height = size * dpr;
+            }
+            
+            ctx.resetTransform();
+            ctx.scale(dpr, dpr);
+
+            // 清空畫布背景 (極致深色暗幕)
+            ctx.fillStyle = '#0a0d14';
+            ctx.fillRect(0, 0, size, size);
+
+            const cellSize = size / N;
+            const cellPad = Math.max(0.5, cellSize * 0.08);
+
+            // 繪製格點
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    const idx = r * N + c;
+                    const x = c * cellSize;
+                    const y = r * cellSize;
+                    const innerW = cellSize - cellPad * 2;
+                    const innerH = cellSize - cellPad * 2;
+
+                    if (grid[idx] === 0) {
+                        // 未點亮：極深藍灰小方塊
+                        ctx.fillStyle = '#121622';
+                        ctx.fillRect(x + cellPad, y + cellPad, innerW, innerH);
+                    } else {
+                        const root = clusterIds[idx];
+                        const isPercolatingCluster = percolatingClusters.has(root);
+                        const isMainPath = shortestPathCells.has(idx);
+
+                        if (isMainPath) {
+                            // 貫穿主線通道：耀眼金黃色光芒
+                            ctx.fillStyle = '#fef08a';
+                            ctx.fillRect(x + cellPad, y + cellPad, innerW, innerH);
+                        } else if (isPercolatingCluster) {
+                            // 屬於貫穿集團的其他分支：溫暖金橙色
+                            ctx.fillStyle = '#eab308';
+                            ctx.fillRect(x + cellPad, y + cellPad, innerW, innerH);
+                        } else {
+                            // 普通點亮但未貫穿的格子：深橙黃色微光 (正如影片中的點陣)
+                            ctx.fillStyle = '#92400e';
+                            ctx.fillRect(x + cellPad, y + cellPad, innerW, innerH);
+                        }
+                    }
+                }
+            }
+
+            // 若有貫穿通道，沿著 shortestPathCells 畫一條流暢發光骨架線
+            if (shortestPathCells.size > 0) {
+                drawGoldSpine(cellSize);
+            }
+        }
+
+        // 繪製貫穿骨架的高光脈衝線
+        function drawGoldSpine(cellSize) {
+            ctx.save();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(2, cellSize * 0.35);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 10;
+
+            let isFirst = true;
+            ctx.beginPath();
+            for (let idx of shortestPathCells) {
+                const r = Math.floor(idx / N);
+                const c = idx % N;
+                const cx = (c + 0.5) * cellSize;
+                const cy = (r + 0.5) * cellSize;
+                if (isFirst) {
+                    ctx.moveTo(cx, cy);
+                    isFirst = false;
+                } else {
+                    ctx.lineTo(cx, cy);
+                }
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 更新儀表板數據與狀態標籤
+        function updateUI(litCount) {
+            const total = N * N;
+            const actualRatio = ((litCount / total) * 100).toFixed(1);
+            actualLitPercent.textContent = `${actualRatio}%`;
+            targetProbLabel.textContent = `(設定: ${(p * 100).toFixed(1)}%)`;
+
+            const hasPercolation = percolatingClusters.size > 0;
+            if (hasPercolation) {
+                percolateStatus.textContent = 'YES';
+                percolateStatus.className = 'text-2xl md:text-3xl font-extrabold mono-font text-amber-400 neon-glow-gold animate-pulse';
+            } else {
+                percolateStatus.textContent = 'NO';
+                percolateStatus.className = 'text-2xl md:text-3xl font-extrabold mono-font text-gray-600';
+            }
+
+            // 計算貫通通道所屬總面積 (屬於貫穿叢集的所有格點)
+            let percolatingAreaCount = 0;
+            if (hasPercolation) {
+                for (let i = 0; i < total; i++) {
+                    if (grid[i] === 1 && percolatingClusters.has(clusterIds[i])) {
+                        percolatingAreaCount++;
+                    }
+                }
+                const pAreaRatio = ((percolatingAreaCount / total) * 100).toFixed(1);
+                percolatingAreaLabel.textContent = `${percolatingAreaCount} 格 (${pAreaRatio}%)`;
+                percolatingAreaLabel.className = 'mono-font text-amber-400 font-bold text-sm neon-glow-gold';
+            } else {
+                percolatingAreaLabel.textContent = '0 格 (0.0%)';
+                percolatingAreaLabel.className = 'mono-font text-gray-500 font-bold text-sm';
+            }
+
+            // 統計最大集團
+            let maxCluster = 0;
+            const counts = {};
+            for (let id of clusterIds) {
+                if (id !== -1) {
+                    counts[id] = (counts[id] || 0) + 1;
+                    if (counts[id] > maxCluster) maxCluster = counts[id];
+                }
+            }
+
+            largestClusterSizeEl.textContent = `${maxCluster} 格 (${((maxCluster / total) * 100).toFixed(1)}%)`;
+            pathLengthEl.textContent = hasPercolation ? `${shortestPathCells.size} 步直達` : '尚未貫穿';
+        }
+
+        // 繪製理論與實驗的相變 S 曲線
+        function drawCurve() {
+            const w = curveCanvas.clientWidth;
+            const h = curveCanvas.clientHeight;
+            const dpr = window.devicePixelRatio || 1;
+            
+            curveCanvas.width = w * dpr;
+            curveCanvas.height = h * dpr;
+            curveCtx.resetTransform();
+            curveCtx.scale(dpr, dpr);
+
+            curveCtx.clearRect(0, 0, w, h);
+
+            // 座標映射
+            const padX = 24;
+            const padY = 16;
+            const plotW = w - padX * 2;
+            const plotH = h - padY * 2;
+
+            // 網格底線
+            curveCtx.strokeStyle = '#1e2433';
+            curveCtx.lineWidth = 1;
+            curveCtx.setLineDash([3, 3]);
+            
+            // 畫 50% 線和 100% 水平線
+            curveCtx.beginPath();
+            curveCtx.moveTo(padX, padY);
+            curveCtx.lineTo(padX + plotW, padY);
+            curveCtx.moveTo(padX, padY + plotH);
+            curveCtx.lineTo(padX + plotW, padY + plotH);
+            curveCtx.stroke();
+            curveCtx.setLineDash([]);
+
+            // 臨界值垂直線 (59.27%)
+            const pcX = padX + plotW * THEORETICAL_PC;
+            curveCtx.strokeStyle = '#f59e0b';
+            curveCtx.lineWidth = 1.5;
+            curveCtx.beginPath();
+            curveCtx.moveTo(pcX, padY);
+            curveCtx.lineTo(pcX, padY + plotH);
+            curveCtx.stroke();
+
+            // 標示文字
+            curveCtx.fillStyle = '#f59e0b';
+            curveCtx.font = '9px monospace';
+            curveCtx.fillText('pc≈59.3%', pcX - 22, padY + 12);
+
+            // 理論滲流機率 S 曲線公式 (近似二維有限尺度縮放曲線)
+            curveCtx.beginPath();
+            curveCtx.strokeStyle = '#06b6d4';
+            curveCtx.lineWidth = 2.5;
+
+            for (let px = 0; px <= plotW; px += 2) {
+                const prob = px / plotW;
+                const steepness = Math.min(45, N * 0.7);
+                const percProb = 1 / (1 + Math.exp(-steepness * (prob - THEORETICAL_PC)));
+                
+                const drawX = padX + px;
+                const drawY = padY + plotH - percProb * plotH;
+
+                if (px === 0) curveCtx.moveTo(drawX, drawY);
+                else curveCtx.lineTo(drawX, drawY);
+            }
+            curveCtx.stroke();
+
+            // 當前選定機率指針
+            const currentX = padX + plotW * p;
+            curveCtx.fillStyle = '#ffffff';
+            curveCtx.beginPath();
+            curveCtx.arc(currentX, padY + plotH - (percolatingClusters.size > 0 ? plotH : 0), 4.5, 0, Math.PI * 2);
+            curveCtx.fill();
+            curveCtx.strokeStyle = '#000';
+            curveCtx.lineWidth = 1.5;
+            curveCtx.stroke();
+        }
+
+        // 互動事件監聽
+        probSlider.addEventListener('input', (e) => {
+            stopAllAnimations();
+            p = parseFloat(e.target.value) / 100;
+            sliderValueText.textContent = `${(p * 100).toFixed(1)}%`;
+            initializeGrid();
+            drawCurve();
+        });
+
+        gridSizeSlider.addEventListener('input', (e) => {
+            stopAllAnimations();
+            N = parseInt(e.target.value);
+            gridSizeLabel.textContent = `${N} × ${N}`;
+            dimensionLabel.textContent = `GRID: ${N} × ${N} (${(N*N).toLocaleString()} 格)`;
+            initializeGrid();
+            drawCurve();
+        });
+
+        regenerateBtn.addEventListener('click', () => {
+            stopAllAnimations();
+            initializeGrid();
+            drawCurve();
+        });
+
+        // 快速切換按鈕
+        quick58Btn.addEventListener('click', () => setProbability(0.58));
+        quickCriticalBtn.addEventListener('click', () => setProbability(0.593));
+        quick61Btn.addEventListener('click', () => setProbability(0.61));
+
+        function setProbability(val) {
+            stopAllAnimations();
+            p = val;
+            probSlider.value = val * 100;
+            sliderValueText.textContent = `${(p * 100).toFixed(1)}%`;
+            initializeGrid();
+            drawCurve();
+        }
+
+        // 自動連續升壓動畫
+        autoSweepBtn.addEventListener('click', () => {
+            if (isSweeping) {
+                stopAllAnimations();
+            } else {
+                stopAllAnimations();
+                isSweeping = true;
+                sweepIcon.textContent = '⏹';
+                autoSweepBtn.classList.add('bg-amber-600', 'text-white');
+                p = 0.50; // 從 50% 開始掃到 65%
+                
+                sweepTimer = setInterval(() => {
+                    p = parseFloat((p + 0.005).toFixed(3));
+                    if (p > 0.68) p = 0.50;
+                    probSlider.value = p * 100;
+                    sliderValueText.textContent = `${(p * 100).toFixed(1)}%`;
+                    initializeGrid();
+                    drawCurve();
+                }, 200);
+            }
+        });
+
+        // 蒙地卡羅 100 次即時測試
+        monteCarloBtn.addEventListener('click', () => {
+            monteCarloBtn.disabled = true;
+            monteCarloBtn.innerHTML = `<span>⏳ 運算中...</span>`;
+
+            setTimeout(() => {
+                const trials = 100;
+                let win58 = 0;
+                let win61 = 0;
+
+                for (let t = 0; t < trials; t++) {
+                    const testGrid = new Uint8Array(N * N);
+                    for (let i = 0; i < N * N; i++) if (Math.random() < 0.58) testGrid[i] = 1;
+                    if (checkPercolationPure(testGrid, N)) win58++;
+                }
+
+                for (let t = 0; t < trials; t++) {
+                    const testGrid = new Uint8Array(N * N);
+                    for (let i = 0; i < N * N; i++) if (Math.random() < 0.61) testGrid[i] = 1;
+                    if (checkPercolationPure(testGrid, N)) win61++;
+                }
+
+                showCustomMessage(`【100 次蒙地卡羅模擬結果】\n\n` +
+                    `• 機率 58.0% 時：貫通成功次數 = ${win58} / 100 (${win58}%)\n` +
+                    `• 機率 61.0% 時：貫通成功次數 = ${win61} / 100 (${win61}%)\n\n` +
+                    `僅僅 3% 的開孔率差異，連通機率產生了巨大斷崖！這就是「相變」的威力。`);
+
+                monteCarloBtn.disabled = false;
+                monteCarloBtn.innerHTML = `<span>⚡ 跑 100 次蒙地卡羅驗證</span>`;
+            }, 60);
+        });
+
+        function checkPercolationPure(g, size) {
+            const uf = new UnionFind(size * size);
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    const idx = r * size + c;
+                    if (g[idx] === 0) continue;
+                    if (c + 1 < size && g[idx + 1] === 1) uf.union(idx, idx + 1);
+                    if (r + 1 < size && g[idx + size] === 1) uf.union(idx, idx + size);
+                }
+            }
+            const topSet = new Set();
+            for (let c = 0; c < size; c++) {
+                if (g[c] === 1) topSet.add(uf.find(c));
+            }
+            for (let c = 0; c < size; c++) {
+                const bIdx = (size - 1) * size + c;
+                if (g[bIdx] === 1 && topSet.has(uf.find(bIdx))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 手動點擊畫布互動切換
+        canvas.addEventListener('click', (e) => {
+            stopAllAnimations();
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const cellSize = rect.width / N;
+            const c = Math.floor(x / cellSize);
+            const r = Math.floor(y / cellSize);
+
+            if (r >= 0 && r < N && c >= 0 && c < N) {
+                const idx = r * N + c;
+                grid[idx] = grid[idx] === 1 ? 0 : 1;
+                
+                let litCount = 0;
+                for (let v of grid) if (v === 1) litCount++;
+
+                analyzePercolation();
+                render();
+                updateUI(litCount);
+                drawCurve();
+            }
+        });
+
+        // 彈跳視窗控制
+        theoryBtn.addEventListener('click', () => infoModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => infoModal.classList.add('hidden'));
+        infoModal.addEventListener('click', (e) => {
+            if (e.target === infoModal) infoModal.classList.add('hidden');
+        });
+
+        // 自定義簡潔提示框
+        function showCustomMessage(msg) {
+            const div = document.createElement('div');
+            div.className = 'fixed top-6 left-1/2 -translate-x-1/2 bg-gray-900 border border-amber-500/50 text-amber-200 text-xs md:text-sm p-4 rounded-xl shadow-2xl z-50 whitespace-pre-line max-w-md';
+            div.textContent = msg;
+            document.body.appendChild(div);
+            setTimeout(() => {
+                div.style.transition = 'opacity 0.4s ease';
+                div.style.opacity = '0';
+                setTimeout(() => div.remove(), 400);
+            }, 5500);
+        }
+
+        // 視窗縮放重新繪製
+        window.addEventListener('resize', () => {
+            render();
+            drawCurve();
+        });
+
+        // 頁面加載啟動
+        window.onload = function () {
+            initializeGrid();
+            drawCurve();
+        };
+    </script>
+</body>
+</html>
