@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>特徵縮放（Feature Scaling）互動演示與教學實驗室</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontSize: {
+            'base': '15px',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 全域文字標準鎖定 15px */
+    body {
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    /* 滑桿自訂美化 */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      height: 7px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #4f46e5;
+      cursor: pointer;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      transition: transform 0.1s, background-color 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #4338ca;
+    }
+    /* 動態過渡效果 */
+    .point-transition {
+      transition: cx 0.65s cubic-bezier(0.34, 1.3, 0.64, 1),
+                  cy 0.65s cubic-bezier(0.34, 1.3, 0.64, 1),
+                  r 0.25s ease;
+    }
+    .contour-transition {
+      transition: all 0.65s ease-out;
+    }
+    /* 探針呼吸動效 */
+    @keyframes pulseTarget {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 0.2; }
+    }
+    .probe-pulse {
+      animation: pulseTarget 1.8s infinite ease-in-out;
+      transform-origin: center;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased selection:bg-indigo-100 selection:text-indigo-800 p-2 sm:p-4 w-full">
+
+  <div class="w-full space-y-3 sm:space-y-4">
+    
+    <!-- 頂部頁頭與分頁切換導航 -->
+    <header class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs w-full">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-2xl shadow-md shrink-0">
+            ⚖️
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">特徵縮放（Feature Scaling）互動實驗室</h1>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">機器學習前處理基石</span>
+            </div>
+            <p class="text-[15px] text-slate-600 mt-0.5">當「年齡（18~80 歲）」遇到「年收入（數十萬至數百萬）」：親眼看見數值輾壓與梯度震盪如何被消除！</p>
+          </div>
+        </div>
+
+        <!-- 分頁切換頁籤按鈕 (大按鈕風格) -->
+        <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200 shrink-0 self-start md:self-auto">
+          <button id="tabBtnLab" class="px-4 py-2 rounded-lg font-bold text-[15px] transition-all bg-white text-indigo-700 shadow-sm border border-slate-200/60 flex items-center gap-1.5">
+            <span>📊</span> SVG 互動展示頁
+          </button>
+          <button id="tabBtnLearn" class="px-4 py-2 rounded-lg font-bold text-[15px] transition-all text-slate-600 hover:text-indigo-700 flex items-center gap-1.5">
+            <span>📖</span> 觀念與攻略教學頁
+          </button>
+        </div>
+      </div>
+
+      <!-- 核心問題快速提示橫幅 -->
+      <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-[15px]">
+        <div class="p-3 rounded-xl border border-rose-200 bg-rose-50/60">
+          <span class="font-bold text-rose-900 flex items-center gap-1.5 mb-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            1. 致命的數值輾壓（尺規失真）
+          </span>
+          <p class="text-slate-600 text-[14px]">
+            年收入隨便差 10 萬元（100,000），年齡才差 10 歲。距離計算時，<strong>年齡直接被當成空氣</strong>！
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl border border-amber-200 bg-amber-50/60">
+          <span class="font-bold text-amber-900 flex items-center gap-1.5 mb-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            2. 梯度下降瘋狂左右橫跳
+          </span>
+          <p class="text-slate-600 text-[14px]">
+            損失函數變成極為狹長的「橢圓山谷」，AI 最佳化步履維艱、難以收斂甚至發散爆掉。
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/60">
+          <span class="font-bold text-emerald-900 flex items-center gap-1.5 mb-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+            3. 縮放後平起平坐
+          </span>
+          <p class="text-slate-600 text-[14px]">
+            透過 Min-Max 或 Z-score 將維度壓縮至同等量級，演算法能<strong>公正客觀兼顧所有特徵</strong>。
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <!-- ======================================================== -->
+    <!-- 分頁 1：SVG 互動展示頁 (Interactive Lab) -->
+    <!-- ======================================================== -->
+    <div id="pageLab" class="space-y-4">
+      
+      <!-- 主視覺結構：左側 7 欄 SVG 畫布 + 右側 5 欄縮放控制與即時數學對照 -->
+      <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
+        
+        <!-- 左側：SVG 互動幾何畫布 (7 欄) -->
+        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3">
+          
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+            <div class="flex items-center gap-2 font-bold text-slate-800 text-[15px]">
+              <span id="statusIndicatorDot" class="w-3 h-3 rounded-full bg-rose-500 animate-pulse"></span>
+              <span id="canvasTitleText">目前狀態：未縮放 (Raw) —— 數值被年收入絕對統治</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200" id="scalingBadge">
+                年齡 [18~80] ｜ 收入 [30萬~350萬]
+              </span>
+            </div>
+          </div>
+
+          <!-- SVG 畫布主容器 -->
+          <div class="w-full aspect-[16/11] bg-slate-900 rounded-xl border border-slate-700 overflow-hidden relative shadow-inner flex items-center justify-center p-2">
+            
+            <svg id="scalingSvg" class="w-full h-full select-none cursor-crosshair" viewBox="0 0 740 500">
+              <defs>
+                <!-- 網格底圖 -->
+                <pattern id="gridPattern" width="37" height="37" patternUnits="userSpaceOnUse">
+                  <path d="M 37 0 L 0 0 0 37" fill="none" stroke="#1e293b" stroke-width="1"/>
+                </pattern>
+
+                <!-- 光暈濾鏡 -->
+                <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#38bdf8" flood-opacity="0.6"/>
+                </filter>
+              </defs>
+
+              <!-- 網格底板 -->
+              <rect width="100%" height="100%" fill="#0b1120" />
+              <rect width="100%" height="100%" fill="url(#gridPattern)" />
+
+              <!-- 背景損失等高線群組 (呈現狹長橢圓 vs 完美同心圓) -->
+              <g id="lossContoursGroup" opacity="0.45"></g>
+
+              <!-- 梯度下降最佳化收斂軌跡折線 -->
+              <g id="gdTrajectoryGroup"></g>
+
+              <!-- KNN 距離測試探針與最近鄰連線 -->
+              <g id="knnConnectionsGroup"></g>
+
+              <!-- 坐標軸底線 -->
+              <line x1="75" y1="440" x2="690" y2="440" stroke="#475569" stroke-width="2"/>
+              <line x1="75" y1="50" x2="75" y2="440" stroke="#475569" stroke-width="2"/>
+
+              <!-- 坐標軸動態標籤 -->
+              <text id="axisLabelX" x="690" y="475" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="end">X 軸：年齡 (Age, 歲)</text>
+              <text id="axisLabelY" x="85" y="40" font-size="13" font-weight="bold" fill="#94a3b8" text-anchor="start">Y 軸：年收入 (Income, 萬元)</text>
+
+              <!-- 軸刻度文字群組 -->
+              <g id="axisTicksGroup"></g>
+
+              <!-- 顧客樣本資料點群組 -->
+              <g id="dataPointsGroup"></g>
+
+              <!-- 使用者點擊的受測目標點 (探針 Target P) -->
+              <g id="targetProbeGroup" transform="translate(0, 0)">
+                <circle id="probeWave" cx="0" cy="0" r="16" fill="rgba(244, 63, 94, 0.25)" class="probe-pulse"/>
+                <circle id="probeCenter" cx="0" cy="0" r="7.5" fill="#f43f5e" stroke="#ffffff" stroke-width="2.5"/>
+                <text id="probeText" x="0" y="-12" font-size="12" font-weight="900" fill="#f43f5e" text-anchor="middle">目標客戶 P</text>
+              </g>
+            </svg>
+
+            <!-- 畫布浮動指引小標 -->
+            <div class="absolute bottom-3 left-4 text-xs font-mono text-slate-400 bg-slate-950/85 px-3 py-1.5 rounded-lg border border-slate-700/80 pointer-events-none flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+              <span>點擊畫布可移動「目標客戶 P」，觀察 KNN 最近鄰居如何受縮放劇烈顛覆！</span>
+            </div>
+          </div>
+
+          <!-- 畫布底部圖例與當前視圖說明 -->
+          <div class="flex flex-wrap items-center justify-between text-[15px] text-slate-600 pt-1 gap-2 border-t border-slate-100">
+            <div class="flex flex-wrap items-center gap-3.5">
+              <span class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 rounded-full bg-blue-500 inline-block border-2 border-white"></span>
+                <strong>一般顧客樣本</strong>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 rounded-full bg-rose-500 inline-block border-2 border-white"></span>
+                <strong>目標受測顧客 P</strong>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 rounded-full bg-emerald-400 inline-block border-2 border-white"></span>
+                <strong>KNN 判定之最近鄰居</strong>
+              </span>
+            </div>
+
+            <div class="font-mono text-slate-500 font-bold" id="sampleStatDisplay">
+              樣本數: 24 筆顧客資料
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 右側：縮放切換控制器、KNN 距離實測與梯度下降觀察 (5 欄) -->
+        <div class="lg:col-span-5 space-y-3.5">
+          
+          <!-- 卡片 1：縮放方式模式切換器 -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span>🎛️</span>
+                <span>選擇特徵縮放模式 (Scaling Mode)</span>
+              </h2>
+              <span id="currentMethodBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-mono">
+                未縮放 (Raw)
+              </span>
+            </div>
+
+            <!-- 三大縮放模式切換大按鈕 -->
+            <div class="grid grid-cols-3 gap-2">
+              <button id="btnScaleRaw" class="py-2.5 px-2 text-[14px] font-bold rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-800 transition">
+                1. 未縮放<br><span class="text-xs font-normal text-slate-500">(原始量綱)</span>
+              </button>
+              <button id="btnScaleMinMax" class="py-2.5 px-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition">
+                2. Min-Max<br><span class="text-xs font-normal text-slate-500">(正規化 [0, 1])</span>
+              </button>
+              <button id="btnScaleZScore" class="py-2.5 px-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition">
+                3. Z-Score<br><span class="text-xs font-normal text-slate-500">(標準化 μ=0, σ=1)</span>
+              </button>
+            </div>
+
+            <!-- 視圖輔助切換：KNN 距離視角 vs 梯度下降收斂視角 -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-[15px]">
+              <span class="font-semibold text-slate-700">演算法視角切換：</span>
+              <div class="flex items-center gap-2">
+                <button id="btnViewKNN" class="px-3 py-1 rounded-lg font-bold text-xs bg-indigo-600 text-white shadow-xs">
+                  📏 KNN 距離失真
+                </button>
+                <button id="btnViewGD" class="px-3 py-1 rounded-lg font-bold text-xs bg-white text-slate-700 border border-slate-200 hover:bg-slate-100">
+                  🌀 梯度下降收斂
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 2：動態數學公式與距離量測對照 (最關鍵直觀指標) -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-1.5">
+                <span>📐</span>
+                <span id="metricCardTitle">歐氏距離貢獻分析 (Distance Dissection)</span>
+              </h3>
+              <span class="text-xs font-mono text-slate-400">Euclidean Metric</span>
+            </div>
+
+            <!-- 動態公式展示看板 -->
+            <div id="formulaDisplayBox" class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-mono text-[14px] text-slate-800 leading-relaxed">
+              <!-- 由 JS 動態注入公式與實測數據 -->
+            </div>
+
+            <!-- 兩個維度的影響力長條對比 (Percentage Contribution Bar) -->
+            <div class="space-y-1.5 pt-1">
+              <div class="flex justify-between items-center text-[14px] font-semibold">
+                <span class="text-blue-900 flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                  年齡貢獻率: <span id="ageContribPctText" class="font-mono text-blue-700 font-black">0.02%</span>
+                </span>
+                <span class="text-purple-900 flex items-center gap-1.5">
+                  年收入貢獻率: <span id="incomeContribPctText" class="font-mono text-purple-700 font-black">99.98%</span>
+                  <span class="w-3 h-3 rounded-full bg-purple-600"></span>
+                </span>
+              </div>
+
+              <!-- 雙色進度長條 -->
+              <div class="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
+                <div id="barAgeContrib" class="bg-blue-500 h-full transition-all duration-500" style="width: 1%"></div>
+                <div id="barIncomeContrib" class="bg-purple-600 h-full transition-all duration-500" style="width: 99%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 3：白話生活化解析診斷 -->
+          <div id="storyCard" class="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-4 text-[15px] space-y-2 leading-relaxed">
+            <!-- 由 JS 動態注入白話說明 -->
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 分頁 2：觀念與攻略教學頁 (Concepts & Guidelines) -->
+    <!-- ======================================================== -->
+    <div id="pageLearn" class="hidden space-y-4">
+      
+      <!-- 區塊 1：為什麼必須做特徵縮放？ -->
+      <section class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+        <div class="border-b border-slate-100 pb-3">
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <span>💡</span> 為什麼「數值範圍差異很大」會是機器學習的災難？
+          </h2>
+          <p class="text-[15px] text-slate-500 mt-0.5">以「年齡 18～80」vs「年收入 300,000～3,500,000」為例，演算法眼裡發生了什麼事？</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[15px]">
+          
+          <!-- 災難一：距離型演算法直接殘廢 -->
+          <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/40 space-y-2.5">
+            <div class="font-bold text-rose-950 text-base flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-rose-600"></span>
+              災難一：距離型演算法被大數值直接「綁架」
+            </div>
+            <p class="text-slate-700 leading-relaxed text-[14px]">
+              假設兩位客戶 A 和 B：
+              <br>• 客戶 A：年齡 20 歲，年收入 100 萬元
+              <br>• 客戶 B：年齡 70 歲，年收入 100 萬元（同收入，但世代完全不同！）
+              <br>• 客戶 C：年齡 20 歲，年收入 105 萬元（同年紀，收入只差 5 萬！）
+            </p>
+            <div class="p-3 bg-white border border-rose-200 rounded-lg text-[14px] text-rose-900">
+              <strong>計算歐氏距離：</strong><br>
+              $\text{Dist}(A, B) = \sqrt{(70 - 20)^2 + (1000000 - 1000000)^2} = \sqrt{2500} = \mathbf{50}$<br>
+              $\text{Dist}(A, C) = \sqrt{(20 - 20)^2 + (1050000 - 1000000)^2} = \sqrt{2500000000} = \mathbf{50,000}$
+            </div>
+            <p class="text-slate-700 leading-relaxed text-[14px]">
+              <strong>後果：</strong>演算法認為 A 和 B 幾乎是一模一樣的人（距離僅 50），而 A 和 C 差了十萬八千里！<strong>年齡這個關鍵特徵被徹底無視蒸發了！</strong>
+            </p>
+          </div>
+
+          <!-- 災難二：梯度下降在狹長山谷反覆翻車 -->
+          <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/40 space-y-2.5">
+            <div class="font-bold text-amber-950 text-base flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-amber-600"></span>
+              災難二：梯度下降（Gradient Descent）瘋狂左右橫跳
+            </div>
+            <p class="text-slate-700 leading-relaxed text-[14px]">
+              在線性迴歸、羅吉斯迴歸或神經網路中，損失函數 $J(w_1, w_2)$ 的形狀取決於輸入特徵的尺度：
+            </p>
+            <ul class="list-disc list-inside text-slate-700 text-[14px] space-y-1.5">
+              <li><strong>未縮放時：</strong>特徵大小差了幾萬倍，等高線是<strong>極度狹長的「雪茄型」或「扁平山谷」</strong>。參數更新時會沿著陡峭的收入軸劇烈震盪，沿著平緩的年齡軸卻寸步難行。學習率設太小收斂奇慢，設太大多半直接發散。</li>
+              <li><strong>縮放後：</strong>等高線變成<strong>完美的圓形碗狀（同心圓）</strong>，負梯度方向永遠精準直指碗底核心，極速收斂！</li>
+            </ul>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 區塊 2：如何進行縮放？兩大主流方法詳解 -->
+      <section class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+        <div class="border-b border-slate-100 pb-3">
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <span>⚙️</span> 如何進行特徵縮放？兩種最常用武器大比對
+          </h2>
+          <p class="text-[15px] text-slate-500 mt-0.5">Min-Max 正規化與 Z-score 標準化，該在什麼時候派誰上場？</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[15px]">
+          
+          <!-- 方法 1: Min-Max -->
+          <div class="p-4 rounded-xl border border-cyan-200 bg-cyan-50/40 space-y-3">
+            <div class="flex items-center justify-between border-b border-cyan-200/60 pb-2">
+              <span class="font-black text-cyan-950 text-base">1. Min-Max 正規化 (Normalization)</span>
+              <span class="px-2.5 py-0.5 rounded bg-cyan-100 text-cyan-800 font-bold text-xs font-mono">[0, 1] 邊界</span>
+            </div>
+
+            <div class="p-3 bg-white border border-cyan-100 rounded-xl font-mono text-[15px] text-cyan-900 font-bold text-center">
+              $$X_{\text{norm}} = \frac{X - X_{\min}}{X_{\max} - X_{\min}}$$
+            </div>
+
+            <div class="space-y-1.5 text-slate-700 text-[14px] leading-relaxed">
+              <p><strong>🎯 核心效果：</strong>強行把所有數值等比例壓縮到 $[0, 1]$（或 $[-1, 1]$）區間，最小值變 0，最大值變 1。</p>
+              <p><strong>👍 優點：</strong>直觀好理解，保證所有特徵尺度完全一致，邊界清清楚楚。</p>
+              <p><strong>⚠️ 致命缺點：</strong><strong>對離群值（Outliers）極度脆弱！</strong>若資料中有個百萬富翁甚至億萬富翁（年收入 1 億元），其餘普通上班族（年收入 50~100 萬）會全部被擠在 0.005 旁邊，失去辨識度。</p>
+              <p><strong>🏢 適用情境：</strong>已知資料有明確邊界（如影像 RGB 像素 0~255）、演算法需要固定輸入範圍（如神經網路 Sigmoid 激活函數前置處理）。</p>
+            </div>
+          </div>
+
+          <!-- 方法 2: Z-Score -->
+          <div class="p-4 rounded-xl border border-indigo-200 bg-indigo-50/40 space-y-3">
+            <div class="flex items-center justify-between border-b border-indigo-200/60 pb-2">
+              <span class="font-black text-indigo-950 text-base">2. Z-Score 標準化 (Standardization)</span>
+              <span class="px-2.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold text-xs font-mono">μ=0, σ=1</span>
+            </div>
+
+            <div class="p-3 bg-white border border-indigo-100 rounded-xl font-mono text-[15px] text-indigo-900 font-bold text-center">
+              $$Z = \frac{X - \mu}{\sigma}$$
+            </div>
+
+            <div class="space-y-1.5 text-slate-700 text-[14px] leading-relaxed">
+              <p><strong>🎯 核心效果：</strong>將資料平移使平均值（Mean $\mu$）變為 0，並除以標準差（Std $\sigma$）使方差變為 1，呈現常態分佈分流。</p>
+              <p><strong>👍 優點：</strong><strong>對離群值（Outliers）耐受度高！</strong>沒有固定邊界，極端值頂多落在 $Z = +3$ 或 $+4$，不會把正常資料擠死。</p>
+              <p><strong>⚠️ 缺點：</strong>轉換後的數值不再局限於 0 到 1 之間，可能有正有負。</p>
+              <p><strong>🏢 適用情境：</strong><strong>絕大多數機器學習首選推薦！</strong>特別是 SVM、PCA 主成分分析、Logistic 迴歸與各種帶正則化（L1/L2）的梯度優化模型。</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 區塊 3：什麼狀況一定要縮放？什麼狀況不需要？ -->
+      <section class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+        <div class="border-b border-slate-100 pb-3">
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <span>🛡️</span> 實戰指南：什麼演算法一定要做縮放？什麼演算法完全不管？
+          </h2>
+          <p class="text-[15px] text-slate-500 mt-0.5">記住這個心法：<strong>只要演算法算「幾何距離」或用「梯度下降」就要縮放；靠「規則切分」的樹狀模型完全不需要！</strong></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[15px]">
+          
+          <!-- 必須縮放 -->
+          <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/40 space-y-2.5">
+            <div class="font-bold text-rose-900 text-base flex items-center gap-2">
+              <span>🚨</span> 強烈依賴特徵縮放的演算法（不做保證慘敗）
+            </div>
+            <ul class="space-y-2 text-slate-700 text-[14px]">
+              <li class="p-2.5 bg-white rounded-lg border border-rose-100">
+                <strong>1. 距離導向演算法：</strong><br>
+                • <strong>KNN（K-近鄰）</strong>：完全依賴歐氏距離找出鄰居。<br>
+                • <strong>K-Means 分群</strong>：距離大的維度會直接壟斷群聚重心的分配。
+              </li>
+              <li class="p-2.5 bg-white rounded-lg border border-rose-100">
+                <strong>2. 幾何間隔與降維演算法：</strong><br>
+                • <strong>SVM（支援向量機）</strong>：要最大化安全間隔（Margin），量綱不同超平面會完全傾斜。<br>
+                • <strong>PCA（主成分分析）</strong>：方差大的特徵會被誤當成主成分，直接吃掉其他維度。
+              </li>
+              <li class="p-2.5 bg-white rounded-lg border border-rose-100">
+                <strong>3. 梯度下降與正則化模型：</strong><br>
+                • <strong>神經網路（Deep Learning）</strong>、<strong>線性迴歸 / Logistic 迴歸</strong>。<br>
+                • 帶有 <strong>L1 (Lasso) / L2 (Ridge) 正則化懲罰項</strong>時，若不縮放，係數大的權重會被不成比例地過度懲罰。
+              </li>
+            </ul>
+          </div>
+
+          <!-- 不需要縮放 -->
+          <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-2.5">
+            <div class="font-bold text-emerald-900 text-base flex items-center gap-2">
+              <span>🌲</span> 完全不需要特徵縮放的演算法（天生免疫）
+            </div>
+            <ul class="space-y-2 text-slate-700 text-[14px]">
+              <li class="p-2.5 bg-white rounded-lg border border-emerald-100">
+                <strong>所有「樹狀模型 (Tree-based Models)」：</strong><br>
+                • <strong>決策樹（Decision Tree）</strong><br>
+                • <strong>隨機森林（Random Forest）</strong><br>
+                • <strong>XGBoost / LightGBM / CatBoost</strong>
+              </li>
+              <li class="p-2.5 bg-white rounded-lg border border-emerald-100">
+                <strong>為什麼樹模型免疫？</strong><br>
+                因為決策樹在切分節點時，問的是<strong>單一特徵的大小次序</strong>（例如：「年齡 $\ge 35$ 歲嗎？」或「收入 $\ge 100$ 萬嗎？」）。<br>
+                它只看前後排序，<strong>根本不計算多維度之間的幾何距離</strong>！你把收入全部乘上 1,000 或除以 100，切分閾值只會等比例移動，結果 100% 一模一樣。
+              </li>
+              <li class="p-2.5 bg-white rounded-lg border border-emerald-100">
+                <strong>單純貝式分類器（Naive Bayes）：</strong><br>
+                直接依據機率密度函數計算條件機率，對單純比例尺度變化亦不敏感。
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // 核心狀態
+      const state = {
+        activeTab: "lab",     // "lab" | "learn"
+        scaleMode: "raw",     // "raw" | "minmax" | "zscore"
+        viewMode: "knn",      // "knn" | "gd"
+        
+        // 原始真實資料集：24 位顧客（年齡 18~75 歲，年收入 32 萬~320 萬元）
+        // 模擬年輕低收、中年高收、退休等自然分佈
+        rawPoints: [
+          { age: 21, inc: 36, id: 1 },
+          { age: 23, inc: 42, id: 2 },
+          { age: 25, inc: 50, id: 3 },
+          { age: 28, inc: 65, id: 4 },
+          { age: 31, inc: 85, id: 5 },
+          { age: 34, inc: 110, id: 6 },
+          { age: 38, inc: 140, id: 7 },
+          { age: 41, inc: 175, id: 8 },
+          { age: 44, inc: 210, id: 9 },
+          { age: 48, inc: 260, id: 10 },
+          { age: 52, inc: 310, id: 11 },
+          { age: 55, inc: 290, id: 12 },
+          { age: 60, inc: 240, id: 13 },
+          { age: 64, inc: 190, id: 14 },
+          { age: 68, inc: 120, id: 15 },
+          { age: 72, inc: 70, id: 16 },
+          // 交叉點位（用以凸顯年齡相近但收入略差，或收入相同但年齡差 40 歲）
+          { age: 24, inc: 120, id: 17 }, // 年輕新貴
+          { age: 65, inc: 45, id: 18 },  // 高齡低收
+          { age: 30, inc: 48, id: 19 },
+          { age: 45, inc: 95, id: 20 },
+          { age: 58, inc: 160, id: 21 },
+          { age: 27, inc: 220, id: 22 }, // 極端年輕超高薪
+          { age: 62, inc: 280, id: 23 },
+          { age: 36, inc: 180, id: 24 }
+        ],
+
+        // 目標測試點 P（預設為 26 歲，年收入 60 萬元）
+        rawTarget: { age: 26, inc: 60 },
+
+        // 統計快取
+        stats: {
+          ageMin: 18, ageMax: 80,
+          incMin: 30, incMax: 350,
+          ageMean: 43.1, ageStd: 16.2,
+          incMean: 148.5, incStd: 92.4
+        }
+      };
+
+      // 計算真實統計值
+      function computeDatasetStats() {
+        const ages = state.rawPoints.map(p => p.age);
+        const incs = state.rawPoints.map(p => p.inc);
+
+        state.stats.ageMin = Math.min(...ages);
+        state.stats.ageMax = Math.max(...ages);
+        state.stats.incMin = Math.min(...incs);
+        state.stats.incMax = Math.max(...incs);
+
+        const sumAge = ages.reduce((a, b) => a + b, 0);
+        const sumInc = incs.reduce((a, b) => a + b, 0);
+        state.stats.ageMean = sumAge / ages.length;
+        state.stats.incMean = sumInc / incs.length;
+
+        const sqAge = ages.reduce((a, b) => a + Math.pow(b - state.stats.ageMean, 2), 0);
+        const sqInc = incs.reduce((a, b) => a + Math.pow(b - state.stats.incMean, 2), 0);
+        state.stats.ageStd = Math.sqrt(sqAge / ages.length);
+        state.stats.incStd = Math.sqrt(sqInc / incs.length);
+      }
+
+      // 快取 DOM
+      const dom = {
+        tabBtnLab: document.getElementById("tabBtnLab"),
+        tabBtnLearn: document.getElementById("tabBtnLearn"),
+        pageLab: document.getElementById("pageLab"),
+        pageLearn: document.getElementById("pageLearn"),
+
+        btnScaleRaw: document.getElementById("btnScaleRaw"),
+        btnScaleMinMax: document.getElementById("btnScaleMinMax"),
+        btnScaleZScore: document.getElementById("btnScaleZScore"),
+        btnViewKNN: document.getElementById("btnViewKNN"),
+        btnViewGD: document.getElementById("btnViewGD"),
+
+        statusIndicatorDot: document.getElementById("statusIndicatorDot"),
+        canvasTitleText: document.getElementById("canvasTitleText"),
+        scalingBadge: document.getElementById("scalingBadge"),
+        currentMethodBadge: document.getElementById("currentMethodBadge"),
+        sampleStatDisplay: document.getElementById("sampleStatDisplay"),
+
+        scalingSvg: document.getElementById("scalingSvg"),
+        lossContoursGroup: document.getElementById("lossContoursGroup"),
+        gdTrajectoryGroup: document.getElementById("gdTrajectoryGroup"),
+        knnConnectionsGroup: document.getElementById("knnConnectionsGroup"),
+        axisTicksGroup: document.getElementById("axisTicksGroup"),
+        dataPointsGroup: document.getElementById("dataPointsGroup"),
+        targetProbeGroup: document.getElementById("targetProbeGroup"),
+        probeWave: document.getElementById("probeWave"),
+        probeCenter: document.getElementById("probeCenter"),
+        axisLabelX: document.getElementById("axisLabelX"),
+        axisLabelY: document.getElementById("axisLabelY"),
+
+        metricCardTitle: document.getElementById("metricCardTitle"),
+        formulaDisplayBox: document.getElementById("formulaDisplayBox"),
+        ageContribPctText: document.getElementById("ageContribPctText"),
+        incomeContribPctText: document.getElementById("incomeContribPctText"),
+        barAgeContrib: document.getElementById("barAgeContrib"),
+        barIncomeContrib: document.getElementById("barIncomeContrib"),
+        storyCard: document.getElementById("storyCard")
+      };
+
+      // 數值轉換函數：輸入 (age, inc) 輸出在當前模式下的標準化數值
+      function transformPoint(age, inc) {
+        const s = state.stats;
+        if (state.scaleMode === "minmax") {
+          const normAge = (age - s.ageMin) / (s.ageMax - s.ageMin || 1);
+          const normInc = (inc - s.incMin) / (s.incMax - s.incMin || 1);
+          return { xVal: normAge, yVal: normInc };
+        } else if (state.scaleMode === "zscore") {
+          const zAge = (age - s.ageMean) / (s.ageStd || 1);
+          const zInc = (inc - s.incMean) / (s.incStd || 1);
+          return { xVal: zAge, yVal: zInc };
+        }
+        // raw 原始數值
+        return { xVal: age, yVal: inc };
+      }
+
+      // 畫布坐標映射系統 (SVG ViewBox 740 x 500, 有效區域 x: 75~670, y: 440~60)
+      function toSvgCoords(age, inc) {
+        const { xVal, yVal } = transformPoint(age, inc);
+        const s = state.stats;
+
+        let xRatio = 0;
+        let yRatio = 0;
+
+        if (state.scaleMode === "raw") {
+          // X: [15, 80], Y: [20, 360]
+          xRatio = (xVal - 15) / (80 - 15);
+          yRatio = (yVal - 20) / (360 - 20);
+        } else if (state.scaleMode === "minmax") {
+          // X: [0, 1], Y: [0, 1]
+          xRatio = xVal; // [0, 1]
+          yRatio = yVal; // [0, 1]
+        } else if (state.scaleMode === "zscore") {
+          // Z 一般落於 [-2.2, +2.5]
+          xRatio = (xVal - (-2.2)) / (2.5 - (-2.2));
+          yRatio = (yVal - (-2.2)) / (2.5 - (-2.2));
+        }
+
+        xRatio = Math.max(0, Math.min(1, xRatio));
+        yRatio = Math.max(0, Math.min(1, yRatio));
+
+        const px = 85 + xRatio * (670 - 85);
+        const py = 430 - yRatio * (430 - 65);
+        return { px, py };
+      }
+
+      // 反向映射：由畫布像素坐標推回原始 (age, inc)
+      function fromSvgCoords(px, py) {
+        const xRatio = Math.max(0, Math.min(1, (px - 85) / (670 - 85)));
+        const yRatio = Math.max(0, Math.min(1, (430 - py) / (430 - 65)));
+        const s = state.stats;
+
+        let age = 0;
+        let inc = 0;
+
+        if (state.scaleMode === "raw") {
+          age = Math.round(15 + xRatio * (80 - 15));
+          inc = Math.round(20 + yRatio * (360 - 20));
+        } else if (state.scaleMode === "minmax") {
+          const normAge = xRatio;
+          const normInc = yRatio;
+          age = Math.round(s.ageMin + normAge * (s.ageMax - s.ageMin));
+          inc = Math.round(s.incMin + normInc * (s.incMax - s.incMin));
+        } else if (state.scaleMode === "zscore") {
+          const zAge = -2.2 + xRatio * (2.5 - (-2.2));
+          const zInc = -2.2 + yRatio * (2.5 - (-2.2));
+          age = Math.round(s.ageMean + zAge * s.ageStd);
+          inc = Math.round(s.incMean + zInc * s.incStd);
+        }
+        return {
+          age: Math.max(18, Math.min(80, age)),
+          inc: Math.max(30, Math.min(350, inc))
+        };
+      }
+
+      // 繪製坐標軸刻度標籤
+      function renderAxisTicks() {
+        dom.axisTicksGroup.innerHTML = '';
+        const mode = state.scaleMode;
+
+        let xTicks = [];
+        let yTicks = [];
+
+        if (mode === "raw") {
+          xTicks = [20, 35, 50, 65, 80];
+          yTicks = [50, 120, 200, 280, 350];
+          dom.axisLabelX.textContent = "X 軸：年齡 (Age, 18~80 歲)";
+          dom.axisLabelY.textContent = "Y 軸：年收入 (Income, 30~350 萬元)";
+        } else if (mode === "minmax") {
+          xTicks = [0.0, 0.25, 0.5, 0.75, 1.0];
+          yTicks = [0.0, 0.25, 0.5, 0.75, 1.0];
+          dom.axisLabelX.textContent = "X 軸：年齡 (Min-Max 歸一化 [0.0 ~ 1.0])";
+          dom.axisLabelY.textContent = "Y 軸：年收入 (Min-Max 歸一化 [0.0 ~ 1.0])";
+        } else if (mode === "zscore") {
+          xTicks = [-2.0, -1.0, 0.0, 1.0, 2.0];
+          yTicks = [-2.0, -1.0, 0.0, 1.0, 2.0];
+          dom.axisLabelX.textContent = "X 軸：年齡 (Z-Score 標準化，均值 0，方差 1)";
+          dom.axisLabelY.textContent = "Y 軸：年收入 (Z-Score 標準化，均值 0，方差 1)";
+        }
+
+        // 渲染 X 刻度
+        xTicks.forEach((val, idx) => {
+          let dummyAge = val;
+          if (mode === "minmax") dummyAge = state.stats.ageMin + val * (state.stats.ageMax - state.stats.ageMin);
+          else if (mode === "zscore") dummyAge = state.stats.ageMean + val * state.stats.ageStd;
+
+          const { px } = toSvgCoords(dummyAge, state.stats.incMin);
+          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          txt.setAttribute("x", px);
+          txt.setAttribute("y", "458");
+          txt.setAttribute("font-size", "11");
+          txt.setAttribute("font-family", "monospace");
+          txt.setAttribute("fill", "#64748b");
+          txt.setAttribute("text-anchor", "middle");
+          txt.textContent = typeof val === "number" ? (mode === "raw" ? `${val}歲` : val.toFixed(1)) : val;
+          dom.axisTicksGroup.appendChild(txt);
+        });
+
+        // 渲染 Y 刻度
+        yTicks.forEach((val, idx) => {
+          let dummyInc = val;
+          if (mode === "minmax") dummyInc = state.stats.incMin + val * (state.stats.incMax - state.stats.incMin);
+          else if (mode === "zscore") dummyInc = state.stats.incMean + val * state.stats.incStd;
+
+          const { py } = toSvgCoords(state.stats.ageMin, dummyInc);
+          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          txt.setAttribute("x", "65");
+          txt.setAttribute("y", py + 4);
+          txt.setAttribute("font-size", "11");
+          txt.setAttribute("font-family", "monospace");
+          txt.setAttribute("fill", "#64748b");
+          txt.setAttribute("text-anchor", "end");
+          txt.textContent = typeof val === "number" ? (mode === "raw" ? `${val}萬` : val.toFixed(1)) : val;
+          dom.axisTicksGroup.appendChild(txt);
+        });
+      }
+
+      // 繪製背景損失等高線與梯度軌跡 (呈現未縮放時的狹長橢圓山谷 vs 縮放後的完美同心圓)
+      function renderLossAndOptimization() {
+        dom.lossContoursGroup.innerHTML = '';
+        dom.gdTrajectoryGroup.innerHTML = '';
+
+        if (state.viewMode !== "gd") return;
+
+        // 計算中心點坐標
+        const { px: cx, py: cy } = toSvgCoords(state.stats.ageMean, state.stats.incMean);
+
+        const isUnscaled = state.scaleMode === "raw";
+        const levels = [35, 75, 120, 175, 230];
+
+        // 繪製等高線橢圓
+        levels.forEach((r, idx) => {
+          const ellipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+          ellipse.setAttribute("cx", cx);
+          ellipse.setAttribute("cy", cy);
+
+          if (isUnscaled) {
+            // 未縮放：Y 軸極度陡峭，X 軸極度平緩，形成超狹長的橫向扁平橢圓
+            ellipse.setAttribute("rx", r * 1.55);
+            ellipse.setAttribute("ry", r * 0.28);
+          } else {
+            // 縮放後：兩軸均勻，呈現完美的正圓同心圓
+            ellipse.setAttribute("rx", r * 0.95);
+            ellipse.setAttribute("ry", r * 0.95);
+          }
+
+          ellipse.setAttribute("fill", "none");
+          ellipse.setAttribute("stroke", isUnscaled ? "#f43f5e" : "#10b981");
+          ellipse.setAttribute("stroke-width", "1.5");
+          ellipse.setAttribute("stroke-dasharray", "4,3");
+          dom.lossContoursGroup.appendChild(ellipse);
+        });
+
+        // 繪製梯度下降收斂路徑
+        let d = "";
+        if (isUnscaled) {
+          // 未縮放：左右劇烈震盪橫跳 (Zig-Zag oscillation)
+          const zigzags = [
+            { x: cx - 210, y: cy - 70 },
+            { x: cx - 180, y: cy + 60 },
+            { x: cx - 150, y: cy - 50 },
+            { x: cx - 120, y: cy + 42 },
+            { x: cx - 90, y: cy - 35 },
+            { x: cx - 65, y: cy + 28 },
+            { x: cx - 40, y: cy - 20 },
+            { x: cx - 20, y: cy + 14 },
+            { x: cx, y: cy }
+          ];
+          zigzags.forEach((pt, i) => {
+            d += (i === 0 ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
+          });
+        } else {
+          // 縮放後：順滑直接射入碗底中心 (Direct & Rapid Convergence)
+          const directPath = [
+            { x: cx - 190, y: cy - 140 },
+            { x: cx - 130, y: cy - 90 },
+            { x: cx - 75, y: cy - 45 },
+            { x: cx - 25, y: cy - 15 },
+            { x: cx, y: cy }
+          ];
+          directPath.forEach((pt, i) => {
+            d += (i === 0 ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
+          });
+        }
+
+        const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pathEl.setAttribute("d", d);
+        pathEl.setAttribute("fill", "none");
+        pathEl.setAttribute("stroke", isUnscaled ? "#fb7185" : "#34d399");
+        pathEl.setAttribute("stroke-width", "3");
+        pathEl.setAttribute("stroke-linecap", "round");
+        pathEl.setAttribute("stroke-linejoin", "round");
+        dom.gdTrajectoryGroup.appendChild(pathEl);
+
+        // 標註極小值星星標記
+        const starTxt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        starTxt.setAttribute("x", cx);
+        starTxt.setAttribute("y", cy + 5);
+        starTxt.setAttribute("font-size", "15");
+        starTxt.setAttribute("fill", "#fbbf24");
+        starTxt.setAttribute("text-anchor", "middle");
+        starTxt.textContent = "★ 最佳解";
+        dom.gdTrajectoryGroup.appendChild(starTxt);
+      }
+
+      // 核心渲染：資料點、KNN 連線、探針位置
+      function renderAll() {
+        renderAxisTicks();
+        renderLossAndOptimization();
+
+        const tAge = state.rawTarget.age;
+        const tInc = state.rawTarget.inc;
+        const targetTrans = transformPoint(tAge, tInc);
+
+        // 1. 定位受測探針點 P
+        const { px: tpx, py: tpy } = toSvgCoords(tAge, tInc);
+        dom.targetProbeGroup.setAttribute("transform", `translate(${tpx}, ${tpy})`);
+
+        // 2. 計算每個資料點與目標點在當前模式下的距離
+        const distances = state.rawPoints.map(p => {
+          const pTrans = transformPoint(p.age, p.inc);
+          const diffX = pTrans.xVal - targetTrans.xVal;
+          const diffY = pTrans.yVal - targetTrans.yVal;
+          const sqDist = Math.pow(diffX, 2) + Math.pow(diffY, 2);
+          const dist = Math.sqrt(sqDist);
+
+          // 額外記錄原始差值
+          const rawAgeDiff = p.age - tAge;
+          const rawIncDiff = (p.inc - tInc) * 10000; // 轉為以元為單位比較
+
+          return {
+            ...p,
+            diffX,
+            diffY,
+            dist,
+            rawAgeDiff,
+            rawIncDiff,
+            sqDist
+          };
+        });
+
+        // 排序找出最近的 3 個鄰居 (KNN, K=3)
+        distances.sort((a, b) => a.dist - b.dist);
+        const kNearest = distances.slice(0, 3);
+        const nearestSet = new Set(kNearest.map(n => n.id));
+
+        // 3. 繪製 KNN 連線與高亮
+        dom.knnConnectionsGroup.innerHTML = '';
+        if (state.viewMode === "knn") {
+          kNearest.forEach((n, rank) => {
+            const { px: npx, py: npy } = toSvgCoords(n.age, n.inc);
+
+            // 射線連線
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", tpx);
+            line.setAttribute("y1", tpy);
+            line.setAttribute("x2", npx);
+            line.setAttribute("y2", npy);
+            line.setAttribute("stroke", rank === 0 ? "#34d399" : "#60a5fa");
+            line.setAttribute("stroke-width", rank === 0 ? "2.5" : "1.8");
+            line.setAttribute("stroke-dasharray", "4,3");
+            dom.knnConnectionsGroup.appendChild(line);
+          });
+        }
+
+        // 4. 繪製 24 筆顧客散點
+        dom.dataPointsGroup.innerHTML = '';
+        distances.forEach(p => {
+          const { px, py } = toSvgCoords(p.age, p.inc);
+          const isNearest = nearestSet.has(p.id);
+
+          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          circle.setAttribute("cx", px);
+          circle.setAttribute("cy", py);
+          circle.setAttribute("r", isNearest ? "7.5" : "5.5");
+          circle.setAttribute("fill", isNearest ? "#34d399" : "#3b82f6");
+          circle.setAttribute("stroke", "#ffffff");
+          circle.setAttribute("stroke-width", isNearest ? "2.5" : "1.5");
+          circle.setAttribute("class", "point-transition cursor-pointer");
+
+          // 點擊點位可直接查看其資料
+          circle.addEventListener("click", (e) => {
+            e.stopPropagation();
+            state.rawTarget.age = p.age;
+            state.rawTarget.inc = p.inc;
+            renderAll();
+          });
+
+          dom.dataPointsGroup.appendChild(circle);
+
+          // 若為最接近第 1 名，加上光暈圈
+          if (p.id === kNearest[0].id && state.viewMode === "knn") {
+            const halo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            halo.setAttribute("cx", px);
+            halo.setAttribute("cy", py);
+            halo.setAttribute("r", "13");
+            halo.setAttribute("fill", "none");
+            halo.setAttribute("stroke", "#34d399");
+            halo.setAttribute("stroke-width", "2");
+            halo.setAttribute("stroke-dasharray", "3,2");
+            dom.dataPointsGroup.appendChild(halo);
+          }
+        });
+
+        // 5. 更新右側數據看板與診斷文字
+        updateDashboard(kNearest[0]);
+      }
+
+      // 更新右側數值與生活化分析
+      function updateDashboard(nearest) {
+        const mode = state.scaleMode;
+        const target = state.rawTarget;
+        const targetTrans = transformPoint(target.age, target.inc);
+
+        let title = "未縮放 (Raw) —— 數值被年收入絕對統治";
+        let titleColor = "#f43f5e";
+        let badgeText = "未縮放 (Raw)";
+        let badgeClass = "text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-mono";
+
+        if (mode === "minmax") {
+          title = "Min-Max 正規化 —— 等比例壓縮至 [0, 1] 平起平坐";
+          titleColor = "#06b6d4";
+          badgeText = "Min-Max 正規化 [0, 1]";
+          badgeClass = "text-xs font-bold px-2.5 py-1 rounded-lg bg-cyan-100 text-cyan-800 font-mono";
+        } else if (mode === "zscore") {
+          title = "Z-Score 標準化 —— 均值 0，方差 1，抗離群最佳解";
+          titleColor = "#10b981";
+          badgeText = "Z-Score 標準化 (μ=0, σ=1)";
+          badgeClass = "text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-mono";
+        }
+
+        dom.canvasTitleText.textContent = `目前狀態：${title}`;
+        dom.statusIndicatorDot.style.backgroundColor = titleColor;
+        dom.currentMethodBadge.textContent = badgeText;
+        dom.currentMethodBadge.className = badgeClass;
+
+        // 計算距離貢獻比例
+        let ageContrib = 0;
+        let incContrib = 0;
+
+        if (mode === "raw") {
+          // 年齡差 (歲)^2 vs 年收入差 (元)^2
+          const ageSq = Math.pow(nearest.age - target.age, 2);
+          // 收入以萬元轉為元做真實比較
+          const incSq = Math.pow((nearest.inc - target.inc) * 10000, 2);
+          const totalSq = ageSq + incSq || 1;
+          ageContrib = (ageSq / totalSq) * 100;
+          incContrib = (incSq / totalSq) * 100;
+
+          // 由於以元為單位時常態為 0.0001%，設定顯示上限防 0
+          if (incSq > 0 && ageContrib < 0.01) ageContrib = 0.01;
+          incContrib = 100 - ageContrib;
+        } else {
+          // 縮放後兩者均等
+          const ageSq = Math.pow(nearest.diffX, 2);
+          const incSq = Math.pow(nearest.diffY, 2);
+          const totalSq = ageSq + incSq || 1;
+          ageContrib = (ageSq / totalSq) * 100;
+          incContrib = (incSq / totalSq) * 100;
+        }
+
+        dom.ageContribPctText.textContent = `${ageContrib.toFixed(1)}%`;
+        dom.incomeContribPctText.textContent = `${incContrib.toFixed(1)}%`;
+        dom.barAgeContrib.style.width = `${Math.max(2, ageContrib)}%`;
+        dom.barIncomeContrib.style.width = `${Math.min(98, incContrib)}%`;
+
+        // 更新公式診斷文字
+        if (state.viewMode === "knn") {
+          dom.metricCardTitle.textContent = "歐氏距離公式拆解實測";
+          if (mode === "raw") {
+            dom.formulaDisplayBox.innerHTML = `
+              <strong>目標客戶 P：</strong>(${target.age}歲, ${target.inc}萬元)<br>
+              <strong>最靠近鄰居：</strong>(${nearest.age}歲, ${nearest.inc}萬元)<br>
+              <strong>年齡差距：</strong>|${target.age} - ${nearest.age}| = ${Math.abs(target.age - nearest.age)} 歲<br>
+              <strong>年收入差距：</strong>|${target.inc}萬 - ${nearest.inc}萬| = ${Math.abs(target.inc - nearest.inc)} 萬元<br>
+              <div class="mt-1 p-2 bg-rose-50 border border-rose-200 rounded text-rose-950 font-bold">
+                ⚠️ 悲劇發生：因為收入量級高達數十萬，計算距離時 $(\\Delta \\text{Income})^2$ 直接把 $(\\Delta \\text{Age})^2$ 吃光！演算法只看誰收入相近，根本不管年齡差了幾十歲！
+              </div>
+            `;
+            dom.storyCard.innerHTML = `
+              <div class="font-bold text-rose-900 flex items-center gap-1.5">
+                <span>❌</span> <strong>未縮放的致命災難：</strong>
+              </div>
+              <p class="text-slate-700 text-[14px]">
+                在真實量綱下，年齡（18~80）的差距頂多幾十，而年收入（幾十萬到幾百萬）隨便一個零頭就是好幾萬。<strong>這就像用「公尺」去加「奈米」，奈米直接形同虛設</strong>！
+              </p>
+            `;
+          } else {
+            dom.formulaDisplayBox.innerHTML = `
+              <strong>目標客戶 P 轉換後坐標：</strong>(${targetTrans.xVal.toFixed(2)}, ${targetTrans.yVal.toFixed(2)})<br>
+              <strong>最靠近鄰居坐標：</strong>(${nearest.diffX > 0 ? '+' : ''}${nearest.diffX.toFixed(2)}, ${nearest.diffY > 0 ? '+' : ''}${nearest.diffY.toFixed(2)})<br>
+              <strong>兩特徵坐標尺度：</strong>完全在同一基準線上！<br>
+              <div class="mt-1 p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-950 font-bold">
+                ⭐ 公平公正：年齡貢獻了 ${ageContrib.toFixed(1)}%，收入貢獻了 ${incContrib.toFixed(1)}%。KNN 終於能同時依照「相仿的年紀」與「相近的收入」找出最合適的客群！
+              </div>
+            `;
+            dom.storyCard.innerHTML = `
+              <div class="font-bold text-emerald-900 flex items-center gap-1.5">
+                <span>⭐</span> <strong>縮放後的完美成果：</strong>
+              </div>
+              <p class="text-slate-700 text-[14px]">
+                兩項特徵都被限制在均等的波動尺度內。演算法不再偏袒任何一方，能客觀權衡所有變數，分類與推薦準確率大幅飆升！
+              </p>
+            `;
+          }
+        } else {
+          // 梯度下降模式
+          dom.metricCardTitle.textContent = "損失函數等高線與收斂分析";
+          if (mode === "raw") {
+            dom.formulaDisplayBox.innerHTML = `
+              <strong>等高線形狀：</strong>極度狹長扁平的「雪茄狀橢圓山谷」<br>
+              <strong>梯度方向：</strong>垂直於等高線，在陡峭邊壁瘋狂左右彈跳<br>
+              <strong>收斂速度：</strong>極慢，甚至容易因為學習率過大而發散爆炸<br>
+              <div class="mt-1 p-2 bg-rose-50 border border-rose-200 rounded text-rose-950 font-bold">
+                ⚠️ 最佳化災難：AI 參數在年收入方向激烈震盪，在年齡方向卻像蝸牛一樣爬行！
+              </div>
+            `;
+            dom.storyCard.innerHTML = `
+              <div class="font-bold text-rose-900 flex items-center gap-1.5">
+                <span>🌀</span> <strong>梯度下降左右橫跳：</strong>
+              </div>
+              <p class="text-slate-700 text-[14px]">
+                看看左側粉紅色的折線軌跡！這就是標準的<strong>梯度震盪（Oscillation）</strong>。模型很難快速滑入谷底的 ★ 最佳解，需要耗費百倍以上的迭代時間。
+              </p>
+            `;
+          } else {
+            dom.formulaDisplayBox.innerHTML = `
+              <strong>等高線形狀：</strong>完美的正圓形「碗狀同心圓」<br>
+              <strong>梯度方向：</strong>負梯度永遠直接瞄準正中心 ★ 最佳解<br>
+              <strong>收斂速度：</strong>極速、筆直、穩定直達最優參數！<br>
+              <div class="mt-1 p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-950 font-bold">
+                ⭐ 最佳狀態：學習率可以放心調大，模型用最短路徑火速收斂！
+              </div>
+            `;
+            dom.storyCard.innerHTML = `
+              <div class="font-bold text-emerald-900 flex items-center gap-1.5">
+                <span>⚡</span> <strong>筆直直達最佳解：</strong>
+              </div>
+              <p class="text-slate-700 text-[14px]">
+                特徵縮放後，碗底各個方向均勻平衡，梯度向量不再被高量綱扭曲。神經網路、Logistic 迴歸能以最快速度完成訓練！
+              </p>
+            `;
+          }
+        }
+      }
+
+      // 切換縮放模式
+      function setScalingMode(mode) {
+        state.scaleMode = mode;
+
+        // 按鈕樣式
+        dom.btnScaleRaw.className = mode === "raw"
+          ? "py-2.5 px-2 text-[14px] font-bold rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-800 transition shadow-xs"
+          : "py-2.5 px-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition";
+
+        dom.btnScaleMinMax.className = mode === "minmax"
+          ? "py-2.5 px-2 text-[14px] font-bold rounded-xl border-2 border-cyan-500 bg-cyan-50 text-cyan-800 transition shadow-xs"
+          : "py-2.5 px-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition";
+
+        dom.btnScaleZScore.className = mode === "zscore"
+          ? "py-2.5 px-2 text-[14px] font-bold rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-800 transition shadow-xs"
+          : "py-2.5 px-2 text-[14px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition";
+
+        renderAll();
+      }
+
+      // 切換視圖模式 (KNN 距離 vs 梯度收斂)
+      function setViewMode(vMode) {
+        state.viewMode = vMode;
+        if (vMode === "knn") {
+          dom.btnViewKNN.className = "px-3 py-1 rounded-lg font-bold text-xs bg-indigo-600 text-white shadow-xs";
+          dom.btnViewGD.className = "px-3 py-1 rounded-lg font-bold text-xs bg-white text-slate-700 border border-slate-200 hover:bg-slate-100";
+        } else {
+          dom.btnViewGD.className = "px-3 py-1 rounded-lg font-bold text-xs bg-indigo-600 text-white shadow-xs";
+          dom.btnViewKNN.className = "px-3 py-1 rounded-lg font-bold text-xs bg-white text-slate-700 border border-slate-200 hover:bg-slate-100";
+        }
+        renderAll();
+      }
+
+      // 切換主要大分頁 (Lab 實驗頁 vs Learn 教學頁)
+      function switchPage(page) {
+        state.activeTab = page;
+        if (page === "lab") {
+          dom.tabBtnLab.className = "px-4 py-2 rounded-lg font-bold text-[15px] transition-all bg-white text-indigo-700 shadow-sm border border-slate-200/60 flex items-center gap-1.5";
+          dom.tabBtnLearn.className = "px-4 py-2 rounded-lg font-bold text-[15px] transition-all text-slate-600 hover:text-indigo-700 flex items-center gap-1.5";
+          dom.pageLab.classList.remove("hidden");
+          dom.pageLearn.classList.add("hidden");
+          renderAll();
+        } else {
+          dom.tabBtnLearn.className = "px-4 py-2 rounded-lg font-bold text-[15px] transition-all bg-white text-indigo-700 shadow-sm border border-slate-200/60 flex items-center gap-1.5";
+          dom.tabBtnLab.className = "px-4 py-2 rounded-lg font-bold text-[15px] transition-all text-slate-600 hover:text-indigo-700 flex items-center gap-1.5";
+          dom.pageLearn.classList.remove("hidden");
+          dom.pageLab.classList.add("hidden");
+        }
+      }
+
+      // 畫布點擊移動探針點
+      dom.scalingSvg.addEventListener("click", (e) => {
+        const rect = dom.scalingSvg.getBoundingClientRect();
+        const px = ((e.clientX - rect.left) / rect.width) * 740;
+        const py = ((e.clientY - rect.top) / rect.height) * 500;
+
+        const newTarget = fromSvgCoords(px, py);
+        state.rawTarget.age = newTarget.age;
+        state.rawTarget.inc = newTarget.inc;
+        renderAll();
+      });
+
+      // 監聽器綁定
+      dom.tabBtnLab.addEventListener("click", () => switchPage("lab"));
+      dom.tabBtnLearn.addEventListener("click", () => switchPage("learn"));
+
+      dom.btnScaleRaw.addEventListener("click", () => setScalingMode("raw"));
+      dom.btnScaleMinMax.addEventListener("click", () => setScalingMode("minmax"));
+      dom.btnScaleZScore.addEventListener("click", () => setScalingMode("zscore"));
+
+      dom.btnViewKNN.addEventListener("click", () => setViewMode("knn"));
+      dom.btnViewGD.addEventListener("click", () => setViewMode("gd"));
+
+      // 初始化
+      computeDatasetStats();
+      setScalingMode("raw");
+    })();
+  </script>
+</body>
+</html>
