@@ -1,0 +1,1405 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>YOLO 訓練與超參數</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky top bar, one reading column (max 960px). Part 1 = copyable code tabs, Part 2 = parameter notes with four interactive SVG widgets. */
+:root {
+  --bg: #0B0B0C;
+  --surface: #141416;
+  --surface2: #1D1C1A;
+  --ink: #F1EADB;
+  --muted: #A8A090;
+  --line: #34301F;
+  --accent: #D4AF37;
+  --accent-ink: #0B0B0C;
+  --alt: #EDE4D0;
+  --warn: #E8A15C;
+  --good: #8FD6A8;
+  --code-bg: #070708;
+  --code-fg: #F1EADB;
+  --code-cmt: #C9B068;
+  --font-display: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
+  --font-body: 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, 'Courier New', monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.75 var(--font-body);
+  padding-block: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+.wrap { max-width: 960px; margin: 0 auto; }
+a { color: var(--accent); text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-block: 10px; }
+.brand { font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none; }
+.top nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.top nav a { padding: 4px 12px; border-radius: 999px; text-decoration: none; font-size: 14px; color: var(--ink); border: 1px solid var(--line); background: var(--surface); }
+.top nav a:hover { border-color: var(--accent); color: var(--accent); }
+
+h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.2; margin: 0 0 12px; text-wrap: balance; }
+h2 { font-size: clamp(24px, 4.5vw, 30px); line-height: 1.3; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 20px; line-height: 1.4; margin: 36px 0 8px; text-wrap: balance; }
+h4 { font-size: 16px; margin: 20px 0 6px; }
+p { margin: 0 0 12px; max-width: 68ch; }
+.lead { font-size: 18px; color: var(--muted); max-width: 62ch; }
+.intro { padding-block: 40px 8px; }
+.chip { display: inline-block; font-size: 13px; font-weight: 700; padding: 2px 12px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); margin-bottom: 8px; letter-spacing: .04em; }
+.chip.alt { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); }
+.note { font-size: 14px; color: var(--muted); }
+section.part { padding-block: 40px 8px; }
+code, .mono { font-family: var(--font-mono); font-size: .9em; }
+p code, td code, li code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; }
+
+/* code tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0 10px; }
+.tab { font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.codebox { position: relative; background: var(--code-bg); border-radius: 10px; }
+.codebox pre { margin: 0; padding: 18px 16px 18px; overflow-x: auto; font: 13px/1.7 var(--font-mono); color: var(--code-fg); tab-size: 4; }
+.codebox pre .c { color: var(--code-cmt); }
+.copy { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.08); color: #E4EDF1; cursor: pointer; }
+.copy:hover { background: rgba(255,255,255,.18); }
+.codebox pre { padding-top: 44px; }
+.tipline { margin-top: 10px; font-size: 14px; color: var(--muted); }
+
+/* tables */
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin: 8px 0 16px; }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 15px; line-height: 1.6; }
+th, td { text-align: left; padding: 10px 14px; vertical-align: top; border-bottom: 1px solid var(--line); }
+th { font-size: 13px; letter-spacing: .06em; color: var(--muted); background: var(--surface2); font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+td.p { font-family: var(--font-mono); font-weight: 600; color: var(--accent); white-space: nowrap; font-size: 14px; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* widgets */
+.widget { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin: 16px 0 24px; }
+.widget h4 { margin-top: 0; font-size: 17px; }
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 20px; margin: 10px 0 12px; }
+.ctl { display: grid; gap: 2px; min-width: 0; }
+.ctl label { font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.ctl label b { font-family: var(--font-mono); font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 8px; }
+.btn { font: inherit; font-size: 14px; padding: 5px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.chartbox { width: 100%; min-width: 0; }
+.chartbox svg { display: block; width: 100%; height: auto; }
+svg text { font-family: var(--font-body); fill: var(--muted); font-size: 12px; }
+svg .axis { stroke: var(--line); stroke-width: 1; }
+svg .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 4; }
+svg .ln-train { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+svg .ln-val { fill: none; stroke: var(--alt); stroke-width: 2.5; }
+svg .ghost { opacity: .3; stroke-dasharray: 4 4; }
+svg .mark { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg .hot { fill: var(--surface2); }
+svg .lbl { fill: var(--ink); font-weight: 700; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; margin: 4px 0 8px; }
+.legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 8px; }
+.stat { background: var(--surface2); border-radius: 8px; padding: 8px 12px; }
+.stat span { display: block; font-size: 13px; color: var(--muted); }
+.stat b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.verdict { margin: 8px 0 0; padding: 10px 14px; border-radius: 8px; background: var(--surface2); max-width: none; font-size: 15px; }
+.verdict.good { border-left: 0; box-shadow: inset 0 0 0 1.5px var(--good); }
+.verdict.warn { box-shadow: inset 0 0 0 1.5px var(--warn); }
+.verdict strong { font-weight: 700; }
+
+.aug-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 8px 0; }
+.aug-grid figure { margin: 0; min-width: 0; }
+.aug-grid svg { display: block; width: 100%; height: auto; border-radius: 8px; background: #727272; }
+.aug-grid figcaption { font-size: 13px; color: var(--muted); text-align: center; }
+@media (max-width: 560px) { .aug-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.pathbox { margin: 10px 0 0; padding: 12px 14px; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; font: 13px/1.7 var(--font-mono); overflow-wrap: anywhere; }
+.pathbox em { font-style: normal; color: var(--code-cmt); }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 20px; margin: 10px 0; }
+.row label { font-size: 14px; display: grid; gap: 4px; }
+.row input[type=text] { font: 14px var(--font-mono); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; min-width: 0; }
+.checks { display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; margin: 6px 0; }
+.checks label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 8px 0 16px; display: grid; gap: 8px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+.quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; margin: 10px 0; }
+.quick div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+footer { padding-block: 40px 56px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); margin-top: 40px; }
+
+/* black and gold */
+h1, h2 { font-family: var(--font-display); }
+h1 { letter-spacing: .02em; }
+.intro { background: radial-gradient(620px 240px at 8% 0%, rgba(212,175,55,.16), transparent 70%); border-radius: 16px; padding-inline: 4px; }
+.chip { letter-spacing: .08em; }
+.copy { border-color: rgba(212,175,55,.5); color: var(--accent); background: rgba(212,175,55,.08); }
+.copy:hover { background: rgba(212,175,55,.22); }
+.tab:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.gz { cursor: pointer; }
+.gz .hit { fill: transparent; stroke: var(--line); stroke-width: 1.5; }
+.gz .hit.fill { fill: var(--surface); }
+.gz:hover .hit, .gz:focus-visible .hit { stroke: var(--accent); }
+.gz.sel .hit { stroke: var(--accent); stroke-width: 3; }
+.gz:focus { outline: none; }
+.info { margin-top: 12px; }
+.info p { margin: 0 0 8px; max-width: none; }
+.info .pathbox { margin: 0; white-space: pre-wrap; }
+.legend i.dash { height: 0; background: none; border-top: 2px dashed var(--warn); border-radius: 0; }
+.legend i.dot { height: 0; background: none; border-top: 2px dotted var(--muted); border-radius: 0; }
+
+.yamlbox { width: 100%; min-height: 210px; font: 13px/1.6 var(--font-mono); background: var(--code-bg); color: var(--code-fg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; resize: vertical; tab-size: 2; white-space: pre; overflow: auto; }
+.chk { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; font-size: 15px; }
+.chk li { padding: 6px 12px; border-radius: 8px; background: var(--surface2); }
+.chk li b { margin-right: 8px; }
+.chk li.bad b { color: var(--warn); }
+.chk li.warn b { color: var(--alt); }
+.chk li.ok b { color: var(--good); }
+</style>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="#top">YOLO 訓練與超參數</a>
+    <nav aria-label="章節">
+      <a href="#sec-code">程式段</a>
+      <a href="#sec-params">超參數介紹</a>
+      <a href="#sec-predict">預測</a>
+      <a href="#sec-gradio">Gradio</a>
+      <a href="https://docs.ultralytics.com/zh" target="_blank" rel="noopener">官方文件 ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <div class="intro">
+    <h1>YOLO 訓練與超參數</h1>
+    <p class="lead">從訓練、調參數，到用模型做預測，再做成網頁介面。第一、三、四部分的程式可以直接複製貼上；第二部分逐項說明參數，並用互動圖表示範早停、資料擴增、輸出位置與接續訓練；第三部分用互動圖看 conf 與 iou 如何篩選偵測框。範例使用 <code>yolo26n.pt</code>。</p>
+    <p class="note">官方文件（中文）：<a href="https://docs.ultralytics.com/zh" target="_blank" rel="noopener">docs.ultralytics.com/zh</a>。預設值以近期 Ultralytics 版本為準，不同版本可能略有差異。若找不到 yolo26n.pt，先執行 <code>pip install -U ultralytics</code>。</p>
+  </div>
+
+  <!-- ============ PART 1 ============ -->
+  <section class="part" id="sec-code">
+    <span class="chip">第一部分</span>
+    <h2>程式段</h2>
+    <p>選一個分頁，按「複製」就能貼到 Python 或 Colab。</p>
+    <div class="codeset" id="cs-train"></div>
+  </section>
+
+  <!-- ============ PART 2 ============ -->
+  <section class="part" id="sec-params">
+    <span class="chip alt">第二部分</span>
+    <h2>超參數介紹</h2>
+    <p>每個參數的意思、預設值與使用建議，供課後查閱。有圖示的地方可以拖曳滑桿操作。</p>
+
+    <h3 id="p-yaml">2-1　data.yaml 資料集設定檔</h3>
+    <p><code>model.train(data=...)</code> 指向的就是這個檔案。它告訴 YOLO 兩件事：資料集放在哪裡，以及有哪些類別。</p>
+
+    <h4>YAML 是什麼？</h4>
+    <p>YAML 是一種給人看、也給程式讀的設定檔格式，副檔名是 <code>.yaml</code> 或 <code>.yml</code>。它用冒號、縮排與清單表示資料，比 JSON 少了大括號與引號，容易手寫；缺點是縮排和空格錯一點，就讀不進來。YOLO 的 <code>data.yaml</code>、訓練後產生的 <code>args.yaml</code>、模型結構檔（例如 <code>yolo26n.yaml</code>）都是 YAML。</p>
+    <div class="scroll"><table>
+      <thead><tr><th>語法</th><th>範例</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>鍵值對</td><td><code>epochs: 300</code></td><td>冒號後面一定要有一個空格</td></tr>
+        <tr><td>縮排表示階層</td><td><code>names:</code> 的下一行縮排 2 格，寫 <code>0: plate</code></td><td>只能用空格縮排（不能用 Tab），同一層的縮排要一致</td></tr>
+        <tr><td>清單</td><td><code>- helmet</code>，或 <code>['a', 'b']</code></td><td>每個項目一行，以 <code>-</code> 開頭；也可以寫在一行的方括號內</td></tr>
+        <tr><td>註解</td><td><code># 這是註解</code></td><td>從 <code>#</code> 到行尾都會被忽略</td></tr>
+        <tr><td>字串</td><td><code>path: D:/Python/yolo</code></td><td>通常不用加引號；內容含 <code>: </code> 或 <code>#</code> 等特殊字元時才加引號</td></tr>
+        <tr><td>數字與布林</td><td><code>nc: 2</code>、<code>true</code>、<code>false</code></td><td>數字不要加引號，否則會被當成文字</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>data.yaml 的欄位</h4>
+    <div class="scroll"><table>
+      <thead><tr><th>欄位</th><th>意思</th><th>範例</th></tr></thead>
+      <tbody>
+        <tr><td class="p">path</td><td>資料集根目錄。建議用絕對路徑，並用正斜線 <code>/</code></td><td><code>D:/Python/yolo/train001</code></td></tr>
+        <tr><td class="p">train</td><td>訓練圖片的位置，相對於 <code>path</code>。可以是資料夾，也可以是列出圖片路徑的 .txt 檔</td><td><code>images/train</code></td></tr>
+        <tr><td class="p">val</td><td>驗證圖片的位置，寫法同 <code>train</code></td><td><code>images/val</code></td></tr>
+        <tr><td class="p">test</td><td>測試圖片的位置，可省略</td><td><code>images/test</code></td></tr>
+        <tr><td class="p">nc</td><td>類別數量。新版可省略，會依 <code>names</code> 自動計算；寫了就要和 <code>names</code> 的數量一致</td><td><code>1</code></td></tr>
+        <tr><td class="p">names</td><td>類別名稱。編號從 0 開始，順序要和標註檔裡的編號一致</td><td><code>0: plate</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>資料夾結構與標註檔</h4>
+    <p>YOLO 的規則：把圖片路徑裡的 <code>images</code> 換成 <code>labels</code>，再把副檔名換成 <code>.txt</code>，就是那張圖的標註檔。所以兩個資料夾的結構要一模一樣。</p>
+    <div class="scroll chartbox" id="yaml-tree"></div>
+    <p>每個標註檔一個物件一行，格式是 <code>class_id x_center y_center width height</code>，五個數字以空格分隔：</p>
+    <div class="scroll"><table>
+      <thead><tr><th>欄位</th><th>意思</th></tr></thead>
+      <tbody>
+        <tr><td class="p">class_id</td><td>類別編號，對應 <code>names</code> 的編號，從 0 開始</td></tr>
+        <tr><td class="p">x_center</td><td>框的中心點 x，除以圖片寬度，範圍 0~1</td></tr>
+        <tr><td class="p">y_center</td><td>框的中心點 y，除以圖片高度，範圍 0~1</td></tr>
+        <tr><td class="p">width</td><td>框的寬度，除以圖片寬度，範圍 0~1</td></tr>
+        <tr><td class="p">height</td><td>框的高度，除以圖片高度，範圍 0~1</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">圖片裡沒有任何目標時，標註檔可以是空的，也可以不放。如果路徑裡沒有 images 這個資料夾，標註檔就必須和圖片放在同一個資料夾。</p>
+
+    <h4>範本</h4>
+    <div class="codeset" id="cs-yaml"></div>
+
+    <div class="widget" id="w-yaml">
+      <h4>data.yaml 檢查器</h4>
+      <p class="note">貼上或修改你的 data.yaml，下面會即時檢查常見的格式問題。這是簡易檢查，不能取代真正的訓練前測試。</p>
+      <div class="btns">
+        <button class="btn" type="button" id="yaml-good">載入正確範本</button>
+        <button class="btn" type="button" id="yaml-bad">載入常見錯誤範例</button>
+      </div>
+      <textarea id="yaml-in" class="yamlbox" spellcheck="false" aria-label="data.yaml 內容"></textarea>
+      <ul class="chk" id="yaml-out"></ul>
+    </div>
+
+    <h4>常見錯誤</h4>
+    <div class="scroll"><table>
+      <thead><tr><th>症狀</th><th>原因與解法</th></tr></thead>
+      <tbody>
+        <tr><td>冒號後面沒有空格</td><td><code>path:D:/data</code> 要改成 <code>path: D:/data</code></td></tr>
+        <tr><td>用 Tab 縮排</td><td>YAML 不接受 Tab，請改用空格。編輯器可以設定「按 Tab 輸入空格」</td></tr>
+        <tr><td>全形冒號或全形空格</td><td>中文輸入法打出的「：」不是冒號，請切到半形</td></tr>
+        <tr><td>Windows 路徑寫在雙引號裡</td><td><code>"D:\Python\yolo"</code> 的 <code>\P</code> 會被當成跳脫字元。改用正斜線 <code>D:/Python/yolo</code>，或用單引號</td></tr>
+        <tr><td>找不到資料集（Dataset not found）</td><td><code>path</code>、<code>train</code>、<code>val</code> 寫錯，或相對路徑的起點不對。改成絕對 <code>path</code> 最保險</td></tr>
+        <tr><td>讀到圖片但沒有標註（0 labels）</td><td>標註檔的位置不對。YOLO 會把圖片路徑裡的 <code>images</code> 換成 <code>labels</code> 找 .txt，所以兩個資料夾的結構要一模一樣</td></tr>
+        <tr><td>類別編號對不上</td><td>標註檔裡出現的最大編號必須小於類別數量；<code>names</code> 的編號要從 0 開始連續</td></tr>
+        <tr><td>Roboflow 匯出後找不到資料</td><td>Roboflow 的 data.yaml 常寫成 <code>../train/images</code> 這類相對路徑，資料夾搬動後就會失效，改成絕對 <code>path</code> 即可</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="p-basic">2-2　基本訓練參數</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>參數</th><th>意思</th><th>預設值 / 建議</th></tr></thead>
+      <tbody>
+        <tr><td class="p">data</td><td>指向 <code>data.yaml</code>（內含訓練集、驗證集路徑與類別名稱）。內容與寫法見 2-1。Windows 路徑在字串前加 <code>r</code>，<code>\</code> 就不會被當成跳脫字元。</td><td>必填</td></tr>
+        <tr><td class="p">epochs</td><td>訓練輪數。完整看過一次全部訓練資料算 1 輪。太大且資料少時容易過擬合，建議先跑 100~300 輪再看曲線調整。</td><td>預設 100<br>建議 100~300</td></tr>
+        <tr><td class="p">imgsz</td><td>輸入影像邊長（像素），圖片會縮放到此大小。小物件偵測可提高，但更吃記憶體。</td><td>640</td></tr>
+        <tr><td class="p">batch</td><td>每次餵進模型的圖片張數，每處理完一個 batch 更新一次權重。受 GPU 記憶體限制，不是越大越好；記憶體不足會出現 CUDA out of memory。設 <code>-1</code> 可依顯卡記憶體自動估算。</td><td>16<br>常用 16、32、64</td></tr>
+        <tr><td class="p">patience</td><td>連續幾輪驗證成績沒進步就提早停止。看的是驗證集的 fitness（約為 0.1×mAP50 + 0.9×mAP50-95 的加權）。設 0 表示關閉早停。</td><td>100</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="widget" id="w-patience">
+      <h4>為什麼需要早停？拖曳 patience 看看</h4>
+      <p class="note">這是模擬曲線。訓練集表現會一路上升，驗證集表現到某一輪之後反而下降，這就是過擬合。早停的規則：驗證成績連續 patience 輪沒有創新高，就停止訓練，並保留最佳的那一輪（best.pt）。</p>
+      <div class="legend"><span><i style="background:var(--accent)"></i>訓練集表現</span><span><i style="background:var(--alt)"></i>驗證集 fitness</span></div>
+      <div class="chartbox" id="pat-chart"></div>
+      <div class="controls">
+        <div class="ctl"><label for="pat-ep">epochs（訓練輪數上限）<b id="pat-ep-v"></b></label><input id="pat-ep" type="range" min="50" max="300" step="10" value="300"></div>
+        <div class="ctl"><label for="pat-pa">patience（0 表示關閉早停）<b id="pat-pa-v"></b></label><input id="pat-pa" type="range" min="0" max="100" step="1" value="100"></div>
+      </div>
+      <div class="btns" id="pat-presets"><span class="note" style="align-self:center">快速設定：</span>
+        <button class="btn" type="button" data-pa="0">0 關閉</button>
+        <button class="btn" type="button" data-pa="5">5 太小</button>
+        <button class="btn" type="button" data-pa="30">30</button>
+        <button class="btn" type="button" data-pa="100">100 預設</button>
+      </div>
+      <div class="stats" id="pat-stats"></div>
+      <p class="verdict" id="pat-verdict"></p>
+    </div>
+
+    <h3 id="p-aug">2-3　資料擴增參數</h3>
+    <p>資料擴增是把訓練圖片做隨機變化（旋轉、位移、變色等），讓模型看到更多樣的情況，降低過擬合。新版 Ultralytics 在訓練時預設就會做擴增，由下列參數控制強度；想關閉某種擴增，把對應參數設為 0 即可。</p>
+    <div class="scroll"><table>
+      <thead><tr><th>參數</th><th>意思</th><th>預設值</th><th>本講義</th></tr></thead>
+      <tbody>
+        <tr><td class="p">degrees</td><td>隨機旋轉，範圍 ±degrees 度</td><td class="num">0.0</td><td class="num">15</td></tr>
+        <tr><td class="p">translate</td><td>平移：圖片隨機上下左右位移最多 ±比例，超出邊界的部分被切掉，所以看起來像裁切</td><td class="num">0.1</td><td class="num">0.2</td></tr>
+        <tr><td class="p">scale</td><td>縮放，範圍為 1 ± scale。0.5 表示 0.5~1.5 倍</td><td class="num">0.5</td><td class="num">0.5</td></tr>
+        <tr><td class="p">shear</td><td>剪切：圖片像平行四邊形般歪斜，範圍 ±shear 度</td><td class="num">0.0</td><td class="num">20</td></tr>
+        <tr><td class="p">flipud</td><td>上下翻轉的機率（0~1）</td><td class="num">0.0</td><td class="num">0</td></tr>
+        <tr><td class="p">fliplr</td><td>左右翻轉的機率（0~1）</td><td class="num">0.5</td><td class="num">0</td></tr>
+        <tr><td class="p">hsv_h</td><td>色相偏移幅度。太大會讓顏色失真（紅變綠）</td><td class="num">0.015</td><td class="num">0.015</td></tr>
+        <tr><td class="p">hsv_s</td><td>飽和度變化幅度</td><td class="num">0.7</td><td class="num">0.2</td></tr>
+        <tr><td class="p">hsv_v</td><td>明度變化幅度，可模擬光線明暗</td><td class="num">0.4</td><td class="num">0.2</td></tr>
+        <tr><td class="p">mosaic</td><td>每張訓練圖有此機率被替換成 4 張圖拼貼，對小物件與背景變化有幫助</td><td class="num">1.0</td><td>預設</td></tr>
+        <tr><td class="p">close_mosaic</td><td>最後 N 輪自動關閉 mosaic，讓模型在較接近真實的圖片上收尾</td><td class="num">10</td><td>預設</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="widget" id="w-aug">
+      <h4>資料擴增實驗室</h4>
+      <p class="note">左上角是原圖，其餘是依目前參數隨機抽出的 5 個樣本。金色虛線框是 YOLO 標註框：旋轉或剪切之後，框會變大。把 fliplr 拉到 1，看看車牌上的字會變成什麼樣子。</p>
+      <div class="aug-grid" id="aug-grid"></div>
+      <div class="btns">
+        <button class="btn" type="button" id="aug-redraw">重新抽樣</button>
+        <button class="btn" type="button" id="aug-lecture">套用本講義設定</button>
+        <button class="btn" type="button" id="aug-default">套用官方預設值</button>
+      </div>
+      <div class="controls" id="aug-controls"></div>
+      <p class="verdict" id="aug-verdict"></p>
+    </div>
+
+    <h4>為什麼 flipud、fliplr 設為 0？</h4>
+    <p>文字、數字、車牌這類任務有方向性，翻轉後會變成鏡像字，反而干擾學習。一般物體偵測（人、車、安全帽）左右翻轉是合理的，建議保留預設 <code>fliplr=0.5</code>。</p>
+    <h4>為什麼 hsv_h 不宜太大？</h4>
+    <p>色相偏移太多，顏色會變得不真實。如果顏色是辨識關鍵（例如不同顏色的安全帽），請維持小值。</p>
+
+    <h3 id="p-hw">2-4　硬體與加速</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>參數</th><th>意思</th><th>預設值 / 建議</th></tr></thead>
+      <tbody>
+        <tr><td class="p">device</td><td>指定運算裝置。編號從 0 開始，單張顯卡就是 <code>device=0</code>；多張顯卡可用 list，例如 <code>[0, 1]</code>；<code>'cpu'</code> 使用 CPU。GPU 記憶體不足時，通常先調小 <code>batch</code> 或 <code>imgsz</code>，比改用 CPU 實際（CPU 訓練時間會很久）。</td><td>自動選擇</td></tr>
+        <tr><td class="p">amp</td><td>混合精度（FP16）訓練，可用 Tensor Cores 加速。預設就是開啟，訓練開始時會自動做相容性檢查，不相容的 GPU 會自動關閉。</td><td>True<br>通常不用改</td></tr>
+        <tr><td class="p">workers</td><td>資料載入的執行緒數。Windows 上若訓練卡住或報錯，可改為 0 或較小的值。</td><td>8</td></tr>
+        <tr><td class="p">cache</td><td>把圖片快取到記憶體（<code>True</code> 或 <code>'ram'</code>）或硬碟（<code>'disk'</code>），加速訓練。資料量不大時很實用。</td><td>False</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="p-out">2-5　中斷、接續與輸出位置</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>參數</th><th>意思</th><th>預設值</th></tr></thead>
+      <tbody>
+        <tr><td class="p">resume</td><td>接續中斷的訓練。必須先載入 <code>last.pt</code>，再執行 <code>model.train(resume=True)</code>；第一次訓練不要設定。若載入的是預訓練權重（如 <code>yolo26n.pt</code>），沒有訓練進度可接續，會報錯。</td><td>False</td></tr>
+        <tr><td class="p">project</td><td>輸出的上層資料夾，可有組織地存放不同實驗。在 Colab 設成 Google 雲端硬碟路徑，斷線後 <code>last.pt</code> 不會消失。</td><td><code>runs/detect</code></td></tr>
+        <tr><td class="p">name</td><td>子資料夾名稱，實際輸出路徑為 <code>project/name</code>。不指定時，每次訓練會自動產生 train、train2、train3…</td><td><code>train</code></td></tr>
+        <tr><td class="p">exist_ok</td><td>設為 <code>True</code> 時，同名資料夾直接使用，不再自動加編號。</td><td>False</td></tr>
+        <tr><td class="p">save_period</td><td>每 N 輪另外存一份檢查點（<code>epochN.pt</code>）。<code>last.pt</code> 與 <code>best.pt</code> 不受影響，一直都會存。</td><td>-1（不另存）</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>輸出資料夾長什麼樣子</h4>
+    <p>以 <code>project='.../yolo_runs'</code>、<code>name='train001'</code> 為例，結果會放在 <code>yolo_runs/train001/</code>：</p>
+    <div class="scroll chartbox" id="tree-box"></div>
+
+    <div class="widget" id="w-path">
+      <h4>我的 last.pt 會在哪裡？</h4>
+      <p class="note">輸入你的設定，看看結果會寫到哪個資料夾。</p>
+      <div class="row">
+        <label for="pt-project">project（留空表示不設定）<input id="pt-project" type="text" value="/content/drive/MyDrive/yolo_runs" autocomplete="off" spellcheck="false"></label>
+        <label for="pt-name">name<input id="pt-name" type="text" value="train001" autocomplete="off" spellcheck="false"></label>
+      </div>
+      <div class="checks">
+        <label for="pt-exists"><input id="pt-exists" type="checkbox" checked> 這個名稱的資料夾已經存在（例如上次訓練留下的）</label>
+        <label for="pt-ok"><input id="pt-ok" type="checkbox"> 設了 exist_ok=True</label>
+      </div>
+      <div class="pathbox" id="pt-out"></div>
+      <p class="verdict" id="pt-verdict"></p>
+    </div>
+
+    <h4>resume 是什麼意思？</h4>
+    <p>訓練時，每跑完一輪，Ultralytics 都會把「檢查點」存成 <code>last.pt</code>。裡面不只有模型權重，還有已經訓練到第幾輪、優化器的狀態，以及原本的訓練設定（資料集、epochs、batch…）。<code>resume=True</code> 的意思是：依 <code>last.pt</code> 裡記錄的進度與設定，從中斷的那一輪繼續訓練。所以它必須搭配 <code>last.pt</code>，其餘參數不用再填。</p>
+
+    <div class="widget" id="w-resume">
+      <h4>拖曳看看：中斷在第幾輪？</h4>
+      <div class="chartbox" id="rs-chart"></div>
+      <div class="controls">
+        <div class="ctl"><label for="rs-n">中斷時已完成的輪數（總共 300 輪）<b id="rs-n-v"></b></label><input id="rs-n" type="range" min="1" max="299" step="1" value="137"></div>
+      </div>
+      <p class="verdict good" id="rs-verdict"></p>
+    </div>
+
+    <div class="scroll"><table>
+      <thead><tr><th>載入的權重與指令</th><th>結果</th></tr></thead>
+      <tbody>
+        <tr><td class="p">YOLO('last.pt') + train(resume=True)</td><td>從中斷的那一輪接續，沿用原本設定</td></tr>
+        <tr><td class="p">YOLO('yolo26n.pt') + train(resume=True)</td><td>預訓練權重沒有訓練進度，無法接續，會報錯</td></tr>
+        <tr><td class="p">YOLO('yolo26n.pt') + train(...)</td><td>從頭開始一次新的訓練</td></tr>
+        <tr><td class="p">YOLO('last.pt') + train(新參數)</td><td>以舊成果當起點，開一次新的訓練（輪數重新計算）</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>Colab 斷線後的接續步驟</h4>
+    <ol class="steps">
+      <li><div>重新連線，重新掛載雲端硬碟。</div></li>
+      <li><div>重新安裝並匯入 <code>ultralytics</code>（<code>/content</code> 清空後，套件也消失了）。</div></li>
+      <li><div>確認資料集還在原本訓練時的路徑。接續時會沿用原本記錄的路徑，不在就要重新解壓或複製回來。</div></li>
+      <li><div>載入雲端硬碟裡的 <code>last.pt</code>，不是 <code>yolo26n.pt</code>。</div></li>
+      <li><div>執行 <code>model.train(resume=True)</code>。程式碼見第一部分的 1-3。</div></li>
+    </ol>
+    <p class="note">訓練已經跑完（達到原本設定的 epochs）就不需要也無法接續。想再多訓練，請用 last.pt 當起點開新訓練，並設定新的 epochs。</p>
+
+    <h3 id="p-other">2-6　其他值得認識的超參數</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>參數</th><th>意思</th><th>預設值</th></tr></thead>
+      <tbody>
+        <tr><td class="p">lr0</td><td>初始學習率，影響結果很大，預設通常已足夠</td><td class="num">0.01</td></tr>
+        <tr><td class="p">optimizer</td><td>優化器（SGD、Adam、AdamW、auto 等）</td><td>auto</td></tr>
+        <tr><td class="p">cos_lr</td><td>是否使用餘弦學習率排程</td><td>False</td></tr>
+        <tr><td class="p">weight_decay</td><td>權重衰減，用於抑制過擬合</td><td class="num">0.0005</td></tr>
+        <tr><td class="p">pretrained</td><td>是否使用預訓練權重做遷移學習。這也是少量資料就能訓練出不錯效果的原因</td><td>True</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="p-quick">2-7　使用建議速查</h3>
+    <div class="quick">
+      <div><code>epochs</code> 先設 100~300，並保留 <code>patience=100</code>，不要同時設很大的 epochs 又關閉早停。</div>
+      <div>有方向性的任務（文字、數字、車牌）關閉 <code>flipud</code> 與 <code>fliplr</code>。</div>
+      <div>顏色是辨識關鍵時，<code>hsv_h</code> 維持小值。</div>
+      <div>在 Colab 訓練一定要把 <code>project</code> 設到雲端硬碟，並記得用 <code>last.pt</code> 接續。</div>
+      <div>GPU 記憶體不足時，先調小 <code>batch</code> 或 <code>imgsz</code>。</div>
+      <div>不同版本的預設值可能不同，遇到警告或錯誤時，對照 <a href="https://docs.ultralytics.com/zh" target="_blank" rel="noopener">官方文件</a> 確認。</div>
+    </div>
+  </section>
+
+
+  <!-- ============ PART 3 ============ -->
+  <section class="part" id="sec-predict">
+    <span class="chip">第三部分</span>
+    <h2>Predict 預測</h2>
+    <p>訓練完成後，用 <code>best.pt</code> 對新圖片、影片或攝影機畫面做偵測，這個步驟叫 predict（推論）。</p>
+    <div class="codeset" id="cs-pred"></div>
+
+    <h3 id="pr-params">3-6　predict 常用參數</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>參數</th><th>意思</th><th>預設值</th></tr></thead>
+      <tbody>
+        <tr><td class="p">source</td><td>要預測的來源：圖片路徑、資料夾、影片、網址，或 <code>0</code>（第一支攝影機）</td><td>必填</td></tr>
+        <tr><td class="p">conf</td><td>信心門檻，低於這個分數的偵測框會被丟掉。調高：誤判少，但可能漏掉；調低：漏掉少，但誤判多</td><td>0.25</td></tr>
+        <tr><td class="p">iou</td><td>NMS 的重疊門檻。兩個框的重疊程度（IoU）超過這個值，只留分數較高的那個</td><td>0.7</td></tr>
+        <tr><td class="p">imgsz</td><td>推論時的影像大小，建議和訓練時相同</td><td>640</td></tr>
+        <tr><td class="p">device</td><td>運算裝置，用法同訓練</td><td>自動選擇</td></tr>
+        <tr><td class="p">save</td><td>是否把畫好框的圖片或影片存起來（Python 預設不存）</td><td>False</td></tr>
+        <tr><td class="p">save_txt</td><td>輸出 YOLO 格式的標註檔（.txt）</td><td>False</td></tr>
+        <tr><td class="p">save_conf</td><td>搭配 <code>save_txt</code>，標註檔裡多存信心分數</td><td>False</td></tr>
+        <tr><td class="p">save_crop</td><td>把每個偵測框裁切成小圖存起來（例如車牌，之後可交給 OCR）</td><td>False</td></tr>
+        <tr><td class="p">show</td><td>開視窗即時顯示（Colab 不能用）</td><td>False</td></tr>
+        <tr><td class="p">classes</td><td>只保留指定類別，例如 <code>[0]</code> 或 <code>[0, 2]</code></td><td>None（全部）</td></tr>
+        <tr><td class="p">max_det</td><td>每張圖最多保留幾個偵測框</td><td>300</td></tr>
+        <tr><td class="p">stream</td><td><code>True</code> 時逐幀回傳結果，處理影片或攝影機時節省記憶體</td><td>False</td></tr>
+        <tr><td class="p">vid_stride</td><td>影片每隔幾幀處理一次，數字越大越快</td><td>1</td></tr>
+        <tr><td class="p">project / name / exist_ok</td><td>輸出位置，規則和訓練相同</td><td><code>runs/detect/predict</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="pr-nms">3-7　conf 與 iou：偵測框怎麼被篩選</h3>
+    <p>模型對一張圖會先產生很多「候選框」，每個都有信心分數。predict 依序做兩件事：</p>
+    <ol class="steps">
+      <li><div><strong>conf 篩選</strong>：分數低於 <code>conf</code> 的框直接丟掉。太低，會把招牌、車燈誤判成車牌；太高，較小、較模糊的車牌分數本來就低，會被漏掉。</div></li>
+      <li><div><strong>NMS（非極大值抑制）</strong>：同一個目標常有好幾個重疊的框。依分數排序，留下最高分的，其餘和它重疊程度（IoU）超過 <code>iou</code> 的框都刪掉。<code>iou</code> 太高，重複的框刪不掉；太低，緊鄰的兩個不同目標可能被誤刪成一個。</div></li>
+    </ol>
+    <div class="widget" id="w-pred">
+      <h4>拖曳 conf 與 iou，看偵測框怎麼變</h4>
+      <p class="note">場景裡有 3 個真正的車牌，加上招牌與車燈 2 個容易被誤判的地方。每個框旁邊是模型給的信心分數。</p>
+      <div class="legend">
+        <span><i style="background:#F5D35A"></i>保留的框</span>
+        <span><i class="dash"></i>NMS 刪掉的重複框</span>
+        <span><i class="dot"></i>conf 丟掉的框</span>
+      </div>
+      <div class="chartbox" id="pr-chart"></div>
+      <div class="controls">
+        <div class="ctl"><label for="pr-conf">conf（信心門檻）<b id="pr-conf-v"></b></label><input id="pr-conf" type="range" min="0.05" max="0.95" step="0.01" value="0.25"></div>
+        <div class="ctl"><label for="pr-iou">iou（NMS 門檻）<b id="pr-iou-v"></b></label><input id="pr-iou" type="range" min="0.1" max="0.95" step="0.01" value="0.7"></div>
+      </div>
+      <div class="checks"><label for="pr-show"><input id="pr-show" type="checkbox" checked> 顯示被丟掉的框</label></div>
+      <div class="stats" id="pr-stats"></div>
+      <p class="verdict" id="pr-verdict"></p>
+    </div>
+
+    <h3 id="pr-results">3-8　預測結果物件（Results）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>屬性</th><th>內容</th></tr></thead>
+      <tbody>
+        <tr><td class="p">r.boxes</td><td>這張圖所有偵測框，可用 for 迴圈逐一讀取</td></tr>
+        <tr><td class="p">box.xyxy</td><td>左上與右下座標（像素）</td></tr>
+        <tr><td class="p">box.xywh</td><td>中心點與寬高（像素）</td></tr>
+        <tr><td class="p">box.xywhn</td><td>正規化的中心點與寬高（0~1，與 YOLO 標註檔相同格式）</td></tr>
+        <tr><td class="p">box.conf</td><td>信心分數</td></tr>
+        <tr><td class="p">box.cls</td><td>類別編號</td></tr>
+        <tr><td class="p">r.names</td><td>類別編號對應名稱的字典</td></tr>
+        <tr><td class="p">r.orig_img</td><td>原圖（BGR 陣列）</td></tr>
+        <tr><td class="p">r.plot()</td><td>回傳畫好框的圖（BGR 陣列）</td></tr>
+        <tr><td class="p">r.speed</td><td>前處理、推論、後處理各花幾毫秒</td></tr>
+        <tr><td class="p">r.path</td><td>圖片來源路徑</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ PART 4 ============ -->
+  <section class="part" id="sec-gradio">
+    <span class="chip">第四部分</span>
+    <h2>Gradio 圖形介面</h2>
+    <p>Gradio 是一個 Python 套件，用幾行程式就能把函式包成網頁介面：使用者在瀏覽器上傳圖片、拉滑桿、按按鈕，Gradio 把輸入交給你的函式，再把回傳值顯示在網頁上。不需要寫 HTML、CSS 或 JavaScript，很適合把訓練好的 YOLO 模型做成讓同學或客戶試用的小工具。官方網站：<a href="https://www.gradio.app" target="_blank" rel="noopener">gradio.app</a></p>
+
+    <h3 id="gr-what">4-1　Gradio 是什麼</h3>
+    <div class="widget">
+      <h4>Gradio 怎麼運作</h4>
+      <div class="chartbox" id="gr-flow"></div>
+      <p class="note">你只需要寫中間那一層：一個接收輸入、回傳結果的 Python 函式，其餘交給 Gradio。</p>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>寫法</th><th>特色</th><th>適合</th></tr></thead>
+      <tbody>
+        <tr><td class="p">gr.Interface</td><td>一個函式、固定版面，程式最少</td><td>快速示範</td></tr>
+        <tr><td class="p">gr.Blocks</td><td>自訂版面、多個按鈕與事件</td><td>想控制畫面配置、顯示表格等</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="gr-comp">4-2　常用元件</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>元件</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td class="p">gr.Image</td><td>圖片輸入或輸出。<code>type='pil'</code> 給函式 PIL 影像；<code>sources=['upload', 'webcam']</code> 可選上傳或攝影機</td></tr>
+        <tr><td class="p">gr.Video</td><td>影片輸入或輸出</td></tr>
+        <tr><td class="p">gr.Slider</td><td>滑桿，例如 conf、iou</td></tr>
+        <tr><td class="p">gr.Textbox</td><td>文字輸入或輸出</td></tr>
+        <tr><td class="p">gr.Dropdown / gr.CheckboxGroup</td><td>下拉選單、多選框，例如只顯示指定類別</td></tr>
+        <tr><td class="p">gr.Dataframe</td><td>表格，例如偵測明細</td></tr>
+        <tr><td class="p">gr.Label</td><td>顯示分類結果與機率</td></tr>
+        <tr><td class="p">gr.Button</td><td>按鈕，用 <code>.click()</code> 綁定要執行的函式</td></tr>
+        <tr><td class="p">gr.Markdown</td><td>顯示文字（支援 Markdown 語法）</td></tr>
+        <tr><td class="p">gr.Row / gr.Column / gr.Tab</td><td>版面容器：橫排、直排、分頁</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="gr-code">4-3、4-4　範例程式</h3>
+    <div class="codeset" id="cs-gradio"></div>
+
+    <h4>介面對照：點元件看程式</h4>
+    <p class="note">這是 4-4 Blocks 範例做出來的畫面。點選或用鍵盤 Tab 選取任一元件，下方會顯示對應的程式。</p>
+    <div class="widget" id="w-mock">
+      <div class="chartbox" id="gr-mock"></div>
+      <div class="info" id="gr-info"></div>
+    </div>
+
+    <h3 id="gr-launch">4-5　啟動方式</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>情境</th><th>寫法</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td class="p">Colab</td><td><code>demo.launch(share=True, debug=True)</code></td><td>產生臨時公開網址，也會顯示在儲存格下方。知道網址的人都能使用，不要放不想公開的圖片</td></tr>
+        <tr><td class="p">自己的電腦</td><td><code>demo.launch()</code></td><td>開啟 <code>http://127.0.0.1:7860</code>，只有本機能連</td></tr>
+        <tr><td class="p">區網內其他電腦</td><td><code>demo.launch(server_name='0.0.0.0', server_port=7860)</code></td><td>同一區網的電腦用 <code>http://你的IP:7860</code> 連線，可能需要開防火牆</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">範例以 Gradio 4 以上為準。函式要先把輸入的 PIL 影像交給 <code>model.predict()</code>；<code>plot()</code> 回傳的是 BGR 圖，顯示前用 <code>[..., ::-1]</code> 轉成 RGB，顏色才不會偏藍。</p>
+  </section>
+
+  <footer>
+    官方文件（中文）：<a href="https://docs.ultralytics.com/zh" target="_blank" rel="noopener">https://docs.ultralytics.com/zh</a>
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var NS = 'http://www.w3.org/2000/svg';
+  function fmt(v, d) { return Number(v).toFixed(d); }
+
+  /* ---------- code tabs (parts 1, 3, 4) ---------- */
+  var TRAIN = [
+    { t: '1-1 基本訓練', tip: '資料路徑改成你自己的 data.yaml。字串前的 r 不能省。', code: String.raw`from ultralytics import YOLO
+
+model = YOLO('yolo26n.pt')   # 載入預訓練權重
+
+model.train(
+    data=r'D:\Python\yolo\train001\data.yaml',  # 字串前加 r，反斜線不會被當成跳脫字元
+    epochs=300,        # 訓練輪數，建議先 100~300，再看曲線調整
+    imgsz=640,         # 輸入影像大小
+    batch=16,          # 每批圖片張數，受 GPU 記憶體限制；-1 為自動
+    patience=100,      # 連續幾輪沒進步就提早停止；0 表示關閉
+
+    # --- 資料擴增 ---
+    degrees=15,        # 旋轉 ±15 度
+    translate=0.2,     # 平移 ±20%
+    scale=0.5,         # 縮放 0.5~1.5 倍
+    shear=20,          # 剪切 ±20 度
+    flipud=0,          # 垂直翻轉機率（文字、數字類任務建議關閉）
+    fliplr=0,          # 水平翻轉機率（文字、數字類任務建議關閉）
+    hsv_h=0.015,       # 色相變化（顏色是辨識關鍵時不宜太大）
+    hsv_s=0.2,         # 飽和度變化
+    hsv_v=0.2,         # 明度變化
+
+    # --- 輸出位置 ---
+    project=r'G:\Python\yolov8\my_runs',  # 輸出的專案目錄
+    name='train001',   # 子資料夾名稱
+    exist_ok=True,     # 同名資料夾不要自動加編號
+)` },
+    { t: '1-2 Colab 版', tip: 'Colab 斷線或閒置太久，/content 底下的檔案（含套件與資料集）都會清空，只有雲端硬碟的檔案會保留。', code: String.raw`# 步驟 1：掛載 Google 雲端硬碟（輸出存到 Drive，斷線後檔案才不會消失）
+from google.colab import drive
+drive.mount('/content/drive')
+
+# 步驟 2：安裝並匯入 ultralytics（Colab 每次重新連線都要重做）
+!pip install ultralytics -q
+from ultralytics import YOLO
+
+# 步驟 3：載入預訓練權重（第一次訓練用；接續訓練請看 1-3）
+model = YOLO('yolo26n.pt')
+
+# 步驟 4：開始訓練
+model.train(
+    data='/content/dataset/data.yaml',  # Colab 用 Linux 路徑（不能用 G:\）；資料集要先放在這個位置
+    epochs=300,        # 訓練輪數，建議先 100~300，再看曲線調整
+    imgsz=640,         # 輸入影像大小
+    batch=16,          # 每批圖片張數，受 GPU 記憶體限制；-1 為自動
+    patience=100,      # 連續幾輪沒進步就提早停止；0 表示關閉
+    degrees=15,        # 旋轉 ±15 度
+    translate=0.2,     # 平移 ±20%
+    scale=0.5,         # 縮放 0.5~1.5 倍
+    shear=20,          # 剪切 ±20 度
+    flipud=0,          # 垂直翻轉機率（文字、數字類任務建議關閉）
+    fliplr=0,          # 水平翻轉機率（文字、數字類任務建議關閉）
+    hsv_h=0.015,       # 色相變化
+    hsv_s=0.2,         # 飽和度變化
+    hsv_v=0.2,         # 明度變化
+    project='/content/drive/MyDrive/yolo_runs',  # 輸出到雲端硬碟，斷線後 last.pt 不會消失
+    name='train001',   # 子資料夾名稱，結果在 yolo_runs/train001/
+    exist_ok=True,     # 同名資料夾不要自動加編號
+)` },
+    { t: '1-3 接續訓練', tip: '第一次訓練不要設 resume。載入預訓練權重再設 resume=True 也無法接續（會報錯）。', code: String.raw`# 步驟 1：重新掛載雲端硬碟
+from google.colab import drive
+drive.mount('/content/drive')
+
+# 步驟 2：重新安裝並匯入（/content 清空後，套件也消失了）
+!pip install ultralytics -q
+from ultralytics import YOLO
+
+# 步驟 3：確認資料集還在原本訓練時的 data.yaml 路徑
+#        （例如 /content/dataset/；不在的話，要重新解壓縮或複製回來）
+
+# 步驟 4：載入「上次中斷的 last.pt」，不是 yolo26n.pt
+model = YOLO('/content/drive/MyDrive/yolo_runs/train001/weights/last.pt')
+
+# 步驟 5：只寫 resume=True，其餘參數不用再填（會沿用原本的設定）
+model.train(resume=True)` },
+    { t: '1-4 進階參數', tip: '需要時再加入 model.train(...) 的括號內，每行結尾保持逗號（最後一行可省略）。', code: String.raw`    cache=True,         # 圖片快取到記憶體，加速訓練（資料量不大時使用）
+    workers=0,          # Windows 上卡住或報錯時，改為 0 或較小的值
+    device=0,           # 單張顯卡用 0；多張可用 [0, 1]；CPU 用 'cpu'
+    close_mosaic=10,    # 最後 10 輪自動關閉 mosaic
+    lr0=0.01,           # 初始學習率
+    optimizer='auto',   # 優化器：SGD、Adam、AdamW、auto
+    cos_lr=False,       # 是否使用餘弦學習率排程
+    weight_decay=0.0005 # 權重衰減，抑制過擬合` }
+  ];
+  var PRED = [
+    { t: '3-1 基本預測', tip: 'best.pt 是驗證成績最好的一輪，預測請用它，不要用 last.pt。路徑改成你自己的。', code: String.raw`from ultralytics import YOLO
+
+# 載入訓練好的模型（best.pt 是驗證成績最好的一輪）
+model = YOLO(r'G:\Python\yolov8\my_runs\train001\weights\best.pt')
+
+results = model.predict(
+    source=r'G:\Python\yolov8\test\car01.jpg',  # 圖片、資料夾、影片、網址；0 代表第一支攝影機
+    conf=0.25,         # 信心門檻：低於這個分數的框會被丟掉
+    iou=0.7,           # NMS 門檻：重疊程度超過這個值的框，只留分數最高的
+    imgsz=640,         # 推論時的影像大小（建議與訓練相同）
+    save=True,         # 把畫好框的圖片存起來
+    project=r'G:\Python\yolov8\my_runs',  # 輸出的專案目錄
+    name='predict001', # 子資料夾名稱（不指定時預設是 predict）
+    exist_ok=True,     # 同名資料夾不要自動加編號
+)` },
+    { t: '3-2 讀取結果', tip: '每張圖會得到一個 Results 物件，裡面的 boxes 就是所有偵測框。', code: String.raw`results = model.predict('car01.jpg', conf=0.25)
+
+for r in results:                        # 每張圖一個 Results 物件
+    print('類別名稱表：', r.names)        # 例如 {0: 'plate'}
+    for box in r.boxes:                  # 每個偵測框
+        cls_id = int(box.cls[0])         # 類別編號
+        score = float(box.conf[0])       # 信心分數 0~1
+        x1, y1, x2, y2 = box.xyxy[0].tolist()   # 左上、右下座標（像素）
+        print(r.names[cls_id], round(score, 2), int(x1), int(y1), int(x2), int(y2))` },
+    { t: '3-3 影片與攝影機', tip: '攝影機與視窗顯示要在自己的電腦執行，Colab 沒有攝影機，也不能開視窗。', code: String.raw`# 影片：stream=True 逐幀處理，不會把整支影片塞進記憶體
+for r in model.predict(source='demo.mp4', stream=True, conf=0.25, save=True):
+    print('這一幀偵測到', len(r.boxes), '個物件')
+
+# 攝影機（第一支）：show=True 會開視窗，在視窗按 q 結束
+for r in model.predict(source=0, stream=True, show=True, conf=0.25):
+    pass` },
+    { t: '3-4 裁切物件', tip: '裁切後的車牌小圖，可以再交給 EasyOCR 辨識文字。', code: String.raw`import cv2
+from ultralytics import YOLO
+
+model = YOLO(r'G:\Python\yolov8\my_runs\train001\weights\best.pt')
+r = model.predict('car01.jpg', conf=0.25)[0]    # 只有一張圖，取第一個結果
+
+img = r.orig_img                                # 原圖（OpenCV 格式，BGR）
+for i, box in enumerate(r.boxes):
+    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+    crop = img[y1:y2, x1:x2]                    # 依座標裁切，先 y 後 x
+    cv2.imwrite(f'plate_{i}.jpg', crop)         # 存成圖片
+
+# 也可以讓 predict 自動裁切：model.predict('car01.jpg', save_crop=True)` },
+    { t: '3-5 在 Colab 顯示', tip: 'Colab 不能開視窗，用 cv2_imshow 把畫好框的圖直接顯示在儲存格下方。', code: String.raw`from google.colab.patches import cv2_imshow
+
+r = model.predict('/content/test/car01.jpg', conf=0.25)[0]
+cv2_imshow(r.plot())    # plot() 回傳畫好框的圖（BGR），cv2_imshow 可以直接顯示` },
+  ];
+  var GR = [
+    { t: '4-3 Interface 範例', tip: '最少的程式：一個函式、兩個輸入、兩個輸出。本機執行請拿掉 !pip 那行，並改成你的 best.pt 路徑。', code: String.raw`# 安裝（Colab 每次重新連線都要重做）
+!pip install gradio ultralytics -q
+
+import gradio as gr
+from ultralytics import YOLO
+
+# 模型要在函式外面載入，只載入一次（放在函式裡，每次按按鈕都會重新載入，很慢）
+model = YOLO('/content/drive/MyDrive/yolo_runs/train001/weights/best.pt')
+
+def detect(img, conf):
+    # img 是 PIL 影像（因為下面設了 type='pil'）
+    results = model.predict(img, conf=conf)        # 做預測
+    annotated = results[0].plot()[..., ::-1]       # plot() 回傳 BGR 圖，轉成 RGB 才不會偏色
+    text = f'偵測到 {len(results[0].boxes)} 個物件'
+    return annotated, text                          # 回傳值依序對應下面的 outputs
+
+demo = gr.Interface(
+    fn=detect,                                      # 按下 Submit 時要執行的函式
+    inputs=[
+        gr.Image(type='pil', label='上傳圖片'),      # 輸入 1：對應 detect 的 img
+        gr.Slider(0.05, 0.95, value=0.25, step=0.05, label='conf 信心門檻'),  # 輸入 2：對應 conf
+    ],
+    outputs=[
+        gr.Image(label='偵測結果'),                  # 輸出 1：對應 annotated
+        gr.Textbox(label='統計'),                    # 輸出 2：對應 text
+    ],
+    title='YOLO 偵測示範',
+)
+
+demo.launch(share=True, debug=True)                 # share=True 會產生臨時公開網址` },
+    { t: '4-4 Blocks 範例', tip: '自訂版面：左邊輸入、右邊輸出，另外多一張偵測明細表。下方「介面對照」可以點每個元件，看它對應的程式。', code: String.raw`import gradio as gr
+from ultralytics import YOLO
+
+model = YOLO('/content/drive/MyDrive/yolo_runs/train001/weights/best.pt')
+
+def run(img, conf, iou):
+    if img is None:                                  # 還沒上傳圖片就按按鈕
+        return None, []
+    r = model.predict(img, conf=conf, iou=iou)[0]
+    rows = []
+    for box in r.boxes:
+        x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
+        rows.append([r.names[int(box.cls[0])], round(float(box.conf[0]), 2), x1, y1, x2, y2])
+    return r.plot()[..., ::-1], rows                 # 畫好框的圖、偵測明細表
+
+with gr.Blocks(title='YOLO 偵測') as demo:
+    gr.Markdown('## YOLO 偵測示範')
+    with gr.Row():                                   # 左右兩欄
+        with gr.Column():                            # 左欄：輸入
+            inp = gr.Image(type='pil', label='上傳圖片')
+            conf = gr.Slider(0.05, 0.95, value=0.25, step=0.05, label='conf 信心門檻')
+            iou = gr.Slider(0.1, 0.9, value=0.7, step=0.05, label='iou NMS 門檻')
+            btn = gr.Button('開始偵測', variant='primary')
+        with gr.Column():                            # 右欄：輸出
+            out = gr.Image(label='偵測結果')
+            table = gr.Dataframe(headers=['類別', '信心', 'x1', 'y1', 'x2', 'y2'], label='偵測明細')
+    btn.click(run, inputs=[inp, conf, iou], outputs=[out, table])   # 按鈕 → 函式 → 輸出
+
+demo.launch(share=True, debug=True)` },
+  ];
+
+  function codeSet(rootId, arr) {
+    var root = $('#' + rootId), cur = 0;
+    root.innerHTML = '<div class="tabs" role="tablist"></div><div class="codebox"><button class="copy" type="button">複製</button><pre tabindex="0"></pre></div><p class="tipline"></p>';
+    var tabs = root.querySelector('.tabs'), pre = root.querySelector('pre'), tip = root.querySelector('.tipline'), btn = root.querySelector('.copy');
+    function render() {
+      pre.textContent = '';
+      arr[cur].code.split('\n').forEach(function (ln, i, all) {
+        var k = ln.indexOf('#');
+        if (k > -1) {
+          if (k > 0) pre.appendChild(document.createTextNode(ln.slice(0, k)));
+          var sp = document.createElement('span'); sp.className = 'c'; sp.textContent = ln.slice(k); pre.appendChild(sp);
+        } else { pre.appendChild(document.createTextNode(ln)); }
+        if (i < all.length - 1) pre.appendChild(document.createTextNode('\n'));
+      });
+      tip.textContent = arr[cur].tip;
+      Array.prototype.forEach.call(tabs.children, function (b, i) { b.setAttribute('aria-selected', i === cur ? 'true' : 'false'); });
+      btn.textContent = '複製';
+    }
+    arr.forEach(function (c, i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'tab'; b.setAttribute('role', 'tab'); b.textContent = c.t;
+      b.addEventListener('click', function () { cur = i; render(); });
+      tabs.appendChild(b);
+    });
+    btn.addEventListener('click', function () {
+      function fallback() {
+        try {
+          var r = document.createRange(); r.selectNodeContents(pre);
+          var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+          var ok = document.execCommand && document.execCommand('copy');
+          btn.textContent = ok ? '已複製' : '已選取，請按 Ctrl+C';
+        } catch (e) { btn.textContent = '請手動選取'; }
+      }
+      try { navigator.clipboard.writeText(arr[cur].code).then(function () { btn.textContent = '已複製'; }, fallback); }
+      catch (e) { fallback(); }
+    });
+    render();
+  }
+  var YAMLS = [
+    { t: '單類別範本（車牌）', tip: 'path 改成你自己的資料集位置。檔案請存成 UTF-8 編碼，副檔名 .yaml。', code: String.raw`# data.yaml：YOLO 資料集設定檔
+path: D:/Python/yolo/train001   # 資料集根目錄（建議用絕對路徑，並用正斜線 /）
+train: images/train             # 訓練圖片資料夾（相對於 path）
+val: images/val                 # 驗證圖片資料夾（相對於 path）
+# test: images/test             # 測試圖片資料夾（可省略，需要時再開啟）
+
+nc: 1                           # 類別數量（新版可省略，會依 names 自動計算）
+names:                          # 類別名稱，編號從 0 開始，順序要和標註檔一致
+  0: plate                      # 0 號類別：車牌` },
+    { t: '多類別範本（安全帽）', tip: '類別編號從 0 開始，順序要和標註檔裡的編號一致。', code: String.raw`path: D:/Python/yolo/train001
+train: images/train
+val: images/val
+
+nc: 2                           # 有兩個類別
+names:
+  0: helmet                     # 0 號類別：戴安全帽
+  1: no_helmet                  # 1 號類別：沒戴安全帽
+# 也可以寫成清單：names: ['helmet', 'no_helmet']` },
+    { t: 'Colab 範本', tip: 'Colab 用 Linux 路徑。資料集放在 /content 底下訓練較快，但斷線會消失，記得備份到雲端硬碟。', code: String.raw`path: /content/dataset          # Colab 的路徑（Linux 格式，不能用 D:/）；資料集要先放在這裡
+train: images/train
+val: images/val
+
+nc: 1
+names:
+  0: plate` },
+    { t: '用 Python 檢查', tip: '訓練前先跑一次，確認 data.yaml 讀得到，圖片與標註數量也對得上。', code: String.raw`import yaml
+from pathlib import Path
+
+yaml_path = r'D:\Python\yolo\train001\data.yaml'
+with open(yaml_path, encoding='utf-8') as f:      # 一定要指定 utf-8，否則中文註解可能讀不進來
+    cfg = yaml.safe_load(f)                        # 讀成 Python 字典
+print(cfg)                                         # 看看每個欄位有沒有讀對
+
+root = Path(cfg['path'])
+for split in ('train', 'val'):
+    img_dir = root / cfg[split]
+    lbl_dir = root / cfg[split].replace('images', 'labels')   # YOLO 會把 images 換成 labels 找標註檔
+    n_img = len([p for p in img_dir.glob('*') if p.suffix.lower() in ('.jpg', '.jpeg', '.png')])
+    n_lbl = len(list(lbl_dir.glob('*.txt')))
+    print(split, '圖片', n_img, '張，標註', n_lbl, '個')   # 兩個數字應該相同（沒有物件的圖可以沒有標註）` },
+  ];
+  codeSet('cs-yaml', YAMLS);
+  codeSet('cs-train', TRAIN);
+  codeSet('cs-pred', PRED);
+  codeSet('cs-gradio', GR);
+
+  /* ---------- helpers for responsive SVG ---------- */
+  function mount(el, draw) {
+    function go() { var w = Math.max(280, Math.floor(el.clientWidth || 640)); el.innerHTML = draw(w); }
+    go();
+    if (window.ResizeObserver) { var last = el.clientWidth; new ResizeObserver(function () { if (Math.abs(el.clientWidth - last) > 4) { last = el.clientWidth; go(); } }).observe(el); }
+    return go;
+  }
+  function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  /* ---------- Widget A: patience / early stopping ---------- */
+  (function () {
+    var N = 300, r = rng(11), nz = [], nz2 = [];
+    for (var i = 0; i <= N; i++) { nz.push((r() - 0.5) * 0.03); nz2.push((r() - 0.5) * 0.01); }
+    function train(e) { return 0.55 * (1 - Math.exp(-e / 28)) + 0.40 * (1 - Math.exp(-e / 110)) + nz2[e]; }
+    function val(e) { return 0.62 * (1 - Math.exp(-e / 32)) - (e > 120 ? 0.0007 * (e - 120) : 0) + nz[e]; }
+    var epEl = $('#pat-ep'), paEl = $('#pat-pa'), box = $('#pat-chart');
+    function sim(ep, pa) {
+      var best = -1, bestE = 0, stop = ep, stopped = false;
+      for (var e = 1; e <= ep; e++) {
+        var v = val(e);
+        if (v >= best) { best = v; bestE = e; }
+        if (pa > 0 && e - bestE >= pa) { stop = e; stopped = true; break; }
+      }
+      var gb = -1, gbE = 0;
+      for (var k = 1; k <= ep; k++) { if (val(k) > gb) { gb = val(k); gbE = k; } }
+      return { best: best, bestE: bestE, stop: stop, stopped: stopped, gb: gb, gbE: gbE };
+    }
+    function draw(W) {
+      var ep = +epEl.value, pa = +paEl.value, S = sim(ep, pa);
+      var H = Math.round(Math.max(230, Math.min(330, W * 0.5)));
+      var m = { l: 38, r: 12, t: 14, b: 32 };
+      var xs = function (e) { return m.l + e / N * (W - m.l - m.r); };
+      var ys = function (v) { return m.t + (1 - v) * (H - m.t - m.b); };
+      var o = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="訓練集與驗證集表現隨輪數變化的模擬曲線">';
+      for (var g = 0; g <= 5; g++) { var gv = g / 5; o += '<line class="grid" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + ys(gv) + '" y2="' + ys(gv) + '"/><text x="' + (m.l - 6) + '" y="' + (ys(gv) + 4) + '" text-anchor="end">' + fmt(gv, 1) + '</text>'; }
+      for (var t = 0; t <= N; t += 50) { o += '<text x="' + xs(t) + '" y="' + (H - 12) + '" text-anchor="middle">' + t + '</text>'; }
+      o += '<text x="' + (W - m.r) + '" y="' + (H - 1) + '" text-anchor="end">epoch</text>';
+      if (ep < N) { o += '<rect class="hot" x="' + xs(ep) + '" y="' + m.t + '" width="' + (xs(N) - xs(ep)) + '" height="' + (H - m.t - m.b) + '"/><text x="' + ((xs(ep) + xs(N)) / 2) + '" y="' + (m.t + 16) + '" text-anchor="middle">超過 epochs 上限</text>'; }
+      o += '<line class="axis" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + ys(0) + '" y2="' + ys(0) + '"/>';
+      function pathOf(fn, a, b) { var d = ''; for (var e = a; e <= b; e++) d += (e === a ? 'M' : 'L') + xs(e).toFixed(1) + ' ' + ys(fn(e)).toFixed(1); return d; }
+      if (S.stop < ep) { o += '<path class="ln-train ghost" d="' + pathOf(train, S.stop, ep) + '"/><path class="ln-val ghost" d="' + pathOf(val, S.stop, ep) + '"/>'; }
+      o += '<path class="ln-train" d="' + pathOf(train, 1, S.stop) + '"/><path class="ln-val" d="' + pathOf(val, 1, S.stop) + '"/>';
+      var bx = xs(S.bestE);
+      o += '<line class="mark" x1="' + bx + '" x2="' + bx + '" y1="' + m.t + '" y2="' + ys(0) + '"/><circle cx="' + bx + '" cy="' + ys(S.best) + '" r="5" fill="var(--alt)" stroke="var(--ink)" stroke-width="1.5"/>';
+      var bAnch = bx > W * 0.7 ? 'end' : 'start', bDx = bAnch === 'end' ? -6 : 6;
+      o += '<text class="lbl" x="' + (bx + bDx) + '" y="' + (ys(0) - 8) + '" text-anchor="' + bAnch + '">best.pt 第 ' + S.bestE + ' 輪</text>';
+      if (S.stopped) {
+        var sx = xs(S.stop), sAnch = sx > W * 0.7 ? 'end' : 'start', sDx = sAnch === 'end' ? -6 : 6;
+        o += '<line class="mark" x1="' + sx + '" x2="' + sx + '" y1="' + m.t + '" y2="' + ys(0) + '"/><text class="lbl" x="' + (sx + sDx) + '" y="' + (m.t + 14) + '" text-anchor="' + sAnch + '">停止 第 ' + S.stop + ' 輪</text>';
+      }
+      return o + '</svg>';
+    }
+    var redraw = mount(box, draw);
+    function update() {
+      var ep = +epEl.value, pa = +paEl.value, S = sim(ep, pa);
+      $('#pat-ep-v').textContent = ep; $('#pat-pa-v').textContent = pa === 0 ? '0（關閉）' : pa;
+      redraw();
+      var saved = ep - S.stop, pct = Math.round(saved / ep * 100);
+      $('#pat-stats').innerHTML =
+        '<div class="stat"><span>最佳輪數（best.pt）</span><b>第 ' + S.bestE + ' 輪</b></div>' +
+        '<div class="stat"><span>實際訓練</span><b>' + S.stop + ' 輪</b></div>' +
+        '<div class="stat"><span>省下</span><b>' + saved + ' 輪（' + pct + '%）</b></div>';
+      var v = $('#pat-verdict'), msg, cls;
+      if (pa === 0) {
+        cls = 'warn';
+        msg = '<strong>早停關閉。</strong>訓練會跑完全部 ' + ep + ' 輪。最佳成績在第 ' + S.bestE + ' 輪，之後 ' + (ep - S.bestE) + ' 輪驗證成績沒有進步，這些時間是浪費的，而且最後的 last.pt 已經過擬合。要預測與部署，請用 best.pt。';
+      } else if (S.stopped && S.best < S.gb - 0.01) {
+        cls = 'warn';
+        msg = '<strong>patience 偏小。</strong>在第 ' + S.stop + ' 輪就停了，但繼續訓練，驗證成績可以到 ' + fmt(S.gb, 3) + '（第 ' + S.gbE + ' 輪），現在只有 ' + fmt(S.best, 3) + '。曲線有雜訊，成績會暫時停滯，patience 太小就會被誤判。';
+      } else if (S.stopped) {
+        cls = 'good';
+        msg = '<strong>早停生效。</strong>最佳成績在第 ' + S.bestE + ' 輪，連續 ' + pa + ' 輪沒有創新高，於第 ' + S.stop + ' 輪停止，省下 ' + saved + ' 輪。best.pt 保留了最佳的那一輪。';
+      } else {
+        cls = 'good';
+        msg = '<strong>沒有觸發早停。</strong>在 ' + ep + ' 輪內，成績沒有連續 ' + pa + ' 輪停滯，所以訓練跑到上限。可以把 epochs 調大，或把 patience 調小，看看差別。';
+      }
+      v.className = 'verdict ' + cls; v.innerHTML = msg;
+    }
+    epEl.addEventListener('input', update); paEl.addEventListener('input', update);
+    $('#pat-presets').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; paEl.value = b.getAttribute('data-pa'); update(); });
+    update();
+  })();
+
+  /* ---------- Widget B: augmentation lab ---------- */
+  (function () {
+    var DEF = [
+      ['degrees', '旋轉 degrees', 0, 45, 1, 0],
+      ['translate', '平移 translate', 0, 0.5, 0.01, 2],
+      ['scale', '縮放 scale', 0, 0.9, 0.05, 2],
+      ['shear', '剪切 shear', 0, 30, 1, 0],
+      ['flipud', '上下翻轉機率 flipud', 0, 1, 0.1, 1],
+      ['fliplr', '左右翻轉機率 fliplr', 0, 1, 0.1, 1],
+      ['hsv_h', '色相 hsv_h', 0, 0.5, 0.005, 3],
+      ['hsv_s', '飽和度 hsv_s', 0, 1, 0.05, 2],
+      ['hsv_v', '明度 hsv_v', 0, 1, 0.05, 2]
+    ];
+    var LECTURE = { degrees: 15, translate: 0.2, scale: 0.5, shear: 20, flipud: 0, fliplr: 0, hsv_h: 0.015, hsv_s: 0.2, hsv_v: 0.2 };
+    var OFFICIAL = { degrees: 0, translate: 0.1, scale: 0.5, shear: 0, flipud: 0, fliplr: 0.5, hsv_h: 0.015, hsv_s: 0.7, hsv_v: 0.4 };
+    var P = Object.assign({}, LECTURE);
+    var ctl = $('#aug-controls');
+    DEF.forEach(function (d) {
+      var div = document.createElement('div'); div.className = 'ctl';
+      div.innerHTML = '<label for="aug-' + d[0] + '">' + d[1] + '<b id="aug-' + d[0] + '-v"></b></label><input id="aug-' + d[0] + '" type="range" min="' + d[2] + '" max="' + d[3] + '" step="' + d[4] + '">';
+      ctl.appendChild(div);
+      div.querySelector('input').addEventListener('input', function (e) { P[d[0]] = +e.target.value; render(); });
+    });
+    var U = [];
+    function resample() {
+      var r = rng(Math.floor(Math.random() * 1e9)); U = [];
+      for (var i = 0; i < 5; i++) { var u = []; for (var j = 0; j < 10; j++) u.push(r() * 2 - 1); u.push(r()); u.push(r()); U.push(u); }
+    }
+    var CX = 100, CY = 62.5, PL = [[70, 80], [130, 80], [130, 98], [70, 98]];
+    function cellSvg(idx, u, original) {
+      var deg = original ? 0 : u[0] * P.degrees;
+      var tx = original ? 0 : u[1] * P.translate * 200, ty = original ? 0 : u[2] * P.translate * 125;
+      var sc = original ? 1 : Math.max(0.2, 1 + u[3] * P.scale);
+      var sh = original ? 0 : u[4] * P.shear;
+      var fx = !original && u[10] < P.fliplr ? -1 : 1, fy = !original && u[11] < P.flipud ? -1 : 1;
+      var hue = original ? 0 : u[5] * P.hsv_h * 360, sat = original ? 1 : Math.max(0, 1 + u[6] * P.hsv_s), vv = original ? 1 : Math.max(0, 1 + u[7] * P.hsv_v);
+      var a = deg * Math.PI / 180, k = Math.tan(sh * Math.PI / 180);
+      var pts = PL.map(function (p) {
+        var x = (p[0] - CX) * sc * fx, y = (p[1] - CY) * sc * fy;
+        x = x + k * y;
+        var rx = x * Math.cos(a) - y * Math.sin(a), ry = x * Math.sin(a) + y * Math.cos(a);
+        return [rx + CX + tx, ry + CY + ty];
+      });
+      var x0 = Math.min.apply(null, pts.map(function (p) { return p[0]; })), x1 = Math.max.apply(null, pts.map(function (p) { return p[0]; }));
+      var y0 = Math.min.apply(null, pts.map(function (p) { return p[1]; })), y1 = Math.max.apply(null, pts.map(function (p) { return p[1]; }));
+      var tf = 'translate(' + (CX + tx) + ' ' + (CY + ty) + ') rotate(' + deg + ') skewX(' + sh + ') scale(' + (sc * fx) + ' ' + (sc * fy) + ') translate(' + (-CX) + ' ' + (-CY) + ')';
+      var fid = 'af' + idx;
+      return '<svg viewBox="0 0 200 125" role="img" aria-label="' + (original ? '原圖' : '擴增樣本 ' + idx) + '">' +
+        '<defs><filter id="' + fid + '" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="' + hue.toFixed(1) + '"/><feColorMatrix type="saturate" values="' + sat.toFixed(2) + '"/><feComponentTransfer><feFuncR type="linear" slope="' + vv.toFixed(2) + '"/><feFuncG type="linear" slope="' + vv.toFixed(2) + '"/><feFuncB type="linear" slope="' + vv.toFixed(2) + '"/></feComponentTransfer></filter></defs>' +
+        '<g filter="url(#' + fid + ')"><g transform="' + tf + '">' +
+        '<rect x="0" y="0" width="200" height="125" fill="#8FB4D6"/><rect x="0" y="92" width="200" height="33" fill="#5A636A"/>' +
+        '<rect x="28" y="42" width="144" height="58" rx="10" fill="#C0392B"/><rect x="48" y="26" width="104" height="26" rx="8" fill="#A93226"/><rect x="56" y="31" width="40" height="16" rx="3" fill="#CFE3F2"/><rect x="104" y="31" width="40" height="16" rx="3" fill="#CFE3F2"/>' +
+        '<circle cx="50" cy="104" r="11" fill="#1B1B1B"/><circle cx="150" cy="104" r="11" fill="#1B1B1B"/>' +
+        '<rect x="70" y="80" width="60" height="18" rx="2" fill="#F5F5F0" stroke="#222" stroke-width="1.5"/>' +
+        '<text x="100" y="93" text-anchor="middle" style="font-family:\'JetBrains Mono\',\'Courier New\',monospace;font-weight:700;font-size:11px;fill:#111">ABC-1234</text>' +
+        '</g></g>' +
+        '<rect x="' + x0.toFixed(1) + '" y="' + y0.toFixed(1) + '" width="' + (x1 - x0).toFixed(1) + '" height="' + (y1 - y0).toFixed(1) + '" fill="none" stroke="#FFD24A" stroke-width="2" stroke-dasharray="5 3"/>' +
+        '</svg>';
+    }
+    function render() {
+      DEF.forEach(function (d) {
+        var inp = $('#aug-' + d[0]); inp.value = P[d[0]];
+        $('#aug-' + d[0] + '-v').textContent = fmt(P[d[0]], d[5]);
+      });
+      var html = '<figure>' + cellSvg(0, null, true) + '<figcaption>原圖</figcaption></figure>';
+      U.forEach(function (u, i) { html += '<figure>' + cellSvg(i + 1, u, false) + '<figcaption>樣本 ' + (i + 1) + '</figcaption></figure>'; });
+      $('#aug-grid').innerHTML = html;
+      var v = $('#aug-verdict'), cls = 'good', msg;
+      if (P.fliplr > 0 || P.flipud > 0) { cls = 'warn'; msg = '<strong>翻轉已開啟。</strong>車牌上的字有一部分樣本變成鏡像。文字、數字、車牌任務建議把 flipud 與 fliplr 設為 0。'; }
+      else if (P.hsv_h > 0.1) { cls = 'warn'; msg = '<strong>hsv_h 偏高。</strong>車身顏色已經偏離原本的紅色。顏色是辨識關鍵時，請維持在 0.015 附近。'; }
+      else if (P.degrees >= 30 || P.shear >= 25) { cls = 'warn'; msg = '<strong>幾何變化偏大。</strong>標註框被撐得很大，框裡面有不少背景。偵測的目標若本來就很少傾斜，建議降低旋轉與剪切。'; }
+      else { msg = '<strong>目前的設定在合理範圍。</strong>車牌仍然可讀，標註框也緊貼目標。拖曳滑桿，觀察每個參數造成什麼變化。'; }
+      v.className = 'verdict ' + cls; v.innerHTML = msg;
+    }
+    $('#aug-redraw').addEventListener('click', function () { resample(); render(); });
+    $('#aug-lecture').addEventListener('click', function () { P = Object.assign({}, LECTURE); render(); });
+    $('#aug-default').addEventListener('click', function () { P = Object.assign({}, OFFICIAL); render(); });
+    resample(); render();
+  })();
+
+  /* ---------- Output tree (static SVG) ---------- */
+  (function () {
+    var box = $('#tree-box');
+    var rows = [
+      [0, 'yolo_runs/', 'dir', ''],
+      [1, 'train001/', 'dir', 'project/name'],
+      [2, 'weights/', 'dir', ''],
+      [3, 'last.pt', 'last', '最後一輪的檢查點，接續訓練用'],
+      [3, 'best.pt', 'best', '驗證成績最好的一輪，預測、部署用'],
+      [2, 'args.yaml', 'f', '這次訓練的完整設定'],
+      [2, 'results.csv', 'f', '每一輪的 loss 與 mAP 紀錄'],
+      [2, 'results.png', 'f', '訓練曲線圖'],
+      [2, 'confusion_matrix.png', 'f', '混淆矩陣'],
+      [2, 'train_batch0.jpg …', 'f', '擴增後的訓練圖，可檢查擴增設定']
+    ];
+    var rh = 30, W = 640, H = rows.length * rh + 16, o = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="min-width:560px" role="img" aria-label="輸出資料夾結構">';
+    rows.forEach(function (r, i) {
+      var y = 8 + i * rh, x = 14 + r[0] * 26;
+      var fill = r[2] === 'last' ? 'var(--accent)' : r[2] === 'best' ? 'var(--alt)' : r[2] === 'dir' ? 'var(--surface2)' : 'none';
+      var stroke = r[2] === 'f' ? 'var(--line)' : 'none';
+      var tcol = (r[2] === 'last') ? 'var(--accent-ink)' : (r[2] === 'best' ? '#14222B' : 'var(--ink)');
+      var nameW = r[1].length * 8.4 + 22;
+      if (r[0] > 0) o += '<path d="M' + (x - 13) + ' ' + (y - 2) + 'V' + (y + 11) + 'H' + (x - 2) + '" fill="none" stroke="var(--line)" stroke-width="1.5"/>';
+      o += '<rect x="' + x + '" y="' + y + '" width="' + nameW + '" height="24" rx="6" fill="' + fill + '" stroke="' + stroke + '"/>';
+      o += '<text x="' + (x + 11) + '" y="' + (y + 16.5) + '" style="font-family:var(--font-mono);font-size:13px;font-weight:600;fill:' + tcol + '">' + r[1] + '</text>';
+      if (r[3]) o += '<text x="' + (x + nameW + 12) + '" y="' + (y + 16.5) + '" style="font-size:13px">' + r[3] + '</text>';
+    });
+    box.innerHTML = o + '</svg>';
+  })();
+
+  /* ---------- Widget C: output path ---------- */
+  (function () {
+    var pj = $('#pt-project'), nm = $('#pt-name'), ex = $('#pt-exists'), ok = $('#pt-ok');
+    function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+    function update() {
+      var project = pj.value.trim(), name = nm.value.trim() || 'train';
+      var base = project || 'runs/detect';
+      var folder = name, msg, cls = 'good';
+      if (ex.checked && !ok.checked) folder = name + '2';
+      var path = base.replace(/\/+$/, '') + '/' + folder + '/weights/last.pt';
+      $('#pt-out').innerHTML = '<em># 這次訓練的 last.pt 會在</em><br>' + esc(path);
+      if (!project) {
+        cls = 'warn';
+        msg = '<strong>沒有設定 project。</strong>結果會放在 runs/detect/ 底下。在 Colab 這是 /content/runs/detect/，斷線後就消失了，請把 project 設到雲端硬碟。';
+      } else if (ex.checked && !ok.checked) {
+        cls = 'warn';
+        msg = '<strong>名稱已存在，沒有設 exist_ok。</strong>新的結果會寫到「' + esc(folder) + '」，不是「' + esc(name) + '」。接續訓練時要載入哪個資料夾的 last.pt，請先到雲端硬碟確認。';
+      } else if (ex.checked && ok.checked) {
+        cls = 'warn';
+        msg = '<strong>同名資料夾直接使用。</strong>接續訓練沒問題。但如果這是一次新的訓練，裡面原本的 last.pt 與 best.pt 會被覆蓋。要保留舊結果，請換一個 name。';
+      } else {
+        msg = '<strong>資料夾不存在，會新建。</strong>結果寫到「' + esc(folder) + '」，路徑和你預期的一致。';
+      }
+      var v = $('#pt-verdict'); v.className = 'verdict ' + cls; v.innerHTML = msg;
+    }
+    [pj, nm, ex, ok].forEach(function (el) { el.addEventListener('input', update); el.addEventListener('change', update); });
+    update();
+  })();
+
+  /* ---------- Widget D: resume timeline ---------- */
+  (function () {
+    var nEl = $('#rs-n'), box = $('#rs-chart'), TOTAL = 300;
+    function draw(W) {
+      var n = +nEl.value, H = 170, l = 14, r = 14, bw = W - l - r;
+      var xs = function (e) { return l + e / TOTAL * bw; };
+      var o = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="中斷與接續的輪數示意圖">';
+      o += '<rect x="' + l + '" y="44" width="' + bw + '" height="30" rx="6" fill="var(--surface2)"/>';
+      o += '<rect x="' + l + '" y="44" width="' + (xs(n) - l) + '" height="30" rx="6" fill="var(--accent)"/>';
+      var cx = xs(n), anch = cx > W * 0.7 ? 'end' : (cx < W * 0.3 ? 'start' : 'middle');
+      o += '<line class="mark" x1="' + cx + '" x2="' + cx + '" y1="30" y2="86"/>';
+      o += '<text class="lbl" x="' + cx + '" y="22" text-anchor="' + anch + '">斷線：last.pt 記錄到第 ' + n + ' 輪</text>';
+      o += '<text x="' + l + '" y="96" style="font-size:12px">0</text><text x="' + (W - r) + '" y="96" text-anchor="end" style="font-size:12px">300 輪</text>';
+      // resume bracket (remaining)
+      var rx0 = cx + 2, rx1 = W - r;
+      if (rx1 - rx0 > 40) {
+        o += '<path d="M' + rx0 + ' 108V114H' + rx1 + 'V108" fill="none" stroke="var(--good)" stroke-width="2"/>';
+        o += '<text class="lbl" x="' + ((rx0 + rx1) / 2) + '" y="132" text-anchor="middle" style="fill:var(--good)">resume：只需再跑 ' + (TOTAL - n) + ' 輪</text>';
+      } else {
+        o += '<text class="lbl" x="' + (W - r) + '" y="132" text-anchor="end" style="fill:var(--good)">resume：只需再跑 ' + (TOTAL - n) + ' 輪</text>';
+      }
+      // restart bracket (wasted)
+      var wx0 = l, wx1 = cx - 2;
+      if (wx1 - wx0 > 40) {
+        o += '<path d="M' + wx0 + ' 142V148H' + wx1 + 'V142" fill="none" stroke="var(--warn)" stroke-width="2"/>';
+        o += '<text class="lbl" x="' + ((wx0 + wx1) / 2) + '" y="164" text-anchor="middle" style="fill:var(--warn)">從頭來過：多花 ' + n + ' 輪</text>';
+      } else {
+        o += '<text class="lbl" x="' + l + '" y="164" style="fill:var(--warn)">從頭來過：多花 ' + n + ' 輪</text>';
+      }
+      return o + '</svg>';
+    }
+    var redraw = mount(box, draw);
+    function update() {
+      var n = +nEl.value; $('#rs-n-v').textContent = n; redraw();
+      $('#rs-verdict').innerHTML = '<strong>resume=True 從第 ' + (n + 1) + ' 輪開始。</strong>last.pt 在每輪結束時存檔，中斷時正在跑的那一輪會重跑。載入 last.pt 接續，只需要再跑 ' + (300 - n) + ' 輪；如果從頭來過，前面 ' + n + ' 輪就白跑了。';
+    }
+    nEl.addEventListener('input', update); update();
+  })();
+
+  /* ---------- Widget E: conf / iou ---------- */
+  (function () {
+    var box = $('#pr-chart'), cEl = $('#pr-conf'), iEl = $('#pr-iou'), shEl = $('#pr-show');
+    var CAND = [
+      { x: 120, y: 150, w: 90, h: 30, s: 0.92, g: 'A', real: 1 },
+      { x: 126, y: 146, w: 92, h: 34, s: 0.81, g: 'A', real: 1 },
+      { x: 112, y: 152, w: 96, h: 30, s: 0.63, g: 'A', real: 1 },
+      { x: 380, y: 128, w: 52, h: 18, s: 0.46, g: 'B', real: 1 },
+      { x: 384, y: 126, w: 50, h: 20, s: 0.38, g: 'B', real: 1 },
+      { x: 476, y: 172, w: 70, h: 24, s: 0.29, g: 'C', real: 1 },
+      { x: 300, y: 56, w: 40, h: 40, s: 0.22, g: 'X', real: 0 },
+      { x: 66, y: 118, w: 24, h: 24, s: 0.14, g: 'Y', real: 0 }
+    ];
+    function iouOf(a, b) {
+      var x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y), x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+      var inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+      return inter / (a.w * a.h + b.w * b.h - inter);
+    }
+    function run(conf, thr) {
+      var order = CAND.slice().sort(function (p, q) { return q.s - p.s; }), kept = [];
+      order.forEach(function (c) {
+        if (c.s < conf) { c.st = 'conf'; return; }
+        var hit = kept.some(function (k) { return iouOf(c, k) > thr; });
+        if (hit) { c.st = 'nms'; } else { c.st = 'keep'; kept.push(c); }
+      });
+      return kept;
+    }
+    function draw(W) {
+      run(+cEl.value, +iEl.value);
+      var s = Math.min(W / 640, 1.4), H = Math.round(260 * s), showAll = shEl.checked;
+      var o = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="含三個車牌的街景，標示偵測框與信心分數">';
+      o += '<defs><filter id="prblur"><feGaussianBlur stdDeviation="' + (1.7) + '"/></filter></defs>';
+      o += '<g transform="translate(' + ((W - 640 * s) / 2) + ' 0) scale(' + s + ')">';
+      o += '<rect width="640" height="260" fill="#25282D"/><rect y="200" width="640" height="60" fill="#303135"/>';
+      o += '<rect x="316" y="96" width="8" height="104" fill="#55575C"/><circle cx="320" cy="76" r="22" fill="#8B2F2F"/><rect x="308" y="72" width="24" height="8" fill="#EDE4D0"/>';
+      o += '<rect x="50" y="100" width="230" height="95" rx="14" fill="#7A2E2A"/><rect x="85" y="62" width="160" height="44" rx="14" fill="#6A2824"/>';
+      o += '<rect x="98" y="70" width="60" height="30" rx="6" fill="#9DB4C4" opacity=".55"/><rect x="168" y="70" width="60" height="30" rx="6" fill="#9DB4C4" opacity=".55"/>';
+      o += '<circle cx="78" cy="130" r="12" fill="#E9DFC2"/><circle cx="252" cy="130" r="12" fill="#E9DFC2"/>';
+      o += '<circle cx="100" cy="196" r="22" fill="#0E0E0F"/><circle cx="230" cy="196" r="22" fill="#0E0E0F"/>';
+      o += '<rect x="120" y="150" width="90" height="30" rx="3" fill="#EDE9DD" stroke="#111" stroke-width="1.5"/><text x="165" y="171" text-anchor="middle" style="font-family:var(--font-mono);font-weight:700;font-size:17px;fill:#111">ABC-1234</text>';
+      o += '<rect x="360" y="108" width="95" height="45" rx="8" fill="#3C5A73"/><rect x="372" y="90" width="70" height="22" rx="7" fill="#35516A"/>';
+      o += '<circle cx="380" cy="154" r="9" fill="#0E0E0F"/><circle cx="436" cy="154" r="9" fill="#0E0E0F"/>';
+      o += '<rect x="380" y="128" width="52" height="18" rx="2" fill="#EDE9DD" stroke="#111" stroke-width="1"/><text x="406" y="141" text-anchor="middle" style="font-family:var(--font-mono);font-weight:700;font-size:10px;fill:#111">XYZ-5678</text>';
+      o += '<g filter="url(#prblur)"><rect x="455" y="125" width="170" height="80" rx="12" fill="#5C5C58"/><circle cx="492" cy="206" r="18" fill="#0E0E0F"/><circle cx="590" cy="206" r="18" fill="#0E0E0F"/>';
+      o += '<rect x="476" y="172" width="70" height="24" rx="3" fill="#EDE9DD" stroke="#111" stroke-width="1.5"/><text x="511" y="189" text-anchor="middle" style="font-family:var(--font-mono);font-weight:700;font-size:13px;fill:#111">KLM-9012</text></g>';
+      o += '</g>';
+      var ox = (W - 640 * s) / 2;
+      CAND.forEach(function (c) {
+        if (c.st === 'keep') return;
+        if (!showAll) return;
+        var bx = ox + c.x * s, by = c.y * s, bw = c.w * s, bh = c.h * s;
+        var dash = c.st === 'nms' ? '6 4' : '2 4', col = c.st === 'nms' ? 'var(--warn)' : '#9A927F';
+        o += '<rect x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" fill="none" stroke="' + col + '" stroke-width="1.6" stroke-dasharray="' + dash + '"/>';
+      });
+      CAND.forEach(function (c) {
+        if (c.st !== 'keep') return;
+        var bx = ox + c.x * s, by = c.y * s, bw = c.w * s, bh = c.h * s;
+        o += '<rect x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" fill="none" stroke="#F5D35A" stroke-width="2.5"/>';
+        var ty = by - 18 < 0 ? by + 2 : by - 18, tx = Math.min(bx, W - 78);
+        o += '<rect x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" width="76" height="16" fill="#F5D35A"/><text x="' + (tx + 5).toFixed(1) + '" y="' + (ty + 12).toFixed(1) + '" style="font-size:12px;font-weight:700;fill:#0B0B0C">車牌 ' + fmt(c.s, 2) + '</text>';
+      });
+      return o + '</svg>';
+    }
+    var redraw = mount(box, draw);
+    function update() {
+      var conf = +cEl.value, thr = +iEl.value;
+      $('#pr-conf-v').textContent = fmt(conf, 2); $('#pr-iou-v').textContent = fmt(thr, 2);
+      redraw();
+      var kept = run(conf, thr), groups = {}, fp = 0;
+      kept.forEach(function (c) { if (c.real) groups[c.g] = (groups[c.g] || 0) + 1; else fp++; });
+      var found = Object.keys(groups).length, dup = kept.filter(function (c) { return c.real; }).length - found;
+      $('#pr-stats').innerHTML =
+        '<div class="stat"><span>找到的車牌</span><b>' + found + ' / 3</b></div>' +
+        '<div class="stat"><span>誤判</span><b>' + fp + ' 個</b></div>' +
+        '<div class="stat"><span>重複的框</span><b>' + dup + ' 個</b></div>';
+      var issues = [];
+      if (fp > 0) issues.push('<strong>有 ' + fp + ' 個誤判。</strong>招牌或車燈被當成車牌，因為 conf 設得太低，連分數很低的框都留下來了。');
+      if (found < 3) issues.push('<strong>漏掉 ' + (3 - found) + ' 個車牌。</strong>較遠、較模糊的車牌分數本來就低，conf 太高就會被丟掉。');
+      if (dup > 0) issues.push('<strong>同一個車牌出現 ' + dup + ' 個多餘的框。</strong>iou 設太高，NMS 沒有把重疊的框合併。');
+      var v = $('#pr-verdict');
+      if (issues.length) { v.className = 'verdict warn'; v.innerHTML = issues.join('<br>'); }
+      else { v.className = 'verdict good'; v.innerHTML = '<strong>3 個車牌都找到了。</strong>沒有誤判，也沒有重複的框。試著把 conf 拉低或拉高，再調整 iou，看看哪一種問題會先出現。'; }
+    }
+    cEl.addEventListener('input', update); iEl.addEventListener('input', update); shEl.addEventListener('change', update);
+    update();
+  })();
+
+  /* ---------- Gradio flow diagram ---------- */
+  (function () {
+    var box = $('#gr-flow');
+    var items = [['瀏覽器介面', '上傳圖片、拉滑桿、按按鈕'], ['你的 Python 函式', 'detect(img, conf)'], ['YOLO 模型', 'model.predict(...)']];
+    function arrowR(x0, x1, y) { return '<line x1="' + (x0 + 4) + '" x2="' + (x1 - 10) + '" y1="' + y + '" y2="' + y + '" stroke="var(--accent)" stroke-width="2"/><polygon points="' + (x1 - 4) + ',' + y + ' ' + (x1 - 13) + ',' + (y - 5) + ' ' + (x1 - 13) + ',' + (y + 5) + '" fill="var(--accent)"/>'; }
+    function arrowL(x0, x1, y) { return '<line x1="' + (x0 + 10) + '" x2="' + (x1 - 4) + '" y1="' + y + '" y2="' + y + '" stroke="var(--alt)" stroke-width="2"/><polygon points="' + (x0 + 4) + ',' + y + ' ' + (x0 + 13) + ',' + (y - 5) + ' ' + (x0 + 13) + ',' + (y + 5) + '" fill="var(--alt)"/>'; }
+    function arrowD(x, y0, y1) { return '<line x1="' + x + '" x2="' + x + '" y1="' + (y0 + 4) + '" y2="' + (y1 - 10) + '" stroke="var(--accent)" stroke-width="2"/><polygon points="' + x + ',' + (y1 - 4) + ' ' + (x - 5) + ',' + (y1 - 13) + ' ' + (x + 5) + ',' + (y1 - 13) + '" fill="var(--accent)"/>'; }
+    function arrowU(x, y0, y1) { return '<line x1="' + x + '" x2="' + x + '" y1="' + (y0 + 10) + '" y2="' + (y1 - 4) + '" stroke="var(--alt)" stroke-width="2"/><polygon points="' + x + ',' + (y0 + 4) + ' ' + (x - 5) + ',' + (y0 + 13) + ' ' + (x + 5) + ',' + (y0 + 13) + '" fill="var(--alt)"/>'; }
+    function boxSvg(x, y, w, h, it, mid) {
+      return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="10" fill="var(--surface2)" stroke="' + (mid ? 'var(--accent)' : 'var(--line)') + '" stroke-width="' + (mid ? 2.5 : 1.5) + '"/>' +
+        '<text class="lbl" x="' + (x + w / 2) + '" y="' + (y + h / 2 - 4) + '" text-anchor="middle" style="font-size:15px">' + it[0] + '</text>' +
+        '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 16) + '" text-anchor="middle" style="font-size:12.5px;font-family:var(--font-mono)">' + it[1] + '</text>';
+    }
+    function draw(W) {
+      var o;
+      if (W >= 700) {
+        var H = 150, gap = 76, bw = (W - 2 * gap) / 3, by = 36, bh = 78;
+        o = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="瀏覽器、Python 函式與 YOLO 模型之間的資料流">';
+        items.forEach(function (it, i) { o += boxSvg(i * (bw + gap), by, bw, bh, it, i === 1); });
+        var labs = [['輸入', '輸出'], ['img、conf', 'results']];
+        for (var i = 0; i < 2; i++) {
+          var x0 = i * (bw + gap) + bw, x1 = x0 + gap, mx = (x0 + x1) / 2;
+          o += arrowR(x0, x1, by + 26) + arrowL(x0, x1, by + bh - 26);
+          o += '<text x="' + mx + '" y="' + (by + 16) + '" text-anchor="middle" style="font-size:12px">' + labs[i][0] + '</text>';
+          o += '<text x="' + mx + '" y="' + (by + bh - 8) + '" text-anchor="middle" style="font-size:12px">' + labs[i][1] + '</text>';
+        }
+        return o + '</svg>';
+      }
+      var vw = Math.min(W - 24, 360), vx = (W - vw) / 2, vh = 66, vg = 56, VH = 3 * vh + 2 * vg + 12;
+      o = '<svg viewBox="0 0 ' + W + ' ' + VH + '" role="img" aria-label="瀏覽器、Python 函式與 YOLO 模型之間的資料流">';
+      items.forEach(function (it, i) { o += boxSvg(vx, 6 + i * (vh + vg), vw, vh, it, i === 1); });
+      var labs2 = [['輸入', '輸出'], ['img、conf', 'results']];
+      for (var j = 0; j < 2; j++) {
+        var y0 = 6 + j * (vh + vg) + vh, y1 = y0 + vg, ax = vx + vw * 0.3, bx = vx + vw * 0.7;
+        o += arrowD(ax, y0, y1) + arrowU(bx, y0, y1);
+        o += '<text x="' + (ax - 8) + '" y="' + ((y0 + y1) / 2 + 4) + '" text-anchor="end" style="font-size:12px">' + labs2[j][0] + '</text>';
+        o += '<text x="' + (bx + 8) + '" y="' + ((y0 + y1) / 2 + 4) + '" text-anchor="start" style="font-size:12px">' + labs2[j][1] + '</text>';
+      }
+      return o + '</svg>';
+    }
+    mount(box, draw);
+  })();
+
+  /* ---------- Gradio mockup (click a component, see its code) ---------- */
+  (function () {
+    var box = $('#gr-mock'), info = $('#gr-info'), sel = 'btn';
+    var INFO = {
+      app: ['gr.Blocks', '整個介面的外框。用 with 開啟，裡面放的元件都屬於這個介面。', "with gr.Blocks(title='YOLO 偵測') as demo:"],
+      md: ['gr.Markdown', '顯示文字，支援 Markdown 語法，例如 ## 代表標題。', "gr.Markdown('## YOLO 偵測示範')"],
+      row: ['gr.Row', '把裡面的東西橫向並排。這裡分成左右兩欄。', "with gr.Row():                   # 左右兩欄"],
+      col: ['gr.Column', '把裡面的東西直向排列。左欄放輸入，右欄放輸出。', "with gr.Column():                # 左欄：輸入\n    ...\nwith gr.Column():                # 右欄：輸出\n    ..."],
+      inp: ['gr.Image（輸入）', "上傳圖片。type='pil' 讓函式拿到 PIL 影像，可以直接交給 model.predict()。", "inp = gr.Image(type='pil', label='上傳圖片')"],
+      conf: ['gr.Slider：conf', '滑桿，參數依序是最小值、最大值、預設值（value）、每格大小（step）。', "conf = gr.Slider(0.05, 0.95, value=0.25, step=0.05, label='conf 信心門檻')"],
+      iou: ['gr.Slider：iou', '另一支滑桿，控制 NMS 的重疊門檻。', "iou = gr.Slider(0.1, 0.9, value=0.7, step=0.05, label='iou NMS 門檻')"],
+      btn: ['gr.Button', '按下按鈕時，Gradio 把 inp、conf、iou 目前的值交給 run()，再把回傳的兩個值依序放進 out 和 table。', "btn = gr.Button('開始偵測', variant='primary')\nbtn.click(run, inputs=[inp, conf, iou], outputs=[out, table])"],
+      out: ['gr.Image（輸出）', '顯示 run() 回傳的第一個值：畫好框的圖。', "out = gr.Image(label='偵測結果')"],
+      table: ['gr.Dataframe', '顯示 run() 回傳的第二個值：每個偵測框一列的明細表。', "table = gr.Dataframe(headers=['類別', '信心', 'x1', 'y1', 'x2', 'y2'], label='偵測明細')"]
+    };
+    function draw(W) {
+      var s = Math.min(W / 640, 1.25), H = Math.round(380 * s), ox = (W - 640 * s) / 2, fs = (13 / Math.max(s, 0.8)).toFixed(1);
+      function g(k, inner) { return '<g class="gz' + (k === sel ? ' sel' : '') + '" data-k="' + k + '" tabindex="0" role="button" aria-label="' + INFO[k][0] + '">' + inner + '</g>'; }
+      function hit(x, y, w, h, extra) { return '<rect class="hit' + (extra || '') + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8"/>'; }
+      var T = function (x, y, t, st, a) { return '<text x="' + x + '" y="' + y + '" text-anchor="' + (a || 'start') + '" style="font-size:' + fs + 'px;' + (st || '') + '">' + t + '</text>'; };
+      var o = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Blocks 範例做出來的介面示意圖"><g transform="translate(' + ox + ' 0) scale(' + s + ')">';
+      o += g('app', hit(6, 6, 628, 368, ' fill'));
+      o += g('md', T(30, 46, 'YOLO 偵測示範', 'font-size:' + (17 / Math.max(s, 0.8)).toFixed(1) + 'px;font-weight:700;fill:var(--ink)') + hit(20, 20, 600, 38));
+      o += g('row', '<rect class="hit" x="18" y="66" width="604" height="296" rx="10" stroke-dasharray="6 5"/>');
+      o += g('col', '<rect class="hit" x="28" y="76" width="288" height="276" rx="8" stroke-dasharray="6 5"/><rect class="hit" x="324" y="76" width="288" height="276" rx="8" stroke-dasharray="6 5"/>');
+      o += g('inp', '<rect x="40" y="88" width="264" height="112" rx="8" fill="var(--surface2)"/><path d="M172 140V114M162 124L172 114L182 124" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' + T(172, 166, '上傳圖片', 'fill:var(--ink)', 'middle') + T(172, 186, '拖曳或點擊', '', 'middle') + hit(40, 88, 264, 112));
+      o += g('conf', T(40, 224, 'conf 信心門檻', 'fill:var(--ink)') + T(304, 224, '0.25', 'font-family:var(--font-mono);fill:var(--accent)', 'end') + '<line x1="40" x2="304" y1="242" y2="242" stroke="var(--line)" stroke-width="5" stroke-linecap="round"/><line x1="40" x2="98.7" y1="242" y2="242" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/><circle cx="98.7" cy="242" r="8" fill="var(--accent)"/>' + hit(34, 208, 276, 42));
+      o += g('iou', T(40, 272, 'iou NMS 門檻', 'fill:var(--ink)') + T(304, 272, '0.70', 'font-family:var(--font-mono);fill:var(--accent)', 'end') + '<line x1="40" x2="304" y1="290" y2="290" stroke="var(--line)" stroke-width="5" stroke-linecap="round"/><line x1="40" x2="238" y1="290" y2="290" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/><circle cx="238" cy="290" r="8" fill="var(--accent)"/>' + hit(34, 256, 276, 42));
+      o += g('btn', '<rect x="40" y="308" width="264" height="38" rx="8" fill="var(--accent)"/>' + T(172, 332, '開始偵測', 'font-weight:700;fill:var(--accent-ink)', 'middle') + hit(40, 308, 264, 38));
+      o += g('out', '<rect x="336" y="88" width="264" height="150" rx="8" fill="var(--surface2)"/>' + T(350, 110, '偵測結果') + '<rect x="440" y="168" width="64" height="24" rx="2" fill="#EDE9DD"/><rect x="434" y="162" width="76" height="36" fill="none" stroke="#F5D35A" stroke-width="2.5" stroke-dasharray="6 4"/>' + hit(336, 88, 264, 150));
+      o += g('table', '<rect x="336" y="250" width="264" height="96" rx="6" fill="var(--surface2)"/><line x1="336" x2="600" y1="274" y2="274" stroke="var(--line)"/>' + T(348, 268, '類別', 'fill:var(--ink)') + T(420, 268, '信心', 'fill:var(--ink)') + T(480, 268, 'x1', 'fill:var(--ink)') + T(540, 268, 'y1', 'fill:var(--ink)') + T(348, 296, 'plate', 'font-family:var(--font-mono)') + T(420, 296, '0.92', 'font-family:var(--font-mono)') + T(480, 296, '120', 'font-family:var(--font-mono)') + T(540, 296, '150', 'font-family:var(--font-mono)') + T(348, 320, 'plate', 'font-family:var(--font-mono)') + T(420, 320, '0.46', 'font-family:var(--font-mono)') + T(480, 320, '380', 'font-family:var(--font-mono)') + T(540, 320, '128', 'font-family:var(--font-mono)') + hit(336, 250, 264, 96));
+      return o + '</g></svg>';
+    }
+    mount(box, draw);
+    function show(k) {
+      sel = k;
+      Array.prototype.forEach.call(box.querySelectorAll('.gz'), function (n) { n.classList.toggle('sel', n.getAttribute('data-k') === k); });
+      var d = INFO[k];
+      info.innerHTML = '<p><strong>' + d[0] + '</strong>　' + d[1] + '</p>';
+      var pb = document.createElement('div'); pb.className = 'pathbox'; pb.textContent = d[2]; info.appendChild(pb);
+    }
+    function pick(e) { var n = e.target.closest ? e.target.closest('.gz') : null; if (n && n.getAttribute('data-k') !== sel) show(n.getAttribute('data-k')); }
+    box.addEventListener('click', pick); box.addEventListener('focusin', pick);
+    box.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e); } });
+    show('btn');
+  })();
+
+  /* ---------- data.yaml: folder tree + checker ---------- */
+  (function () {
+    var box = $('#yaml-tree');
+    var rows = [
+      [0, 'train001/', 'dir', 'path（資料集根目錄）'],
+      [1, 'data.yaml', 'last', '資料集設定檔，train() 的 data= 指向它'],
+      [1, 'images/', 'dir', ''],
+      [2, 'train/', 'dir', '訓練圖片：a.jpg、b.jpg …'],
+      [2, 'val/', 'dir', '驗證圖片'],
+      [1, 'labels/', 'dir', ''],
+      [2, 'train/', 'dir', '訓練標註：a.txt、b.txt …（檔名與圖片相同）'],
+      [2, 'val/', 'dir', '驗證標註']
+    ];
+    var rh = 30, W = 640, H = rows.length * rh + 16, o = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="min-width:560px" role="img" aria-label="資料集資料夾結構">';
+    rows.forEach(function (r, i) {
+      var y = 8 + i * rh, x = 14 + r[0] * 26;
+      var fill = r[2] === 'last' ? 'var(--accent)' : 'var(--surface2)';
+      var tcol = r[2] === 'last' ? 'var(--accent-ink)' : 'var(--ink)';
+      var nameW = r[1].length * 8.4 + 22;
+      if (r[0] > 0) o += '<path d="M' + (x - 13) + ' ' + (y - 2) + 'V' + (y + 11) + 'H' + (x - 2) + '" fill="none" stroke="var(--line)" stroke-width="1.5"/>';
+      o += '<rect x="' + x + '" y="' + y + '" width="' + nameW + '" height="24" rx="6" fill="' + fill + '"/>';
+      o += '<text x="' + (x + 11) + '" y="' + (y + 16.5) + '" style="font-family:var(--font-mono);font-size:13px;font-weight:600;fill:' + tcol + '">' + r[1] + '</text>';
+      if (r[3]) o += '<text x="' + (x + nameW + 12) + '" y="' + (y + 16.5) + '" style="font-size:13px">' + r[3] + '</text>';
+    });
+    box.innerHTML = o + '</svg>';
+  })();
+
+  (function () {
+    function yamlCheck(text) {
+    var bad = [], warn = [], ok = [], top = {}, namesIdx = -1, lines = text.split('\n');
+    if (text.indexOf('\t') > -1) bad.push('有 Tab 字元。YAML 縮排只能用空格。');
+    if (text.indexOf('：') > -1 || text.indexOf('\u3000') > -1) bad.push('有全形冒號或全形空格。請改成半形的「:」與一般空格。');
+    lines.forEach(function (raw, i) {
+      var ln = raw.replace(/^\s*#.*$/, '').replace(/\s+#.*$/, '');
+      if (!ln.trim()) return;
+      var n = i + 1, indented = /^\s/.test(ln), t = ln.trim();
+      if (t.charAt(0) === '-') return;
+      if (t.indexOf(':') === -1) { bad.push('第 ' + n + ' 行缺少冒號：' + t); return; }
+      if (/^[^\s:]+:\S/.test(t)) bad.push('第 ' + n + ' 行冒號後面沒有空格：' + t);
+      if (!indented) { var k = t.split(':')[0].trim(); top[k] = t.slice(t.indexOf(':') + 1).trim(); if (k === 'names') namesIdx = i; }
+    });
+    ['path', 'train', 'val', 'names'].forEach(function (k) { if (!(k in top)) bad.push('缺少必要欄位：' + k); else ok.push(k + ' 已設定'); });
+    var count = null;
+    if ('names' in top) {
+      var v = top.names, ids = [];
+      if (v.charAt(0) === '[') {
+        count = v.replace(/^\[|\]$/g, '').split(',').filter(function (x) { return x.trim(); }).length;
+      } else {
+        for (var j = namesIdx + 1; j < lines.length; j++) {
+          var L = lines[j].replace(/^\s*#.*$/, '').replace(/\s+#.*$/, '');
+          if (!L.trim()) continue;
+          if (!/^\s/.test(L)) break;
+          var m = L.match(/^\s+(\d+):\s*\S/);
+          if (m) ids.push(+m[1]);
+          else if (/^\s+-\s*\S/.test(L)) ids.push(ids.length);
+          else bad.push('names 底下的第 ' + (j + 1) + ' 行格式不對，應為「  0: 名稱」');
+        }
+        count = ids.length;
+        if (count && !ids.every(function (x, q) { return x === q; })) bad.push('names 的編號必須從 0 開始，而且連續、依序。');
+      }
+      if (count === 0) bad.push('names 底下沒有任何類別。'); else ok.push('names 共 ' + count + ' 個類別');
+    }
+    if ('nc' in top) {
+      var nc = parseInt(top.nc, 10);
+      if (isNaN(nc)) bad.push('nc 要是整數。');
+      else if (count !== null && nc !== count) bad.push('nc 是 ' + nc + '，但 names 有 ' + count + ' 個類別，兩者要一致（或直接刪掉 nc）。');
+    } else if (count) { ok.push('沒有 nc，新版會依 names 自動計算'); }
+    var p = top.path;
+    if (p !== undefined) {
+      if (!p) bad.push('path 是空的。');
+      else if (/^"[^"]*\\/.test(p)) bad.push('path 在雙引號裡有反斜線，會被當成跳脫字元。請改用正斜線 /，或改用單引號。');
+      else if (p.indexOf('\\') > -1) warn.push('path 用了反斜線，通常讀得到，但建議改成正斜線 /。');
+    }
+    ['train', 'val'].forEach(function (k) {
+      var q = top[k];
+      if (q && q.indexOf('images') === -1) warn.push(k + ' 的路徑裡沒有 images 資料夾，標註檔必須和圖片放在同一個資料夾。');
+    });
+    return { bad: bad, warn: warn, ok: ok };
+  }
+
+    var GOOD = YAMLS[0].code.split('\n').filter(function (l) { return l.indexOf('# test') === -1; }).join('\n');
+    var BAD = 'path:D:\\Python\\yolo\\train001\ntrain: images/train\nval images/val\nnc: 2\nnames:\n  0: helmet\n';
+    var ta = $('#yaml-in'), out = $('#yaml-out');
+    function render() {
+      var r = yamlCheck(ta.value), html = '';
+      r.bad.forEach(function (t) { html += '<li class="bad"><b>需修正</b>' + esc(t) + '</li>'; });
+      r.warn.forEach(function (t) { html += '<li class="warn"><b>建議</b>' + esc(t) + '</li>'; });
+      if (!r.bad.length) html += '<li class="ok"><b>正常</b>沒有發現格式問題。</li>';
+      r.ok.forEach(function (t) { html += '<li class="ok"><b>正常</b>' + esc(t) + '</li>'; });
+      out.innerHTML = html;
+    }
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+    ta.value = GOOD; render();
+    ta.addEventListener('input', render);
+    $('#yaml-good').addEventListener('click', function () { ta.value = GOOD; render(); });
+    $('#yaml-bad').addEventListener('click', function () { ta.value = BAD; render(); });
+  })();
+})();
+</script>
+
+</body></html>

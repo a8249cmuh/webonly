@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachable Machine 貓狗分類與 Colab / Gradio 實戰指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        code, pre {
+            font-family: 'Fira Code', monospace;
+        }
+        /* SVG 動畫特效 */
+        @keyframes flowDash {
+            to {
+                stroke-dashoffset: -24;
+            }
+        }
+        .animate-flow {
+            stroke-dasharray: 8 4;
+            animation: flowDash 1s linear infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6)); }
+            50% { filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.95)); }
+        }
+        .active-node {
+            animation: pulseGlow 2s infinite;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-sky-500 selection:text-white">
+
+    <!-- 頂部導覽列 -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-slate-900/80 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-300">
+                        Teachable Machine 貓狗分類實戰
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">SVG 互動式圖解教學 ‧ Colab 版本相容修復 ‧ Gradio 網頁部署</p>
+                </div>
+            </div>
+
+            <!-- 導覽切換按鈕 -->
+            <nav class="flex space-x-1 sm:space-x-2 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60 overflow-x-auto">
+                <button onclick="switchTab('tab-train')" id="btn-tab-train" class="tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-sky-500 text-white shadow">
+                    1. 訓練與評估
+                </button>
+                <button onclick="switchTab('tab-export')" id="btn-tab-export" class="tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-700/50">
+                    2. 導出與版本解析
+                </button>
+                <button onclick="switchTab('tab-colab')" id="btn-tab-colab" class="tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-700/50">
+                    3. Colab 修復版程式
+                </button>
+                <button onclick="switchTab('tab-gradio')" id="btn-tab-gradio" class="tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-700/50">
+                    4. Gradio 互動介面
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 頂部互動式 SVG 總覽流程圖 -->
+    <section class="bg-slate-900/50 border-b border-slate-800/80 py-6 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+                    點擊下方 SVG 流程節點可快速切換章節與查看詳情
+                </span>
+                <span id="pipeline-status" class="text-xs text-slate-400">目前檢視：步驟 1 - 訓練與評估模型</span>
+            </div>
+
+            <!-- 互動式 SVG 管線圖 -->
+            <div class="w-full overflow-x-auto bg-slate-950/70 rounded-2xl border border-slate-800 p-4 shadow-inner">
+                <svg viewBox="0 0 1000 150" class="w-full min-w-[720px] h-auto select-none">
+                    <defs>
+                        <linearGradient id="grad-sky" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#0284c7" />
+                            <stop offset="100%" stop-color="#4f46e5" />
+                        </linearGradient>
+                        <linearGradient id="grad-amber" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#d97706" />
+                            <stop offset="100%" stop-color="#ea580c" />
+                        </linearGradient>
+                        <linearGradient id="grad-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#059669" />
+                            <stop offset="100%" stop-color="#0d9488" />
+                        </linearGradient>
+                        <linearGradient id="grad-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#7c3aed" />
+                            <stop offset="100%" stop-color="#db2777" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- 連接動態虛線 -->
+                    <line x1="210" y1="75" x2="290" y2="75" stroke="#38bdf8" stroke-width="3" class="animate-flow" />
+                    <polygon points="285,70 297,75 285,80" fill="#38bdf8" />
+
+                    <line x1="460" y1="75" x2="540" y2="75" stroke="#f59e0b" stroke-width="3" class="animate-flow" />
+                    <polygon points="535,70 547,75 535,80" fill="#f59e0b" />
+
+                    <line x1="710" y1="75" x2="790" y2="75" stroke="#10b981" stroke-width="3" class="animate-flow" />
+                    <polygon points="785,70 797,75 785,80" fill="#10b981" />
+
+                    <!-- 節點 1: 收集與訓練 -->
+                    <g onclick="switchTab('tab-train')" id="svg-node-1" class="cursor-pointer transition-transform hover:scale-105 active-node">
+                        <rect x="30" y="25" width="180" height="100" rx="16" fill="url(#grad-sky)" stroke="#7dd3fc" stroke-width="2" />
+                        <text x="120" y="55" text-anchor="middle" fill="#ffffff" font-size="22">🐱 vs 🐶</text>
+                        <text x="120" y="82" text-anchor="middle" fill="#ffffff" font-weight="bold" font-size="14">1. 訓練貓狗模型</text>
+                        <text x="120" y="104" text-anchor="middle" fill="#e0f2fe" font-size="11">上傳圖片 &amp; 檢視準確率</text>
+                    </g>
+
+                    <!-- 節點 2: 導出與版本衝突 -->
+                    <g onclick="switchTab('tab-export')" id="svg-node-2" class="cursor-pointer transition-transform hover:scale-105 opacity-80">
+                        <rect x="295" y="25" width="170" height="100" rx="16" fill="url(#grad-amber)" stroke="#fcd34d" stroke-width="1.5" />
+                        <text x="380" y="55" text-anchor="middle" fill="#ffffff" font-size="20">📦 ⚠️</text>
+                        <text x="380" y="82" text-anchor="middle" fill="#ffffff" font-weight="bold" font-size="14">2. 導出 Keras 模型</text>
+                        <text x="380" y="104" text-anchor="middle" fill="#fef3c7" font-size="11">解析 Colab 版本報錯</text>
+                    </g>
+
+                    <!-- 節點 3: Colab 程式碼 -->
+                    <g onclick="switchTab('tab-colab')" id="svg-node-3" class="cursor-pointer transition-transform hover:scale-105 opacity-80">
+                        <rect x="545" y="25" width="170" height="100" rx="16" fill="url(#grad-emerald)" stroke="#6ee7b7" stroke-width="1.5" />
+                        <text x="630" y="55" text-anchor="middle" fill="#ffffff" font-size="20">⚡ 🐍</text>
+                        <text x="630" y="82" text-anchor="middle" fill="#ffffff" font-weight="bold" font-size="14">3. Colab 直接運行</text>
+                        <text x="630" y="104" text-anchor="middle" fill="#d1fae5" font-size="11">自動修補 H5 與推論</text>
+                    </g>
+
+                    <!-- 節點 4: Gradio 介面 -->
+                    <g onclick="switchTab('tab-gradio')" id="svg-node-4" class="cursor-pointer transition-transform hover:scale-105 opacity-80">
+                        <rect x="795" y="25" width="175" height="100" rx="16" fill="url(#grad-purple)" stroke="#f472b6" stroke-width="1.5" />
+                        <text x="882" y="55" text-anchor="middle" fill="#ffffff" font-size="20">🚀 🌐</text>
+                        <text x="882" y="82" text-anchor="middle" fill="#ffffff" font-weight="bold" font-size="14">4. Gradio 互動網頁</text>
+                        <text x="882" y="104" text-anchor="middle" fill="#fce7f3" font-size="11">一鍵生成 AI 辨識網站</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- 主要內容區 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- ==================== 章節 1：訓練貓狗分類模型與訓練圖表解析 ==================== -->
+        <div id="tab-train" class="tab-content space-y-8">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+                    <div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                            CHAPTER 01
+                        </span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white mt-2">如何在 Teachable Machine 訓練貓狗分類模型</h2>
+                        <p class="text-slate-400 mt-1">不需編寫任何程式碼，透過瀏覽器在 3 分鐘內完成遷移式學習（Transfer Learning）影像分類訓練。</p>
+                    </div>
+                    <a href="https://teachablemachine.withgoogle.com/train/image" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium transition shadow-lg shadow-sky-600/30 shrink-0">
+                        <span>開啟 Teachable Machine</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
+
+                <!-- 互動步驟卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <!-- Step 1 -->
+                    <div class="bg-slate-800/60 border border-slate-700/70 rounded-xl p-5 hover:border-sky-500/50 transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-bold px-2.5 py-1 rounded bg-sky-500/20 text-sky-400">步驟 1：建立專案与類別</span>
+                            <span class="text-2xl">📁</span>
+                        </div>
+                        <h3 class="font-bold text-lg text-white mb-2">準備「貓」與「狗」資料集</h3>
+                        <ul class="text-sm text-slate-300 space-y-2 leading-relaxed">
+                            <li>• 進入官網選擇 <strong>「圖片專案 (Image Project)」</strong> ➔ <strong>「標準圖片模型 (Standard image model)」</strong>。</li>
+                            <li>• 將 <code>Class 1</code> 改名為 <strong>Cat (貓)</strong>，點擊「上傳」放入約 20~50 張不同角度的貓咪照片。</li>
+                            <li>• 將 <code>Class 2</code> 改名為 <strong>Dog (狗)</strong>，點擊「上傳」放入約 20~50 張狗狗照片。</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="bg-slate-800/60 border border-slate-700/70 rounded-xl p-5 hover:border-sky-500/50 transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-bold px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-400">步驟 2：訓練超參數設定</span>
+                            <span class="text-2xl">⚙️</span>
+                        </div>
+                        <h3 class="font-bold text-lg text-white mb-2">點擊「訓練模型 (Train Model)」</h3>
+                        <ul class="text-sm text-slate-300 space-y-2 leading-relaxed">
+                            <li>• <strong>週期數 (Epochs)：預設 50</strong>（代表模型把所有貓狗圖片完整看過 50 遍）。</li>
+                            <li>• <strong>批次大小 (Batch Size)：預設 16</strong>（每次更新權重所參考的圖片數量）。</li>
+                            <li>• <strong>學習率 (Learning Rate)：0.001</strong>（控制模型修正錯誤的步伐大小）。</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="bg-slate-800/60 border border-slate-700/70 rounded-xl p-5 hover:border-sky-500/50 transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-bold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400">步驟 3：即時預覽與進階分析</span>
+                            <span class="text-2xl">📊</span>
+                        </div>
+                        <h3 class="font-bold text-lg text-white mb-2">測試模型與查看「內部細節」</h3>
+                        <ul class="text-sm text-slate-300 space-y-2 leading-relaxed">
+                            <li>• 訓練完成後，右側可切換為 <strong>「檔案 (File)」</strong> 上傳一張沒看過的貓狗圖測試信心度。</li>
+                            <li>• 點擊訓練面板下方的 <strong>「深入了解 (Under the hood)」</strong>，即可看到如您截圖一的評估圖表！</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 互動式 SVG 圖表模擬器 (對應使用者第一張截圖) -->
+                <div class="mt-8 bg-slate-950 border border-slate-800 rounded-2xl p-6">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-sky-400 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                                互動式訓練指標模擬器（解析您截圖中的圖表意義）
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">拖動下方滑桿改變 Epoch（訓練週期），觀察準確率（Accuracy）與損失值（Loss）的變化：</p>
+                        </div>
+
+                        <!-- Epoch 互動滑桿 -->
+                        <div class="flex items-center gap-4 bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-800">
+                            <label for="epoch-slider" class="text-xs font-semibold text-slate-300 whitespace-nowrap">訓練週期 (Epoch):</label>
+                            <input id="epoch-slider" type="range" min="1" max="50" value="50" oninput="updateEpochCharts(this.value)"
+                                   class="w-36 sm:w-48 accent-sky-500 cursor-pointer">
+                            <span id="epoch-display" class="text-sm font-bold text-sky-400 w-14 text-right">50 / 50</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- 圖表 1: 每個週期的準確率 (Accuracy per epoch) -->
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-bold text-sm text-white">每個週期的準確率 (Accuracy per Epoch)</span>
+                                <div class="flex items-center gap-3 text-xs">
+                                    <span class="flex items-center gap-1 text-sky-400"><span class="w-3 h-0.5 bg-sky-400 inline-block"></span> acc: <strong id="acc-val">1.00</strong></span>
+                                    <span class="flex items-center gap-1 text-amber-400"><span class="w-3 h-0.5 bg-amber-400 inline-block"></span> test: <strong id="val-acc-val">1.00</strong></span>
+                                </div>
+                            </div>
+                            <svg viewBox="0 0 400 220" class="w-full h-auto bg-slate-950 rounded-lg border border-slate-800/80 p-2">
+                                <!-- 網格線 -->
+                                <g stroke="#1e293b" stroke-width="1">
+                                    <line x1="45" y1="20" x2="380" y2="20" />
+                                    <line x1="45" y1="55" x2="380" y2="55" />
+                                    <line x1="45" y1="90" x2="380" y2="90" />
+                                    <line x1="45" y1="125" x2="380" y2="125" />
+                                    <line x1="45" y1="160" x2="380" y2="160" />
+                                    <line x1="45" y1="190" x2="380" y2="190" />
+                                    <line x1="112" y1="20" x2="112" y2="190" />
+                                    <line x1="179" y1="20" x2="179" y2="190" />
+                                    <line x1="246" y1="20" x2="246" y2="190" />
+                                    <line x1="313" y1="20" x2="313" y2="190" />
+                                    <line x1="380" y1="20" x2="380" y2="190" />
+                                </g>
+                                <!-- 座標軸 -->
+                                <line x1="45" y1="20" x2="45" y2="190" stroke="#64748b" stroke-width="1.5" />
+                                <line x1="45" y1="190" x2="380" y2="190" stroke="#64748b" stroke-width="1.5" />
+                                <!-- Y軸文字 -->
+                                <text x="38" y="24" text-anchor="end" fill="#94a3b8" font-size="10">1.0</text>
+                                <text x="38" y="58" text-anchor="end" fill="#94a3b8" font-size="10">0.8</text>
+                                <text x="38" y="93" text-anchor="end" fill="#94a3b8" font-size="10">0.6</text>
+                                <text x="38" y="128" text-anchor="end" fill="#94a3b8" font-size="10">0.4</text>
+                                <text x="38" y="163" text-anchor="end" fill="#94a3b8" font-size="10">0.2</text>
+                                <text x="38" y="193" text-anchor="end" fill="#94a3b8" font-size="10">0.0</text>
+                                <!-- X軸文字 -->
+                                <text x="45" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">0</text>
+                                <text x="112" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">10</text>
+                                <text x="179" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">20</text>
+                                <text x="246" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">30</text>
+                                <text x="313" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">40</text>
+                                <text x="380" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">50</text>
+
+                                <!-- 曲線：acc & test -->
+                                <polyline fill="none" stroke="#38bdf8" stroke-width="2.5" points="45,40 52,25 58,20 380,20" />
+                                <polyline fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 2" points="45,32 52,21 58,20 380,20" />
+
+                                <!-- 動態指示線 -->
+                                <line id="acc-cursor" x1="380" y1="20" x2="380" y2="190" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3" />
+                                <circle id="acc-dot" cx="380" cy="20" r="5" fill="#38bdf8" stroke="#ffffff" stroke-width="1.5" />
+                            </svg>
+                            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+                                💡 <strong>解讀您的截圖：</strong> 由於 Teachable Machine 底層使用了預訓練的 <code>MobileNet</code>，特徵擷取能力極強，因此在第 2~3 個 Epoch 時，訓練集 (acc) 與測試集 (test) 準確率就迅速達到 <strong>1.0 (100%)</strong>。
+                            </p>
+                        </div>
+
+                        <!-- 圖表 2: 每個週期的損失 (Loss per epoch) -->
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-bold text-sm text-white">每個週期的損失 (Loss per Epoch)</span>
+                                <div class="flex items-center gap-3 text-xs">
+                                    <span class="flex items-center gap-1 text-sky-400"><span class="w-3 h-0.5 bg-sky-400 inline-block"></span> loss: <strong id="loss-val">0.001</strong></span>
+                                    <span class="flex items-center gap-1 text-amber-400"><span class="w-3 h-0.5 bg-amber-400 inline-block"></span> test loss: <strong id="val-loss-val">0.002</strong></span>
+                                </div>
+                            </div>
+                            <svg viewBox="0 0 400 220" class="w-full h-auto bg-slate-950 rounded-lg border border-slate-800/80 p-2">
+                                <!-- 網格線 -->
+                                <g stroke="#1e293b" stroke-width="1">
+                                    <line x1="45" y1="20" x2="380" y2="20" />
+                                    <line x1="45" y1="62.5" x2="380" y2="62.5" />
+                                    <line x1="45" y1="105" x2="380" y2="105" />
+                                    <line x1="45" y1="147.5" x2="380" y2="147.5" />
+                                    <line x1="45" y1="190" x2="380" y2="190" />
+                                    <line x1="112" y1="20" x2="112" y2="190" />
+                                    <line x1="179" y1="20" x2="179" y2="190" />
+                                    <line x1="246" y1="20" x2="246" y2="190" />
+                                    <line x1="313" y1="20" x2="313" y2="190" />
+                                    <line x1="380" y1="20" x2="380" y2="190" />
+                                </g>
+                                <!-- 座標軸 -->
+                                <line x1="45" y1="20" x2="45" y2="190" stroke="#64748b" stroke-width="1.5" />
+                                <line x1="45" y1="190" x2="380" y2="190" stroke="#64748b" stroke-width="1.5" />
+                                <!-- Y軸文字 -->
+                                <text x="38" y="24" text-anchor="end" fill="#94a3b8" font-size="10">0.20</text>
+                                <text x="38" y="66" text-anchor="end" fill="#94a3b8" font-size="10">0.15</text>
+                                <text x="38" y="108" text-anchor="end" fill="#94a3b8" font-size="10">0.10</text>
+                                <text x="38" y="151" text-anchor="end" fill="#94a3b8" font-size="10">0.05</text>
+                                <text x="38" y="193" text-anchor="end" fill="#94a3b8" font-size="10">0.00</text>
+                                <!-- X軸文字 -->
+                                <text x="45" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">0</text>
+                                <text x="112" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">10</text>
+                                <text x="179" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">20</text>
+                                <text x="246" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">30</text>
+                                <text x="313" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">40</text>
+                                <text x="380" y="206" text-anchor="middle" fill="#94a3b8" font-size="10">50</text>
+
+                                <!-- 曲線：loss & test loss -->
+                                <polyline fill="none" stroke="#38bdf8" stroke-width="2.5" points="45,22 52,185 58,188 70,189 380,189.5" />
+                                <polyline fill="none" stroke="#f59e0b" stroke-width="2" points="45,182 52,187 65,189 380,189.5" />
+
+                                <!-- 動態指示線 -->
+                                <line id="loss-cursor" x1="380" y1="20" x2="380" y2="190" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 3" />
+                                <circle id="loss-dot" cx="380" cy="189.5" r="5" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" />
+                            </svg>
+                            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+                                💡 <strong>解讀您的截圖：</strong> 損失值（Loss）衡量模型預測誤差。越接近 <strong>0.00</strong> 代表模型對貓狗分類越有把握且誤差極低。此外上方按鈕可展開「每個類別的準確率」與「混淆矩陣（Confusion Matrix）」查看是否有貓被誤判成狗。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 章節 2：導出模型與為何在 Colab 會報錯 ==================== -->
+        <div id="tab-export" class="tab-content hidden space-y-8">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    CHAPTER 02
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-bold text-white mt-2">導出模型介紹 &amp; 為什麼官方範例在目前 Colab 無法直接運行？</h2>
+                <p class="text-slate-400 mt-1">對照您提供的第二張截圖，深入剖析導出格式與 Keras 2 / Keras 3 的版本相容性問題。</p>
+
+                <!-- 導出步驟說明 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                        <div class="text-sky-400 font-bold text-sm mb-1">1. 點擊「導出模型 (Export Model)」</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            在預覽視窗上方點擊導出按鈕，會出現三個分頁：
+                            <br>• <strong>Tensorflow.js</strong>：供網頁前端 JS 使用。
+                            <br>• <strong>Tensorflow (Keras)</strong>：供 Python / Colab 使用（<strong>請選這個</strong>）。
+                            <br>• <strong>Tensorflow Lite</strong>：供手機 App 或樹莓派使用。
+                        </p>
+                    </div>
+                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                        <div class="text-amber-400 font-bold text-sm mb-1">2. 下載 converted_keras.zip</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            選擇 <strong>Tensorflow ➔ Keras</strong> 並點擊下載模型後，解壓縮會得到兩個核心檔案：
+                            <br>• <code class="text-amber-300">keras_Model.h5</code>：訓練好的模型架構與權重。
+                            <br>• <code class="text-amber-300">labels.txt</code>：類別標籤（例如 <code>0 Cat</code>、<code>1 Dog</code>）。
+                        </p>
+                    </div>
+                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                        <div class="text-rose-400 font-bold text-sm mb-1">3. 複製官方程式碼貼到 Colab 卻報錯！</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            如果您直接把截圖二中的程式碼貼到目前的 Google Colab 執行，會立即遇到 <code>ValueError: Unrecognized keyword arguments passed to DepthwiseConv2D: {'groups': 1}</code> 等錯誤！
+                        </p>
+                    </div>
+                </div>
+
+                <!-- SVG 互動問題診斷圖 -->
+                <div class="mt-8 bg-slate-950 border border-slate-800 rounded-2xl p-6">
+                    <h3 class="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        SVG 互動診斷：3 個導致官方範例在 Colab 失效的原因
+                    </h3>
+
+                    <svg viewBox="0 0 900 230" class="w-full h-auto select-none">
+                        <!-- 左側：Teachable Machine 導出環境 -->
+                        <rect x="20" y="30" width="240" height="170" rx="14" fill="#1e293b" stroke="#475569" stroke-width="2" />
+                        <text x="140" y="62" text-anchor="middle" fill="#38bdf8" font-weight="bold" font-size="15">Teachable Machine 導出檔</text>
+                        <text x="140" y="90" text-anchor="middle" fill="#cbd5e1" font-size="12">基於舊版 TensorFlow / Keras 2</text>
+                        <rect x="45" y="110" width="190" height="32" rx="6" fill="#0f172a" stroke="#334155" />
+                        <text x="140" y="130" text-anchor="middle" fill="#fbbf24" font-family="monospace" font-size="11">DepthwiseConv2D(groups=1)</text>
+                        <text x="140" y="170" text-anchor="middle" fill="#94a3b8" font-size="11">寫死於 keras_Model.h5 設定中</text>
+
+                        <!-- 中間衝突閃電 -->
+                        <line x1="260" y1="115" x2="365" y2="115" stroke="#ef4444" stroke-width="3" stroke-dasharray="6 4" />
+                        <circle cx="312" cy="115" r="22" fill="#7f1d1d" stroke="#ef4444" stroke-width="2" />
+                        <text x="312" y="122" text-anchor="middle" fill="#ffffff" font-size="18">⚡</text>
+
+                        <!-- 中間：目前 Colab 環境 -->
+                        <rect x="365" y="30" width="240" height="170" rx="14" fill="#1e293b" stroke="#ef4444" stroke-width="2" />
+                        <text x="485" y="62" text-anchor="middle" fill="#f87171" font-weight="bold" font-size="15">目前的 Google Colab 環境</text>
+                        <text x="485" y="90" text-anchor="middle" fill="#cbd5e1" font-size="12">預載最新 TensorFlow 2.16+ / Keras 3</text>
+                        <rect x="385" y="110" width="200" height="32" rx="6" fill="#450a0a" stroke="#dc2626" />
+                        <text x="485" y="130" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="11">ValueError: 'groups': 1</text>
+                        <text x="485" y="170" text-anchor="middle" fill="#fca5a5" font-size="11">Keras 3 嚴格檢查並拒絕此參數</text>
+
+                        <!-- 右側解決方案箭頭 -->
+                        <line x1="605" y1="115" x2="660" y2="115" stroke="#10b981" stroke-width="3" class="animate-flow" />
+                        <polygon points="655,110 667,115 655,120" fill="#10b981" />
+
+                        <!-- 右側：我們的雙重保護修復法 -->
+                        <rect x="665" y="30" width="215" height="170" rx="14" fill="#064e3b" stroke="#10b981" stroke-width="2" />
+                        <text x="772" y="62" text-anchor="middle" fill="#34d399" font-weight="bold" font-size="15">本指南提供的完美解法</text>
+                        <text x="772" y="92" text-anchor="middle" fill="#ecfdf5" font-size="12">1. 導入官方 tf_keras (Keras 2)</text>
+                        <text x="772" y="118" text-anchor="middle" fill="#ecfdf5" font-size="12">2. 完美解析巢狀 MobileNet 結構</text>
+                        <text x="772" y="144" text-anchor="middle" fill="#ecfdf5" font-size="12">3. 自訂 DepthwiseConv2D 相容層</text>
+                        <text x="772" y="176" text-anchor="middle" fill="#6ee7b7" font-weight="bold" font-size="12">✅ 免重啟 Runtime 直接跑！</text>
+                    </svg>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-xs text-slate-300">
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                            <strong class="text-rose-400 block mb-1">問題一：DepthwiseConv2D(groups=1)</strong>
+                            Teachable Machine 導出的 `.h5` 檔內部包含 `"groups": 1` 屬性。在新版 Keras 中，載入模型時會直接拋出 <code>ValueError: Unrecognized keyword arguments: {'groups': 1}</code>。
+                        </div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                            <strong class="text-amber-400 block mb-1">問題二：expects 1 input(s), but received 2</strong>
+                            在最新 Python 3.13 + Keras 3 環境下，載入 Teachable Machine 的巢狀模型（MobileNet 串接分類層）會發生 <code>Layer "functional" expects 1 input(s), but it received 2 input tensors</code> 錯誤。必須改用 <code>tf_keras</code> 載入才能正確解析舊版拓撲結構！
+                        </div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                            <strong class="text-sky-400 block mb-1">問題三：&lt;IMAGE_PATH&gt; 未替換</strong>
+                            官方範例寫著 <code>Image.open("&lt;IMAGE_PATH&gt;")</code>，新手常不知如何把電腦裡的貓狗照片傳進 Colab。我們在下一章的程式碼中直接整合了 <code>google.colab.files</code> 互動上傳按鈕！
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 章節 3：Colab 直接運行程式碼 (可一鍵複製) ==================== -->
+        <div id="tab-colab" class="tab-content hidden space-y-8">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+                    <div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            CHAPTER 03
+                        </span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white mt-2">能在目前 Colab 直接運行的完整程式碼</h2>
+                        <p class="text-slate-400 mt-1">已內建 Keras 3 相容性修復、自動檢查檔案與圖片上傳顯示功能，直接複製貼上到一個 Colab 儲存格即可執行。</p>
+                    </div>
+                    <button onclick="copyCode('colab-code', 'copy-btn-colab')" id="copy-btn-colab"
+                            class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition shadow-lg shadow-emerald-600/30 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        <span>複製 Colab 程式碼</span>
+                    </button>
+                </div>
+
+                <!-- 使用前小提醒 -->
+                <div class="mt-6 bg-emerald-950/40 border border-emerald-700/50 rounded-xl p-4 flex items-start gap-3">
+                    <span class="text-xl">💡</span>
+                    <div class="text-xs sm:text-sm text-emerald-200 space-y-1">
+                        <p class="font-bold text-emerald-300">在 Colab 執行的超簡單 3 步驟：</p>
+                        <ol class="list-decimal list-inside space-y-1 text-slate-300">
+                            <li>在 Google Colab 新增一個筆記本，點擊右上角「複製 Colab 程式碼」貼入儲存格並按執行。</li>
+                            <li>如果左邊檔案區還沒放入 <code>keras_Model.h5</code> 與 <code>labels.txt</code>，程式會自動跳出按鈕請您選取上傳。</li>
+                            <li>接著程式會請您選擇一張要測試的「貓或狗圖片」，並在下方直接印出預測結果與信心度圖表！</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- 程式碼展示區 -->
+                <div class="mt-6 relative">
+                    <div class="bg-slate-950 rounded-t-xl border border-b-0 border-slate-800 px-4 py-2.5 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs text-slate-400 ml-2 font-mono">colab_teachable_machine_inference.py</span>
+                        </div>
+                        <span class="text-xs text-emerald-400 font-medium">支援最新 Colab (Python 3.13 / 解決 2 input tensors 與 groups=1 錯誤)</span>
+                    </div>
+                    <pre id="colab-code" class="bg-slate-950 text-slate-200 p-5 rounded-b-xl border border-slate-800 overflow-x-auto text-xs sm:text-sm leading-relaxed custom-scrollbar"># ==============================================================================
+# Teachable Machine 貓狗分類模型 - Google Colab 直接運行修復版 (Python 3.13 適用)
+# 徹底解決：
+# 1. Layer "functional" expects 1 input(s), but it received 2 input tensors
+# 2. DepthwiseConv2D Unrecognized keyword arguments: {'groups': 1}
+# ==============================================================================
+
+# 安裝 Google 官方 Legacy Keras (tf_keras) 套件，免重啟即可直接匯入使用
+!pip install -q tf_keras
+
+import os
+import numpy as np
+import tf_keras as keras
+from PIL import Image, ImageOps
+import matplotlib.pyplot as plt
+from google.colab import files
+
+# 關閉科學記號顯示，讓機率輸出更清晰
+np.set_printoptions(suppress=True)
+
+MODEL_PATH = "keras_Model.h5"
+LABELS_PATH = "labels.txt"
+
+# 1. 檢查是否已上傳模型與標籤檔，若無則提示上傳
+if not os.path.exists(MODEL_PATH) or not os.path.exists(LABELS_PATH):
+    print("📤 請上傳從 Teachable Machine 導出解壓縮後的『keras_Model.h5』與『labels.txt』：")
+    uploaded_model = files.upload()
+
+# 2. 定義相容層包裝器：自動過濾掉舊版 Teachable Machine 多餘的 'groups': 1 參數
+class CompatibleDepthwiseConv2D(keras.layers.DepthwiseConv2D):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("groups", None)
+        super().__init__(*args, **kwargs)
+
+# 3. 使用 tf_keras (Keras 2 核心) 載入模型，避免 Keras 3 的 2 input tensors 結構誤判
+print("⏳ 正在載入模型...")
+model = keras.models.load_model(
+    MODEL_PATH,
+    custom_objects={"DepthwiseConv2D": CompatibleDepthwiseConv2D},
+    compile=False
+)
+
+with open(LABELS_PATH, "r", encoding="utf-8") as f:
+    class_names = [line.strip() for line in f.readlines()]
+print(f"✅ 模型載入成功！偵測到的類別：{class_names}\n")
+
+# 4. 上傳要測試的貓狗圖片並進行推論
+print("🖼️ 請選擇一張或多張要測試的「貓 / 狗」圖片上傳：")
+uploaded_images = files.upload()
+
+for img_name in uploaded_images.keys():
+    # 建立符合模型輸入格式的陣列 (1, 224, 224, 3)
+    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+
+    # 讀取圖片並轉換為 RGB
+    image = Image.open(img_name).convert("RGB")
+
+    # 調整大小並從中心裁切為 224x224 (Teachable Machine 標準前處理)
+    size = (224, 224)
+    image_resized = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
+
+    # 轉為 numpy 陣列並正規化至 [-1, 1] 區間
+    image_array = np.asarray(image_resized)
+    normalized_image_array = (image_array.astype(np.float32) / 127.5) - 1
+    data[0] = normalized_image_array
+
+    # 執行預測
+    prediction = model.predict(data, verbose=0)
+    index = np.argmax(prediction)
+    class_name = class_names[index]
+    confidence_score = prediction[0][index]
+
+    # 去除標籤前面的數字編號 (例如 "0 Cat" -> "Cat")
+    clean_label = class_name.split(" ", 1)[1] if " " in class_name else class_name
+
+    # 印出結果與繪製圖片
+    print("=" * 45)
+    print(f"📄 檔案名稱：{img_name}")
+    print(f"🎯 預測類別：{clean_label} (原始標籤: {class_name})")
+    print(f"📊 信心指數：{confidence_score * 100:.2f}%")
+    print("=" * 45)
+
+    plt.figure(figsize=(4, 4))
+    plt.imshow(image_resized)
+    plt.title(f"Prediction: {clean_label} ({confidence_score*100:.1f}%)", fontsize=12, fontweight="bold")
+    plt.axis("off")
+    plt.show()</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 章節 4：Gradio 互動式網頁範例程式 ==================== -->
+        <div id="tab-gradio" class="tab-content hidden space-y-8">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+                    <div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                            CHAPTER 04
+                        </span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white mt-2">使用 Gradio 打造貓狗分類互動 Web App</h2>
+                        <p class="text-slate-400 mt-1">將下方程式碼貼入 Colab，即可自動安裝 Gradio 並產生一個可拖曳圖片、即時顯示各類別機率長條圖的互動網頁（還附帶公開分享網址）！</p>
+                    </div>
+                    <button onclick="copyCode('gradio-code', 'copy-btn-gradio')" id="copy-btn-gradio"
+                            class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-sm transition shadow-lg shadow-purple-600/30 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        <span>複製 Gradio 完整程式碼</span>
+                    </button>
+                </div>
+
+                <!-- SVG Gradio 介面預覽模擬器 -->
+                <div class="mt-6 bg-slate-950 border border-slate-800 rounded-2xl p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 class="text-sm font-bold text-purple-400 flex items-center gap-2">
+                            <span>✨ Gradio 執行結果互動預覽（點擊下方按鈕體驗 Gradio 輸出效果）</span>
+                        </h3>
+                        <div class="flex gap-2">
+                            <button onclick="simulateGradio('cat')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30 transition">
+                                🐱 模擬上傳貓咪照片
+                            </button>
+                            <button onclick="simulateGradio('dog')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition">
+                                🐶 模擬上傳狗狗照片
+                            </button>
+                        </div>
+                    </div>
+
+                    <svg viewBox="0 0 850 210" class="w-full h-auto select-none bg-slate-900 rounded-xl border border-slate-800">
+                        <!-- 頂部瀏覽器列 -->
+                        <rect x="0" y="0" width="850" height="32" rx="8" fill="#1e293b" />
+                        <circle cx="18" cy="16" r="5" fill="#f43f5e" />
+                        <circle cx="34" cy="16" r="5" fill="#f59e0b" />
+                        <circle cx="50" cy="16" r="5" fill="#10b981" />
+                        <text x="425" y="20" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="11">https://xxxx.gradio.live - 🐾 Teachable Machine 貓狗分類 AI 辨識系統</text>
+
+                        <!-- 左側上傳框 -->
+                        <rect x="25" y="48" width="360" height="142" rx="10" fill="#0f172a" stroke="#334155" stroke-dasharray="5 3" stroke-width="1.5" />
+                        <text id="gradio-svg-emoji" x="205" y="110" text-anchor="middle" font-size="46">🐱</text>
+                        <text id="gradio-svg-filename" x="205" y="145" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="bold">目前測試圖片：cute_cat.jpg (224x224)</text>
+                        <text x="205" y="168" text-anchor="middle" fill="#64748b" font-size="11">拖曳圖片至此處或點擊上傳</text>
+
+                        <!-- 右側預測機率條 -->
+                        <rect x="410" y="48" width="415" height="142" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+                        <text x="430" y="75" fill="#e2e8f0" font-size="13" font-weight="bold">預測結果 (各類別信心度)</text>
+
+                        <!-- 類別 1 長條 -->
+                        <text id="gradio-bar1-label" x="430" y="105" fill="#cbd5e1" font-size="12" font-weight="bold">Cat (貓)</text>
+                        <text id="gradio-bar1-pct" x="800" y="105" text-anchor="end" fill="#38bdf8" font-size="12" font-weight="bold">99.4%</text>
+                        <rect x="430" y="113" width="370" height="14" rx="7" fill="#1e293b" />
+                        <rect id="gradio-bar1-fill" x="430" y="113" width="367" height="14" rx="7" fill="#38bdf8" />
+
+                        <!-- 類別 2 長條 -->
+                        <text id="gradio-bar2-label" x="430" y="152" fill="#cbd5e1" font-size="12" font-weight="bold">Dog (狗)</text>
+                        <text id="gradio-bar2-pct" x="800" y="152" text-anchor="end" fill="#94a3b8" font-size="12">0.6%</text>
+                        <rect x="430" y="160" width="370" height="14" rx="7" fill="#1e293b" />
+                        <rect id="gradio-bar2-fill" x="430" y="160" width="6" height="14" rx="7" fill="#f59e0b" />
+                    </svg>
+                </div>
+
+                <!-- Gradio 程式碼區塊 -->
+                <div class="mt-6 relative">
+                    <div class="bg-slate-950 rounded-t-xl border border-b-0 border-slate-800 px-4 py-2.5 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs text-slate-400 ml-2 font-mono">colab_gradio_web_app.py</span>
+                        </div>
+                        <span class="text-xs text-purple-400 font-medium">支援最新 Python 3.13 Colab ‧ 一鍵啟動 Gradio Web UI</span>
+                    </div>
+                    <pre id="gradio-code" class="bg-slate-950 text-slate-200 p-5 rounded-b-xl border border-slate-800 overflow-x-auto text-xs sm:text-sm leading-relaxed custom-scrollbar"># ==============================================================================
+# Teachable Machine 貓狗分類模型 - Gradio 互動式網頁應用 (Colab Python 3.13 完美運行版)
+# ==============================================================================
+
+# 1. 自動安裝 Gradio 與 tf_keras (解決 Keras 3 載入舊版 H5 的 2 input tensors 錯誤)
+!pip install -q gradio tf_keras
+
+import os
+import numpy as np
+import tf_keras as keras
+import gradio as gr
+from PIL import Image, ImageOps
+from google.colab import files
+
+np.set_printoptions(suppress=True)
+
+MODEL_PATH = "keras_Model.h5"
+LABELS_PATH = "labels.txt"
+
+# 2. 檢查模型與標籤檔案是否存在，若不存在則提示上傳
+if not os.path.exists(MODEL_PATH) or not os.path.exists(LABELS_PATH):
+    print("📤 請先上傳『keras_Model.h5』與『labels.txt』：")
+    files.upload()
+
+# 3. 定義 DepthwiseConv2D 相容層，忽略舊版 'groups': 1 參數
+class CompatibleDepthwiseConv2D(keras.layers.DepthwiseConv2D):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("groups", None)
+        super().__init__(*args, **kwargs)
+
+# 4. 使用 tf_keras 載入模型與類別名稱
+print("⏳ 正在載入模型...")
+model = keras.models.load_model(
+    MODEL_PATH,
+    custom_objects={"DepthwiseConv2D": CompatibleDepthwiseConv2D},
+    compile=False
+)
+
+with open(LABELS_PATH, "r", encoding="utf-8") as f:
+    raw_labels = [line.strip() for line in f.readlines()]
+    # 將 "0 Cat" 格式化為乾淨的類別名稱 "Cat"
+    class_names = [label.split(" ", 1)[1] if " " in label else label for label in raw_labels]
+print(f"✅ 模型載入完成！類別：{class_names}")
+
+# 5. 定義 Gradio 影像預測函數
+def classify_image(image):
+    if image is None:
+        return None
+
+    # 確保為 PIL RGB 影像
+    image = image.convert("RGB")
+
+    # 中心裁切並縮放至 224x224
+    size = (224, 224)
+    image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
+
+    # 轉換為陣列並正規化至 [-1, 1]
+    image_array = np.asarray(image)
+    normalized_image_array = (image_array.astype(np.float32) / 127.5) - 1
+
+    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+    data[0] = normalized_image_array
+
+    # 模型推論
+    prediction = model.predict(data, verbose=0)[0]
+
+    # 回傳字典格式 {類別名稱: 機率浮點數} 供 Gradio Label 元件繪製排行榜
+    return {class_names[i]: float(prediction[i]) for i in range(len(class_names))}
+
+# 6. 建立並啟動 Gradio 互動介面
+demo = gr.Interface(
+    fn=classify_image,
+    inputs=gr.Image(type="pil", label="上傳或拖曳貓/狗照片"),
+    outputs=gr.Label(num_top_classes=len(class_names), label="AI 預測結果與信心度"),
+    title="🐾 Teachable Machine 貓狗影像分類器",
+    description="上傳一張貓咪或狗狗的照片，模型將會即時分析並顯示各類別的預測機率！"
+)
+
+# share=True 會在 Colab 產生一個公開的 .gradio.live 網址，手機也能點開測試！
+demo.launch(share=True, debug=False)</pre>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 複製成功提示 Toast (避免使用 alert) -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl border border-emerald-400/40 flex items-center space-x-3">
+            <svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span id="toast-msg" class="text-sm font-medium">程式碼已成功複製到剪貼簿！可直接貼到 Colab 執行。</span>
+        </div>
+    </div>
+
+    <!-- 頁尾 -->
+    <footer class="border-t border-slate-800/80 bg-slate-900/40 py-5 text-center text-xs text-slate-500">
+        Teachable Machine 貓狗分類實戰互動指南 ‧ 專為最新 Google Colab (Keras 3) 與 Gradio 環境設計
+    </footer>
+
+    <script>
+        // 切換分頁與更新頂部 SVG 節點高亮狀態
+        function switchTab(tabId) {
+            // 隱藏所有內容
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+            // 顯示目標內容
+            document.getElementById(tabId).classList.remove('hidden');
+
+            // 更新導覽按鈕樣式
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-700/50";
+            });
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if (activeBtn) {
+                activeBtn.className = "tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-sky-500 text-white shadow";
+            }
+
+            // 更新頂部 SVG 節點樣式與狀態文字
+            const nodeMap = {
+                'tab-train': { id: 'svg-node-1', text: '目前檢視：步驟 1 - 訓練與評估貓狗分類模型' },
+                'tab-export': { id: 'svg-node-2', text: '目前檢視：步驟 2 - 導出 Keras 模型與版本衝突解析' },
+                'tab-colab': { id: 'svg-node-3', text: '目前檢視：步驟 3 - Colab 直接運行修復版程式碼' },
+                'tab-gradio': { id: 'svg-node-4', text: '目前檢視：步驟 4 - Gradio 互動式網頁應用程式碼' }
+            };
+
+            ['svg-node-1', 'svg-node-2', 'svg-node-3', 'svg-node-4'].forEach(id => {
+                const node = document.getElementById(id);
+                node.classList.remove('active-node');
+                node.classList.add('opacity-80');
+            });
+
+            const currentInfo = nodeMap[tabId];
+            if (currentInfo) {
+                const activeNode = document.getElementById(currentInfo.id);
+                activeNode.classList.add('active-node');
+                activeNode.classList.remove('opacity-80');
+                document.getElementById('pipeline-status').textContent = currentInfo.text;
+            }
+        }
+
+        // 互動式調整訓練圖表滑桿 (模擬截圖一的曲線數值)
+        function updateEpochCharts(epoch) {
+            const ep = parseInt(epoch, 10);
+            document.getElementById('epoch-display').textContent = ep + ' / 50';
+
+            // 計算 X 座標 (45 ~ 380)
+            const xPos = 45 + (ep / 50) * (380 - 45);
+
+            // 計算 Accuracy 與 Loss 模擬值
+            let acc = ep === 1 ? 0.96 : (ep === 2 ? 0.99 : 1.00);
+            let valAcc = ep === 1 ? 0.98 : 1.00;
+            let accY = 190 - (acc * 170);
+
+            let loss = ep === 1 ? 0.195 : (ep === 2 ? 0.012 : (ep === 3 ? 0.004 : 0.001));
+            let valLoss = ep === 1 ? 0.008 : (ep === 2 ? 0.004 : 0.002);
+            let lossY = 190 - ((loss / 0.20) * 170);
+
+            document.getElementById('acc-val').textContent = acc.toFixed(2);
+            document.getElementById('val-acc-val').textContent = valAcc.toFixed(2);
+            document.getElementById('acc-cursor').setAttribute('x1', xPos);
+            document.getElementById('acc-cursor').setAttribute('x2', xPos);
+            document.getElementById('acc-dot').setAttribute('cx', xPos);
+            document.getElementById('acc-dot').setAttribute('cy', accY);
+
+            document.getElementById('loss-val').textContent = loss.toFixed(3);
+            document.getElementById('val-loss-val').textContent = valLoss.toFixed(3);
+            document.getElementById('loss-cursor').setAttribute('x1', xPos);
+            document.getElementById('loss-cursor').setAttribute('x2', xPos);
+            document.getElementById('loss-dot').setAttribute('cx', xPos);
+            document.getElementById('loss-dot').setAttribute('cy', lossY);
+        }
+
+        // 互動式預覽 Gradio 貓狗預測效果
+        function simulateGradio(type) {
+            if (type === 'cat') {
+                document.getElementById('gradio-svg-emoji').textContent = '🐱';
+                document.getElementById('gradio-svg-filename').textContent = '目前測試圖片：cute_cat.jpg (224x224)';
+                document.getElementById('gradio-bar1-label').textContent = 'Cat (貓)';
+                document.getElementById('gradio-bar1-pct').textContent = '99.4%';
+                document.getElementById('gradio-bar1-fill').setAttribute('width', '367');
+                document.getElementById('gradio-bar2-label').textContent = 'Dog (狗)';
+                document.getElementById('gradio-bar2-pct').textContent = '0.6%';
+                document.getElementById('gradio-bar2-fill').setAttribute('width', '6');
+            } else {
+                document.getElementById('gradio-svg-emoji').textContent = '🐶';
+                document.getElementById('gradio-svg-filename').textContent = '目前測試圖片：golden_retriever.jpg (224x224)';
+                document.getElementById('gradio-bar1-label').textContent = 'Dog (狗)';
+                document.getElementById('gradio-bar1-pct').textContent = '98.8%';
+                document.getElementById('gradio-bar1-fill').setAttribute('width', '365');
+                document.getElementById('gradio-bar2-label').textContent = 'Cat (貓)';
+                document.getElementById('gradio-bar2-pct').textContent = '1.2%';
+                document.getElementById('gradio-bar2-fill').setAttribute('width', '9');
+            }
+        }
+
+        // 複製程式碼功能 (使用 execCommand 確保於 iframe 環境百分之百相容)
+        function copyCode(preId, btnId) {
+            const codeText = document.getElementById(preId).innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast('✅ 程式碼已複製！現在可以直接貼上到 Google Colab 儲存格執行。');
+
+                const btn = document.getElementById(btnId);
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<span>✅ 已成功複製！</span>';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                }, 2000);
+            } catch (err) {
+                showToast('⚠️ 複製失敗，請手動選取程式碼複製。');
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // 顯示底部提示訊息
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

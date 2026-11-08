@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Colab 新手上路：訓練 YOLO 行前需知</title>
+<style>
+:root{--bg:#faf8f3;--sf:#fff;--sf2:#f0ece2;--tx:#2b2a27;--mu:#6d6a62;--bd:#ddd7c8;--ac:#f9ab00;--ac2:#e8710a;--code:#1e1e1e;--codetx:#d4e8c2;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17160f;--sf:#232119;--sf2:#2e2b20;--tx:#f1eee4;--mu:#a9a595;--bd:#403c2c;--code:#0d0d0b;--codetx:#bfe3a4}}
+:root[data-theme="dark"]{--bg:#17160f;--sf:#232119;--sf2:#2e2b20;--tx:#f1eee4;--mu:#a9a595;--bd:#403c2c;--code:#0d0d0b;--codetx:#bfe3a4}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg)}
+svg{display:block;width:100%;max-width:900px;margin:0 auto;height:auto}
+text{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;fill:var(--tx)}
+.mu{fill:var(--mu)}.mono{font-family:Consolas,Menlo,monospace}
+.card{fill:var(--sf);stroke:var(--bd)}.card2{fill:var(--sf2);stroke:var(--bd)}
+.num{fill:var(--ac)}.numt{fill:#2b2a27;font-weight:700;font-size:13px;text-anchor:middle}
+.h2{font-size:22px;font-weight:700}
+.ct{fill:var(--codetx)}
+</style>
+</head>
+<body>
+<svg viewBox="0 0 900 2040" role="img" aria-label="Colab 介面與功能教學一頁圖">
+<!-- Header -->
+<rect x="0" y="0" width="900" height="120" fill="var(--ac)"/>
+<text x="40" y="58" font-size="32" font-weight="700" style="fill:#2b2a27">Colab 新手上路：訓練 YOLO 行前需知</text>
+<text x="40" y="92" font-size="16" style="fill:#2b2a27">雲端開發環境 ｜ 用瀏覽器就隨時能跑 Python 與 GPU，免安裝環境</text>
+
+<!-- Section 1 -->
+<text x="40" y="162" class="h2">① 認識 Colab 介面</text>
+<rect x="40" y="180" width="820" height="290" rx="12" class="card"/>
+<path d="M40 192a12 12 0 0 1 12-12h796a12 12 0 0 1 12 12v20H40z" fill="var(--sf2)"/>
+<text x="60" y="202" font-size="14">檔案</text><text x="110" y="202" font-size="14">編輯</text><text x="160" y="202" font-size="14">檢視</text><text x="210" y="202" font-size="14">插入</text>
+<rect x="250" y="186" width="74" height="22" rx="5" fill="var(--ac)"/>
+<text x="258" y="202" font-size="14" style="fill:#2b2a27;font-weight:700">執行階段</text>
+<text x="340" y="202" font-size="14">工具</text><text x="390" y="202" font-size="14">說明</text>
+<text x="590" y="202" font-size="12" class="mu">RAM ▮▮▮▯  磁碟 ▮▯▯▯</text>
+<rect x="740" y="186" width="100" height="22" rx="11" fill="none" stroke="var(--ac2)" stroke-width="2"/>
+<text x="758" y="202" font-size="13" style="fill:var(--ac2);font-weight:700">✓ 已連線</text>
+<rect x="40" y="212" width="60" height="258" fill="var(--sf2)"/>
+<text x="70" y="248" font-size="18" text-anchor="middle">☰</text>
+<text x="70" y="288" font-size="18" text-anchor="middle">🔍</text>
+<text x="70" y="328" font-size="16" text-anchor="middle" class="mono">{x}</text>
+<text x="70" y="368" font-size="18" text-anchor="middle">📁</text>
+<text x="70" y="408" font-size="18" text-anchor="middle">🔑</text>
+<rect x="120" y="226" width="720" height="84" rx="6" fill="var(--code)"/>
+<circle cx="145" cy="268" r="14" fill="var(--ac)"/><path d="M140 261l12 7-12 7z" fill="#2b2a27"/>
+<text x="175" y="259" font-size="14" class="mono ct">!nvidia-smi</text>
+<text x="175" y="283" font-size="14" class="mono ct">from ultralytics import YOLO</text>
+<rect x="120" y="318" width="720" height="58" rx="6" class="card2"/>
+<text x="136" y="352" font-size="14" class="mono">GPU 0: Tesla T4   15360MiB</text>
+<rect x="120" y="388" width="720" height="62" rx="6" fill="none" stroke="var(--bd)" stroke-dasharray="5 4"/>
+<text x="136" y="424" font-size="15" class="mu"># 文字儲存格（Markdown）：寫標題、筆記、說明</text>
+<!-- callout badges -->
+<g><circle cx="108" cy="228" r="11" class="num"/><text x="108" y="233" class="numt">1</text>
+<circle cx="337" cy="186" r="11" class="num"/><text x="337" y="191" class="numt">2</text>
+<circle cx="852" cy="186" r="11" class="num"/><text x="852" y="191" class="numt">3</text>
+<circle cx="112" cy="268" r="11" class="num"/><text x="112" y="273" class="numt">4</text>
+<circle cx="828" cy="330" r="11" class="num"/><text x="828" y="335" class="numt">5</text>
+<circle cx="828" cy="400" r="11" class="num"/><text x="828" y="405" class="numt">6</text></g>
+<!-- legend -->
+<g font-size="14">
+<circle cx="52" cy="504" r="11" class="num"/><text x="52" y="509" class="numt">1</text><text x="72" y="509">左側欄：目錄、搜尋、變數、檔案、密鑰</text>
+<circle cx="462" cy="504" r="11" class="num"/><text x="462" y="509" class="numt">2</text><text x="482" y="509">「執行階段」：選 GPU、重新啟動、中斷</text>
+<circle cx="52" cy="540" r="11" class="num"/><text x="52" y="545" class="numt">3</text><text x="72" y="545">右上角：連線狀態、RAM 與磁碟用量</text>
+<circle cx="462" cy="540" r="11" class="num"/><text x="462" y="545" class="numt">4</text><text x="482" y="545">程式碼儲存格：▶ 或 Shift+Enter 執行</text>
+<circle cx="52" cy="576" r="11" class="num"/><text x="52" y="581" class="numt">5</text><text x="72" y="581">輸出區：結果、圖表、錯誤訊息</text>
+<circle cx="462" cy="576" r="11" class="num"/><text x="462" y="581" class="numt">6</text><text x="482" y="581">文字儲存格：用 Markdown 寫筆記</text>
+</g>
+<text x="40" y="616" font-size="14" class="mu">小技巧：行首加「!」執行終端機指令（如 !pip install）；加「%」是 Jupyter 魔術指令（如 %cd）。</text>
+
+<!-- Section 2 -->
+<text x="40" y="676" class="h2">② 三步驟開啟 GPU（訓練 YOLO 必做）</text>
+<g>
+<rect x="40" y="696" width="250" height="110" rx="10" class="card"/>
+<circle cx="64" cy="720" r="13" class="num"/><text x="64" y="725" class="numt">1</text>
+<text x="86" y="726" font-size="17" font-weight="700">打開選單</text>
+<text x="60" y="758" font-size="14">執行階段 → 變更執行階段類型</text>
+<text x="60" y="784" font-size="13" class="mu">（Runtime → Change runtime type）</text>
+<path d="M296 751h28l-8-8m8 8l-8 8" stroke="var(--ac2)" stroke-width="3" fill="none" stroke-linecap="round"/>
+<rect x="330" y="696" width="250" height="110" rx="10" class="card"/>
+<circle cx="354" cy="720" r="13" class="num"/><text x="354" y="725" class="numt">2</text>
+<text x="376" y="726" font-size="17" font-weight="700">選硬體加速器</text>
+<text x="350" y="758" font-size="14">選「T4 GPU」，按儲存</text>
+<text x="350" y="784" font-size="13" class="mu">會重新連線，變數會清空</text>
+<path d="M586 751h28l-8-8m8 8l-8 8" stroke="var(--ac2)" stroke-width="3" fill="none" stroke-linecap="round"/>
+<rect x="620" y="696" width="240" height="110" rx="10" class="card"/>
+<circle cx="644" cy="720" r="13" class="num"/><text x="644" y="725" class="numt">3</text>
+<text x="666" y="726" font-size="17" font-weight="700">驗證</text>
+<text x="640" y="758" font-size="14" class="mono">!nvidia-smi</text>
+<text x="640" y="784" font-size="13" class="mu">看到 Tesla T4 就成功</text>
+</g>
+
+<!-- Section 3 -->
+<text x="40" y="866" class="h2">③ 注意事項</text>
+<g font-size="14">
+<rect x="40" y="886" width="410" height="96" rx="10" class="card"/><rect x="40" y="886" width="6" height="96" fill="var(--ac2)"/>
+<text x="62" y="914" font-size="16" font-weight="700">⏱ 連線會中斷</text>
+<text x="62" y="940">閒置或使用過久就會被回收（免費版</text><text x="62" y="962">約 12 小時上限，實際時間不保證）</text>
+<rect x="470" y="886" width="390" height="96" rx="10" class="card"/><rect x="470" y="886" width="6" height="96" fill="var(--ac2)"/>
+<text x="492" y="914" font-size="16" font-weight="700">💾 檔案是暫存的</text>
+<text x="492" y="940">斷線後 /content 內容全部消失，</text><text x="492" y="962">權重與結果務必存到 Google Drive</text>
+<rect x="40" y="998" width="410" height="96" rx="10" class="card"/><rect x="40" y="998" width="6" height="96" fill="var(--ac)"/>
+<text x="62" y="1026" font-size="16" font-weight="700">🎫 GPU 有使用配額</text>
+<text x="62" y="1052">用太多會被暫時限制；跑完請按</text><text x="62" y="1074">「執行階段 → 中斷連線並刪除」</text>
+<rect x="470" y="998" width="390" height="96" rx="10" class="card"/><rect x="470" y="998" width="6" height="96" fill="var(--ac)"/>
+<text x="492" y="1026" font-size="16" font-weight="700">🖥 訓練時別關分頁</text>
+<text x="492" y="1052">保持分頁開啟、電腦不休眠；</text><text x="492" y="1074">先用 epochs=3 測試流程再加大</text>
+<rect x="40" y="1110" width="410" height="96" rx="10" class="card"/><rect x="40" y="1110" width="6" height="96" fill="var(--ac)"/>
+<text x="62" y="1138" font-size="16" font-weight="700">📂 路徑要搞清楚</text>
+<text x="62" y="1164">工作目錄是 /content；Drive 掛載後</text><text x="62" y="1186" class="mono" style="font-size:13px">在 /content/drive/MyDrive</text>
+<rect x="470" y="1110" width="390" height="96" rx="10" class="card"/><rect x="470" y="1110" width="390" height="96" rx="10" fill="none"/><rect x="470" y="1110" width="6" height="96" fill="var(--ac2)"/>
+<text x="492" y="1138" font-size="16" font-weight="700">🔐 金鑰別寫進程式</text>
+<text x="492" y="1164">API Key 放左側「密鑰」，分享筆記本</text><text x="492" y="1186">前先清掉輸出與敏感資訊</text>
+</g>
+
+<!-- Section 4 -->
+<text x="40" y="1266" class="h2">④ YOLO 訓練流程總覽</text>
+<line x1="64" y1="1306" x2="64" y2="1522" stroke="var(--bd)" stroke-width="3"/>
+<g font-size="16">
+<circle cx="64" cy="1306" r="14" class="num"/><text x="64" y="1311" class="numt">1</text><text x="96" y="1312" font-weight="700">安裝套件</text>
+<rect x="300" y="1288" width="560" height="38" rx="6" fill="var(--code)"/><text x="316" y="1312" font-size="14" class="mono ct">!pip install ultralytics</text>
+<circle cx="64" cy="1360" r="14" class="num"/><text x="64" y="1365" class="numt">2</text><text x="96" y="1366" font-weight="700">掛載雲端硬碟</text>
+<rect x="300" y="1342" width="560" height="38" rx="6" fill="var(--code)"/><text x="316" y="1366" font-size="14" class="mono ct">drive.mount('/content/drive')</text>
+<circle cx="64" cy="1414" r="14" class="num"/><text x="64" y="1419" class="numt">3</text><text x="96" y="1420" font-weight="700">準備資料集</text>
+<rect x="300" y="1396" width="560" height="38" rx="6" fill="var(--code)"/><text x="316" y="1420" font-size="14" class="mono ct">data.yaml → train / val / names</text>
+<circle cx="64" cy="1468" r="14" class="num"/><text x="64" y="1473" class="numt">4</text><text x="96" y="1474" font-weight="700">開始訓練</text>
+<rect x="300" y="1450" width="560" height="38" rx="6" fill="var(--code)"/><text x="316" y="1474" font-size="14" class="mono ct">YOLO('yolo11n.pt').train(data='data.yaml', epochs=50)</text>
+<circle cx="64" cy="1522" r="14" class="num"/><text x="64" y="1527" class="numt">5</text><text x="96" y="1528" font-weight="700">保存與驗證</text>
+<rect x="300" y="1504" width="560" height="38" rx="6" fill="var(--code)"/><text x="316" y="1528" font-size="14" class="mono ct">runs/detect/train/weights/best.pt → 複製到 Drive</text>
+</g>
+
+<!-- Section 5 -->
+<text x="40" y="1596" class="h2">⑤ 資料集：ZIP 上傳 → 解壓縮 → 權重存回 Drive</text>
+<g font-size="14">
+<rect x="40" y="1616" width="410" height="88" rx="10" class="card"/><rect x="40" y="1616" width="6" height="88" fill="var(--ac)"/>
+<text x="62" y="1644" font-size="16" font-weight="700">📦 ZIP 上傳更快</text>
+<text x="62" y="1670">數千張小圖逐一上傳很慢，</text><text x="62" y="1692">先打包成單一 .zip 速度大幅提升</text>
+<rect x="470" y="1616" width="390" height="88" rx="10" class="card"/><rect x="470" y="1616" width="6" height="88" fill="var(--ac)"/>
+<text x="492" y="1644" font-size="16" font-weight="700">⚡ 訓練讀取更快</text>
+<text x="492" y="1670">解壓縮到虛擬機本機磁碟 /content，</text><text x="492" y="1692">讀取速度比直接讀 Drive 快</text>
+</g>
+<line x1="64" y1="1744" x2="64" y2="1912" stroke="var(--bd)" stroke-width="3"/>
+<g font-size="16">
+<circle cx="64" cy="1744" r="14" class="num"/><text x="64" y="1749" class="numt">1</text><text x="96" y="1750" font-weight="700">上傳 ZIP</text>
+<rect x="300" y="1725" width="560" height="38" rx="6" class="card2"/><text x="316" y="1749" font-size="14">左側 📁「檔案」→ 上傳，或把 dataset.zip 拖曳進去</text>
+<circle cx="64" cy="1812" r="14" class="num"/><text x="64" y="1817" class="numt">2</text><text x="96" y="1818" font-weight="700">終端機解壓縮</text>
+<rect x="300" y="1781" width="560" height="62" rx="6" fill="var(--code)"/><text x="316" y="1806" font-size="14" class="mono ct">unzip -q dataset.zip -d /content/dataset</text><text x="316" y="1830" font-size="14" class="mono ct">ls /content/dataset</text>
+<text x="300" y="1862" font-size="13" class="mu">找不到終端機按鈕時，可改在程式碼儲存格寫 !unzip ...（指令相同）</text>
+<circle cx="64" cy="1912" r="14" class="num"/><text x="64" y="1917" class="numt">3</text><text x="96" y="1918" font-weight="700">權重存回 Drive</text>
+<rect x="300" y="1881" width="560" height="62" rx="6" fill="var(--code)"/><text x="316" y="1906" font-size="14" class="mono ct">!cp -r runs/detect/train/weights /content/drive/MyDrive/</text><text x="316" y="1930" font-size="14" class="mono ct">或訓練時 project='/content/drive/MyDrive/yolo_runs'</text>
+</g>
+<text x="96" y="1940" font-size="12" class="mu">中斷也不怕，權重還在</text>
+<!-- Footer -->
+<rect x="40" y="1976" width="820" height="44" rx="10" fill="var(--sf2)" stroke="var(--bd)"/>
+<text x="60" y="2004" font-size="15">🎓因GPU使用時間寶貴，建議程式貼好後再切換GPU，並測試「連線 → 選 GPU → !nvidia-smi」，都跑通再往下。</text>
+</svg>
+</body>
+</html>
