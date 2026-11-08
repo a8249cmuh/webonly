@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d1117">
+    <title>機器學習互動網頁_目錄</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+            --bg-main: #0d1117;
+            --bg-card: #161b22;
+            --bg-card-hover: #1f2631;
+            --bg-subtle: #21262d;
+            --border: #30363d;
+            --border-hover: #58a6ff;
+            --text-main: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-subtle: rgba(56, 139, 253, 0.15);
+            --green: #3fb950;
+            --purple: #a371f7;
+            --orange: #d29922;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px 80px;
+            background-color: var(--bg-main);
+            background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88, 166, 255, 0.12), transparent);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: min(100%, 1040px);
+            margin: 0 auto;
+        }
+
+        /* ===== 頂部標題區 ===== */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .repo-mark {
+            display: grid;
+            width: 44px;
+            height: 44px;
+            place-items: center;
+            border: 1px solid #424b55;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #27364a, #16202c);
+            color: #79c0ff;
+            font-size: 22px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .title-group h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-public {
+            padding: 2px 10px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--bg-subtle);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .subtitle {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .stats-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .stats-pill strong {
+            color: var(--accent);
+        }
+
+        /* ===== 工具列（分類篩選 + 搜尋 + 視角切換） ===== */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 24px 0 20px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: #484f58;
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            border-color: var(--accent);
+            background: var(--accent-subtle);
+            color: var(--accent);
+        }
+
+        .tab-count {
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 11px;
+        }
+
+        .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1 1 auto;
+            justify-content: flex-end;
+        }
+
+        .search-box {
+            position: relative;
+            width: min(100%, 260px);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 32px 8px 34px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+        .shortcut-hint {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 1px 5px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-muted);
+            font-size: 11px;
+            pointer-events: none;
+        }
+
+        .view-toggle {
+            display: inline-flex;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-card);
+        }
+
+        .view-btn {
+            padding: 7px 11px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .view-btn.active {
+            background: var(--bg-subtle);
+            color: var(--accent);
+        }
+
+        /* ===== 網格卡片模式 (預設) ===== */
+        .links-container.grid-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 14px;
+        }
+
+        /* ===== 清單模式 (GitHub 風) ===== */
+        .links-container.list-view {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--bg-card);
+        }
+
+        /* ===== 連結項目卡片 ===== */
+        .link-card {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-card);
+            color: var(--text-main);
+            text-decoration: none;
+            transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        .grid-view .link-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-hover);
+            background: var(--bg-card-hover);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        /* 清單模式下的樣式覆寫 */
+        .list-view .link-card {
+            border: none;
+            border-bottom: 1px solid var(--border);
+            border-radius: 0;
+            padding: 13px 18px;
+            align-items: center;
+        }
+
+        .list-view .link-card:last-child {
+            border-bottom: none;
+        }
+
+        .list-view .link-card:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .card-icon {
+            flex: 0 0 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            font-size: 20px;
+        }
+
+        .list-view .card-icon {
+            flex: 0 0 34px;
+            height: 34px;
+            font-size: 17px;
+            border-radius: 8px;
+        }
+
+        .card-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-view .card-body {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .card-title {
+            margin: 0 0 6px;
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-main);
+            transition: color 0.15s;
+        }
+
+        .list-view .card-title {
+            margin: 0;
+        }
+
+        .link-card:hover .card-title {
+            color: var(--accent);
+        }
+
+        .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .cat-tag {
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--bg-subtle);
+            color: var(--text-muted);
+        }
+
+        .cat-tag[data-cat="互動實驗室"] {
+            background: rgba(63, 185, 80, 0.15);
+            color: #56d364;
+        }
+
+        .cat-tag[data-cat="實戰與工具"] {
+            background: rgba(163, 113, 247, 0.15);
+            color: #bc8cff;
+        }
+
+        .cat-tag[data-cat="延伸科學"] {
+            background: rgba(210, 153, 34, 0.15);
+            color: #e3b341;
+        }
+
+        .file-path {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            opacity: 0.8;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .card-arrow {
+            color: var(--text-muted);
+            font-size: 14px;
+            transition: transform 0.18s ease, color 0.18s ease;
+            align-self: center;
+        }
+
+        .link-card:hover .card-arrow {
+            color: var(--accent);
+            transform: translate(2px, -2px);
+        }
+
+        /* 空狀態 */
+        .empty-state {
+            padding: 48px 20px;
+            text-align: center;
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 24px 14px 60px;
+            }
+
+            .controls-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .search-box {
+                flex: 1;
+                width: auto;
+            }
+
+            .list-view .card-body {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <!-- 頂部標題 -->
+        <header class="header">
+            <div class="brand">
+                <div class="repo-mark" aria-hidden="true">✦</div>
+                <div class="title-group">
+                    <h1>
+                        <span id="page-title">機器學習互動網頁_目錄</span>
+                        <span class="badge-public">公開</span>
+                    </h1>
+                    <p class="subtitle" id="page-version">版本：2026.10.20.A</p>
+                </div>
+            </div>
+            <div class="stats-pill">
+                <span>⑂ 我的書籤</span>
+                <span>·</span>
+                <span>共 <strong id="total-count">0</strong> 個資源</span>
+            </div>
+        </header>
+
+        <!-- 篩選與搜尋工具列 -->
+        <section class="toolbar" aria-label="篩選與搜尋">
+            <div class="filter-tabs" id="filter-tabs">
+                <!-- 由 JS 自動產生分類按鈕 -->
+            </div>
+
+            <div class="controls-right">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="search" id="search-input" placeholder="搜尋教材名稱或檔名..." aria-label="搜尋連結">
+                    <span class="shortcut-hint">/</span>
+                </div>
+                <div class="view-toggle" role="group" aria-label="檢視模式切換">
+                    <button type="button" class="view-btn active" id="btn-grid" title="卡片檢視">⊞</button>
+                    <button type="button" class="view-btn" id="btn-list" title="列表檢視">☰</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 連結清單渲染區 -->
+        <section id="links-container" class="links-container grid-view" aria-label="連結清單"></section>
+    </main>
+
+    <script>
+        /* =========================================================================
+         * 🛠️ 維護區：日後新增、修改或刪除連結，只需要改下面這個清單即可！
+         * -------------------------------------------------------------------------
+         * 欄位說明：
+         * - title    : 顯示在畫面上的名稱
+         * - url      : 檔案名稱 (如 "A01-1.html") 或 完整網址 (如 "https://...")
+         * - icon     : 圖示 (可用任何 Emoji，例如 😊, 🛠️, 📊, 🧠)
+         * - category : 分類名稱 (上方會自動根據這裡的文字產生分類按鈕！)
+         * ========================================================================= */
+        const PAGE_CONFIG = {
+            title: "機器學習互動網頁_目錄",
+            version: "2026.10.20.A"
+        };
+
+        const LINKS_DATA = [
+            {
+                title: "混淆矩陣四大指標互動實驗室",
+                url: "A01-1.html",
+                icon: "😊",
+                category: "互動實驗室"
+            },
+            {
+                title: "貓狗辨識輸送帶 × 混淆矩陣實驗室",
+                url: "catanddog.html",
+                icon: "😊",
+                category: "互動實驗室"
+            },
+            {
+                title: "機器學習互動實驗室",
+                url: "ML01-1.html",
+                icon: "😊",
+                category: "互動實驗室"
+            },
+            {
+                title: "K 折交叉驗證 (K-Fold)",
+                url: "K-Fold.html",
+                icon: "😊",
+                category: "互動實驗室"
+            },
+            {
+                title: "特徵縮放 (Feature Scaling)",
+                url: "code_artifact .html",
+                icon: "😊",
+                category: "互動實驗室"
+            },
+            {
+                title: "滲流理論：為什麼 58% 跟 0% 效果幾乎一樣？",
+                url: "Percolation_Phase .html",
+                icon: "😊",
+                category: "延伸科學"
+            },
+            {
+                title: "Colab 新手上路：訓練 YOLO 前必知",
+                url: "Colab 新手上路：訓練 YOLO 前必知.html",
+                icon: "🛠️",
+                category: "實戰與工具"
+            },
+            {
+                title: "YOLO 訓練與超參數",
+                url: "YOLO 訓練與超參數.html",
+                icon: "🛠️",
+                category: "實戰與工具"
+            },
+            {
+                title: "從 Teachable Machine 訓練模型到 Colab",
+                url: "teachable_machine_colab.html",
+                icon: "🛠️",
+                category: "實戰與工具"
+            },
+            {
+                title: "Google 機器學習課程",
+                url: "https://developers.google.com/machine-learning?hl=zh-tw",
+                icon: "🛠️",
+                category: "實戰與工具"
+            }
+            // 👇 日後新增連結，只要複製上面一組 { ... } 貼在下面即可！
+        ];
+
+        /* =========================================================================
+         * 以下為自動渲染程式，日常新增連結時無須修改
+         * ========================================================================= */
+        document.getElementById('page-title').textContent = PAGE_CONFIG.title;
+        document.getElementById('page-version').textContent = `更新版本：${PAGE_CONFIG.version}`;
+        document.getElementById('total-count').textContent = LINKS_DATA.length;
+
+        const container = document.getElementById('links-container');
+        const filterTabs = document.getElementById('filter-tabs');
+        const searchInput = document.getElementById('search-input');
+        const btnGrid = document.getElementById('btn-grid');
+        const btnList = document.getElementById('btn-list');
+
+        let currentCategory = '全部';
+        let searchQuery = '';
+
+        // 取得所有不重複分類並計算數量
+        function renderTabs() {
+            const counts = { '全部': LINKS_DATA.length };
+            LINKS_DATA.forEach(item => {
+                const cat = item.category || '未分類';
+                counts[cat] = (counts[cat] || 0) + 1;
+            });
+
+            filterTabs.innerHTML = Object.keys(counts).map(cat => `
+                <button type="button" class="tab-btn ${cat === currentCategory ? 'active' : ''}" data-category="${cat}">
+                    <span>${cat}</span>
+                    <span class="tab-count">${counts[cat]}</span>
+                </button>
+            `).join('');
+
+            filterTabs.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentCategory = btn.dataset.category;
+                    renderTabs();
+                    renderLinks();
+                });
+            });
+        }
+
+        // 渲染卡片列表
+        function renderLinks() {
+            const q = searchQuery.trim().toLowerCase();
+            const filtered = LINKS_DATA.filter(item => {
+                const matchCat = currentCategory === '全部' || (item.category || '未分類') === currentCategory;
+                const matchSearch = !q ||
+                    item.title.toLowerCase().includes(q) ||
+                    item.url.toLowerCase().includes(q) ||
+                    (item.category && item.category.toLowerCase().includes(q));
+                return matchCat && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="empty-state">找不到符合「${searchQuery}」的連結項目</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => {
+                const isExternal = /^https?:\/\//i.test(item.url);
+                const displayPath = isExternal ? new URL(item.url).hostname : item.url;
+                const cat = item.category || '未分類';
+
+                return `
+                    <a class="link-card" href="${item.url}" target="_blank" rel="noopener noreferrer">
+                        <div class="card-icon" aria-hidden="true">${item.icon || '📄'}</div>
+                        <div class="card-body">
+                            <h2 class="card-title">${item.title}</h2>
+                            <div class="card-meta">
+                                <span class="cat-tag" data-cat="${cat}">${cat}</span>
+                                <span class="file-path" title="${item.url}">${displayPath}</span>
+                            </div>
+                        </div>
+                        <span class="card-arrow" aria-hidden="true">↗</span>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        // 搜尋事件
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderLinks();
+        });
+
+        // 快捷鍵 "/" 聚焦搜尋框
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== searchInput) {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        // 切換網格 / 列表模式（並記住設定）
+        function setViewMode(mode) {
+            if (mode === 'list') {
+                container.classList.remove('grid-view');
+                container.classList.add('list-view');
+                btnList.classList.add('active');
+                btnGrid.classList.remove('active');
+            } else {
+                container.classList.remove('list-view');
+                container.classList.add('grid-view');
+                btnGrid.classList.add('active');
+                btnList.classList.remove('active');
+            }
+            localStorage.setItem('ml_portal_view', mode);
+        }
+
+        btnGrid.addEventListener('click', () => setViewMode('grid'));
+        btnList.addEventListener('click', () => setViewMode('list'));
+
+        // 初始化
+        const savedView = localStorage.getItem('ml_portal_view') || 'grid';
+        setViewMode(savedView);
+        renderTabs();
+        renderLinks();
+    </script>
+</body>
+
+</html>
