@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="day">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>機器學習互動實驗室：從直覺畫線到幾何決策空間</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================
+           1. 三種主題色彩變數系統 (Day / Night / Candy)
+           ========================================== */
+        :root, [data-theme="day"] {
+            --bg-main: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --bg-subtle: #F1F5F9;
+            --text-main: #0F172A;
+            --text-muted: #475569;
+            --border-color: #E2E8F0;
+            --accent-primary: #2563EB;
+            --accent-secondary: #0D9488;
+            --accent-warn: #F59E0B;
+            --accent-danger: #E11D48;
+            --accent-purple: #7C3AED;
+            --card-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+            --card-border-width: 1px;
+            --svg-grid: #E2E8F0;
+            --svg-axis: #94A3B8;
+            --square-fill: rgba(245, 158, 11, 0.16);
+            --square-stroke: rgba(245, 158, 11, 0.65);
+        }
+
+        [data-theme="night"] {
+            --bg-main: #0B1120;
+            --bg-card: #1E293B;
+            --bg-subtle: #0F172A;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border-color: #334155;
+            --accent-primary: #38BDF8;
+            --accent-secondary: #2DD4BF;
+            --accent-warn: #FBBF24;
+            --accent-danger: #FB7185;
+            --accent-purple: #A78BFA;
+            --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.55);
+            --card-border-width: 1px;
+            --svg-grid: #1E293B;
+            --svg-axis: #64748B;
+            --square-fill: rgba(251, 191, 36, 0.18);
+            --square-stroke: rgba(251, 191, 36, 0.7);
+        }
+
+        [data-theme="candy"] {
+            --bg-main: #FEFCE8;
+            --bg-card: #FFFFFF;
+            --bg-subtle: #E0F2FE;
+            --text-main: #0F172A;
+            --text-muted: #0369A1;
+            --border-color: #38BDF8;
+            --accent-primary: #0284C7;
+            --accent-secondary: #F59E0B;
+            --accent-warn: #EA580C;
+            --accent-danger: #E11D48;
+            --accent-purple: #0D9488;
+            --card-shadow: 4px 4px 0px #FACC15;
+            --card-border-width: 2px;
+            --svg-grid: #BAE6FD;
+            --svg-axis: #0284C7;
+            --square-fill: rgba(250, 204, 21, 0.28);
+            --square-stroke: rgba(2, 132, 199, 0.75);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.25s ease, color 0.25s ease;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .font-mono-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 主題卡片與按鈕通用樣式 */
+        .theme-card {
+            background-color: var(--bg-card);
+            border: var(--card-border-width) solid var(--border-color);
+            box-shadow: var(--card-shadow);
+            border-radius: 1rem;
+            transition: all 0.25s ease;
+        }
+
+        .theme-subtle-box {
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+        }
+
+        .theme-btn {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+            border: var(--card-border-width) solid var(--border-color);
+            border-radius: 0.65rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+        .theme-btn.active {
+            background-color: var(--accent-primary);
+            color: #FFFFFF;
+            border-color: var(--accent-primary);
+            font-weight: 700;
+        }
+
+        /* ==========================================
+           2. SVG 動態微互動動畫庫
+           ========================================== */
+        @keyframes svg-breathe {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 3px var(--accent-primary)); }
+            50% { transform: scale(1.07); filter: drop-shadow(0 0 10px var(--accent-primary)); }
+        }
+
+        @keyframes svg-flow-dash {
+            from { stroke-dashoffset: 32; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes svg-pulse-ring {
+            0% { transform: scale(0.85); opacity: 0.85; }
+            100% { transform: scale(1.9); opacity: 0; }
+        }
+
+        @keyframes svg-float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+
+        .anim-breathe {
+            animation: svg-breathe 2.6s ease-in-out infinite;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        .anim-flow {
+            stroke-dasharray: 8 8;
+            animation: svg-flow-dash 1s linear infinite;
+        }
+
+        .anim-pulse {
+            animation: svg-pulse-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        .anim-float {
+            animation: svg-float 3s ease-in-out infinite;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        /* 畫布游標與防選取 */
+        .interactive-svg {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        /* 滑桿客製化 */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            cursor: grab;
+            transition: transform 0.15s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.18);
+        }
+
+        /* 章節切換動畫 */
+        .chapter-section {
+            display: none;
+            animation: fadeInSection 0.3s ease-out;
+        }
+        .chapter-section.active {
+            display: block;
+        }
+        @keyframes fadeInSection {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- ==========================================
+         頂部導覽列 & 主題切換器 (Sticky Header)
+         ========================================== -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-opacity-90 border-b" style="background-color: var(--bg-card); border-color: var(--border-color);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <!-- 左側標題與標章 -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-lg shadow-sm" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
+                        ML
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-black tracking-tight">機器學習互動實驗室</h1>
+                            <span class="text-xs px-2 py-0.5 rounded-full font-bold text-white" style="background-color: var(--accent-secondary);">白話直覺版</span>
+                        </div>
+                        <p class="text-xs" style="color: var(--text-muted);">親手用滑鼠拉出直線、移動門檻與雷達探針，秒懂三大核心演算法</p>
+                    </div>
+                </div>
+
+                <!-- 右側三種主題切換器 -->
+                <div class="flex items-center gap-2 self-start md:self-auto">
+                    <span class="text-xs font-bold mr-1 hidden sm:inline" style="color: var(--text-muted);">風格切換：</span>
+                    <button onclick="setTheme('day')" id="theme-btn-day" class="theme-btn active px-3 py-1.5 text-xs font-bold flex items-center gap-1">
+                        ☀️ 白天 (Day)
+                    </button>
+                    <button onclick="setTheme('night')" id="theme-btn-night" class="theme-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1">
+                        🌙 黑夜 (Night)
+                    </button>
+                    <button onclick="setTheme('candy')" id="theme-btn-candy" class="theme-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1">
+                        ⚡ 多巴胺 (Dopamine)
+                    </button>
+                </div>
+            </div>
+
+            <!-- 章節導覽列 (與下方 SVG 學習地圖雙向同步) -->
+            <div class="mt-3 pt-2 border-t flex flex-wrap items-center justify-between gap-2" style="border-color: var(--border-color);">
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button onclick="switchChapter(1)" id="nav-tab-1" class="theme-btn active px-3 py-1.5 text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                        <span>📈 1. 線性迴歸</span>
+                        <span class="hidden sm:inline text-[11px] opacity-80">(滑鼠拉線擬合)</span>
+                    </button>
+                    <button onclick="switchChapter(2)" id="nav-tab-2" class="theme-btn px-3 py-1.5 text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                        <span>⚖️ 2. 邏輯迴歸</span>
+                        <span class="hidden sm:inline text-[11px] opacity-80">(S曲線與門檻)</span>
+                    </button>
+                    <button onclick="switchChapter(3)" id="nav-tab-3" class="theme-btn px-3 py-1.5 text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                        <span>🧭 3. KNN 近鄰分類</span>
+                        <span class="hidden sm:inline text-[11px] opacity-80">(雷達探針投票)</span>
+                    </button>
+                    <button onclick="switchChapter(4)" id="nav-tab-4" class="theme-btn px-3 py-1.5 text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                        <span>💻 4. 白話公式 ＆ Python</span>
+                    </button>
+                </div>
+
+                <button onclick="toggleShowAllChapters()" id="btn-show-all" class="theme-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1" title="一次展開所有章節方便上下對照">
+                    📖 全頁展開總覽
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+         主內容容器
+         ========================================== -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
+
+        <!-- 互動式 SVG 學習路線圖 (Hero Roadmap) -->
+        <section class="theme-card p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md text-white" style="background-color: var(--accent-primary);">
+                        Interactive Learning Map
+                    </span>
+                    <h2 class="text-sm sm:text-base font-bold">點擊下方地圖節點，自由切換實驗室關卡</h2>
+                </div>
+                <div id="roadmap-status-badge" class="text-xs font-bold px-3 py-1 rounded-full theme-subtle-box">
+                    📍 目前關卡：第 1 章・線性迴歸（親手拉出預測線）
+                </div>
+            </div>
+
+            <!-- 響應式 SVG 流程圖 -->
+            <div class="w-full overflow-hidden rounded-xl theme-subtle-box p-2">
+                <svg viewBox="0 0 900 115" class="w-full h-auto interactive-svg">
+                    <!-- 背景裝飾格線 -->
+                    <line x1="120" y1="58" x2="780" y2="58" stroke="var(--border-color)" stroke-width="6" stroke-linecap="round"/>
+                    <!-- 動態流動虛線連接線 -->
+                    <line x1="120" y1="58" x2="340" y2="58" stroke="var(--accent-primary)" stroke-width="3.5" class="anim-flow"/>
+                    <line x1="340" y1="58" x2="560" y2="58" stroke="var(--accent-secondary)" stroke-width="3.5" class="anim-flow"/>
+                    <line x1="560" y1="58" x2="780" y2="58" stroke="var(--accent-warn)" stroke-width="3.5" class="anim-flow"/>
+
+                    <!-- 節點 1：線性迴歸 -->
+                    <g class="cursor-pointer" onclick="switchChapter(1)" id="map-node-1">
+                        <circle id="map-pulse-1" cx="120" cy="58" r="28" fill="none" stroke="var(--accent-primary)" stroke-width="2.5" class="anim-pulse"/>
+                        <circle id="map-circle-1" cx="120" cy="58" r="25" fill="var(--accent-primary)" stroke="#FFFFFF" stroke-width="3" class="anim-breathe"/>
+                        <text x="120" y="64" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="900">1</text>
+                        <text x="120" y="103" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800">📈 線性迴歸 (畫直線)</text>
+                        <text x="120" y="20" text-anchor="middle" fill="var(--accent-primary)" font-size="11" font-weight="700">預測連續數值</text>
+                    </g>
+
+                    <!-- 節點 2：邏輯迴歸 -->
+                    <g class="cursor-pointer" onclick="switchChapter(2)" id="map-node-2">
+                        <circle id="map-pulse-2" cx="340" cy="58" r="28" fill="none" stroke="var(--accent-secondary)" stroke-width="2.5" class="anim-pulse" style="display:none;"/>
+                        <circle id="map-circle-2" cx="340" cy="58" r="25" fill="var(--bg-card)" stroke="var(--accent-secondary)" stroke-width="3"/>
+                        <text id="map-text-2" x="340" y="64" text-anchor="middle" fill="var(--text-main)" font-size="18" font-weight="900">2</text>
+                        <text x="340" y="103" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800">⚖️ 邏輯迴歸 (S曲線)</text>
+                        <text x="340" y="20" text-anchor="middle" fill="var(--accent-secondary)" font-size="11" font-weight="700">預測 0~100% 機率</text>
+                    </g>
+
+                    <!-- 節點 3：KNN 近鄰分類 -->
+                    <g class="cursor-pointer" onclick="switchChapter(3)" id="map-node-3">
+                        <circle id="map-pulse-3" cx="560" cy="58" r="28" fill="none" stroke="var(--accent-warn)" stroke-width="2.5" class="anim-pulse" style="display:none;"/>
+                        <circle id="map-circle-3" cx="560" cy="58" r="25" fill="var(--bg-card)" stroke="var(--accent-warn)" stroke-width="3"/>
+                        <text id="map-text-3" x="560" y="64" text-anchor="middle" fill="var(--text-main)" font-size="18" font-weight="900">3</text>
+                        <text x="560" y="103" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800">🧭 KNN 鄰居投票</text>
+                        <text x="560" y="20" text-anchor="middle" fill="var(--accent-warn)" font-size="11" font-weight="700">幾何距離分類</text>
+                    </g>
+
+                    <!-- 節點 4：白話公式與 Python -->
+                    <g class="cursor-pointer" onclick="switchChapter(4)" id="map-node-4">
+                        <circle id="map-pulse-4" cx="780" cy="58" r="28" fill="none" stroke="var(--accent-purple)" stroke-width="2.5" class="anim-pulse" style="display:none;"/>
+                        <circle id="map-circle-4" cx="780" cy="58" r="25" fill="var(--bg-card)" stroke="var(--accent-purple)" stroke-width="3"/>
+                        <text id="map-text-4" x="780" y="64" text-anchor="middle" fill="var(--text-main)" font-size="18" font-weight="900">4</text>
+                        <text x="780" y="103" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800">💻 公式圖鑑 & Python</text>
+                        <text x="780" y="20" text-anchor="middle" fill="var(--accent-purple)" font-size="11" font-weight="700">實戰程式碼一鍵複製</text>
+                    </g>
+                </svg>
+            </div>
+        </section>
+
+        <!-- ============================================================================
+             第 1 章：線性迴歸 (Linear Regression) — 滑鼠拉出起迄點畫直線 ＆ 白話視覺化
+             ============================================================================ -->
+        <section id="chapter-1" class="chapter-section active space-y-6">
+            <!-- 白話觀念導讀橫幅 -->
+            <div class="theme-card p-5 sm:p-6 border-l-8" style="border-left-color: var(--accent-primary);">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-0.5 text-xs font-black rounded-md text-white" style="background-color: var(--accent-primary);">第 1 章・核心直覺</span>
+                            <h2 class="text-xl sm:text-2xl font-black">線性迴歸 (Linear Regression)：用一條直線看穿資料趨勢</h2>
+                        </div>
+                        <p class="text-sm sm:text-base leading-relaxed" style="color: var(--text-muted);">
+                            💡 <strong>白話文秒懂：</strong>就像看「讀書幾小時」猜「考試幾分」，或是看「房屋坪數」猜「房價」。我們想在散亂的資料點中間<strong>畫出一條最貼近所有點的直線</strong>。直線離資料點越近（橘色垂直誤差線越短），代表你的預測越準確！
+                        </p>
+                    </div>
+                    <!-- 3 步驟操作教學膠囊 -->
+                    <div class="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 text-xs font-bold">
+                        <div class="px-3.5 py-2 rounded-lg theme-subtle-box flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-full text-white flex items-center justify-center text-[11px]" style="background-color: var(--accent-primary);">1</span>
+                            <span>在左側畫布<strong>按住滑鼠左鍵拖曳</strong>，直接拉出起點 P₁ 到終點 P₂ 畫直線！</span>
+                        </div>
+                        <div class="px-3.5 py-2 rounded-lg theme-subtle-box flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-full text-white flex items-center justify-center text-[11px]" style="background-color: var(--accent-secondary);">2</span>
+                            <span>隨時拖曳線上的 <strong>P₁、P₂ 圓形控制點</strong>微調角度，觀察誤差變化。</span>
+                        </div>
+                        <div class="px-3.5 py-2 rounded-lg theme-subtle-box flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-full text-white flex items-center justify-center text-[11px]" style="background-color: var(--accent-warn);">3</span>
+                            <span>點擊<strong>「🎯 AI 自動最佳擬合」</strong>，看看你手繪的直線跟數學最佳解差多少！</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第一章主工作區：左畫布 (7欄) + 右側白話儀表板 (5欄) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- 左側：互動式滑鼠拉線 SVG 畫布 -->
+                <div class="lg:col-span-7 theme-card p-4 sm:p-5 flex flex-col justify-between space-y-4">
+                    <!-- 畫布頂部工具列 -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b" style="border-color: var(--border-color);">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full inline-block" style="background-color: var(--accent-primary);"></span>
+                            <span class="font-bold text-sm sm:text-base" id="lr-scenario-title">情境：讀書時數 (X) vs 考試分數 (Y)</span>
+                        </div>
+                        <!-- 方程式即時徽章 -->
+                        <div class="px-3 py-1 rounded-lg font-mono-code text-xs sm:text-sm font-bold text-white shadow-sm" style="background-color: var(--accent-primary);" id="lr-equation-badge">
+                            ŷ = 0.80 x + 2.00
+                        </div>
+                    </div>
+
+                    <!-- 快捷功能按鈕列 -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="triggerOptimalOLS()" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-extrabold text-white shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-1.5" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
+                            🎯 AI 自動最佳擬合 (OLS 最小平方法)
+                        </button>
+                        <button onclick="toggleSSESquares()" id="btn-toggle-squares" class="theme-btn px-3 py-2 text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                            📐 顯示誤差正方形面積 (SSE)
+                        </button>
+                        <button onclick="cycleLRDataset()" class="theme-btn px-3 py-2 text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                            🎲 換一組情境資料
+                        </button>
+                    </div>
+
+                    <!-- 核心 SVG 互動畫布：支援空白處按住直接拉出 P1 -> P2 直線，或拖曳 P1/P2 端點 -->
+                    <div class="relative w-full rounded-xl overflow-hidden border-2" style="border-color: var(--border-color); background-color: var(--bg-subtle);">
+                        <!-- 浮動操作提示條 -->
+                        <div id="lr-canvas-hint" class="absolute top-2.5 left-3 right-3 z-10 pointer-events-none flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-md bg-opacity-85 border" style="background-color: var(--bg-card); border-color: var(--border-color);">
+                            <span id="lr-drag-status-text">🖱️ <strong>操作提示：</strong>在畫布任意處「按住滑鼠拖曳」即可拉出起迄點畫直線，或直接拉動線上的 <span style="color:var(--accent-primary)">P₁</span>、<span style="color:var(--accent-secondary)">P₂</span> 圓點！</span>
+                            <span class="font-mono-code text-[11px] opacity-80" id="lr-p1p2-coords">P₁(1.5, 3.2) → P₂(8.5, 8.8)</span>
+                        </div>
+
+                        <svg id="lr-svg-canvas" viewBox="0 0 620 440" class="w-full h-auto interactive-svg cursor-crosshair">
+                            <defs>
+                                <clipPath id="lr-plot-clip">
+                                    <rect x="60" y="45" width="530" height="345" />
+                                </clipPath>
+                            </defs>
+
+                            <!-- 座標網格層 -->
+                            <g id="lr-grid-layer"></g>
+
+                            <!-- 繪圖裁切區域 (放置誤差正方形、殘差虛線、最佳參考線、無限延伸主直線) -->
+                            <g clip-path="url(#lr-plot-clip)">
+                                <!-- 誤差面積正方形 (SSE 視覺化) -->
+                                <g id="lr-squares-layer"></g>
+                                <!-- AI 最佳 OLS 黃金參考虛線 -->
+                                <line id="lr-optimal-ghost-line" x1="60" y1="300" x2="590" y2="100" stroke="#10B981" stroke-width="2" stroke-dasharray="6 6" opacity="0.55" />
+                                <!-- 橘色垂直殘差線 (Residuals) -->
+                                <g id="lr-residuals-layer"></g>
+                                <!-- 使用者直線 (無限延伸至畫布邊界) -->
+                                <line id="lr-main-line" x1="60" y1="320" x2="590" y2="80" stroke="var(--accent-primary)" stroke-width="4" stroke-linecap="round" />
+                                <!-- 滑鼠正在拉線時的橡皮筋引導線 -->
+                                <line id="lr-rubberband-line" x1="0" y1="0" x2="0" y2="0" stroke="var(--accent-danger)" stroke-width="3" stroke-dasharray="5 5" style="display:none;" />
+                            </g>
+
+                            <!-- 座標軸標籤與標題 -->
+                            <text id="lr-xaxis-label" x="325" y="428" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800">特徵 X：每週讀書時數 (小時)</text>
+                            <text id="lr-yaxis-label" x="20" y="215" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800" transform="rotate(-90, 20, 215)">目標 Y：測驗成績 (十分制)</text>
+
+                            <!-- 真實資料散佈點層 -->
+                            <g id="lr-points-layer"></g>
+
+                            <!-- 起點 P1 與 終點 P2 拖曳控制把手 (Handles) -->
+                            <g id="lr-handle-p1" class="cursor-grab">
+                                <circle id="lr-p1-pulse" cx="140" cy="300" r="16" fill="none" stroke="var(--accent-primary)" stroke-width="2" class="anim-pulse"/>
+                                <circle id="lr-p1-circle" cx="140" cy="300" r="11" fill="var(--accent-primary)" stroke="#FFFFFF" stroke-width="3"/>
+                                <text id="lr-p1-label" x="140" y="304" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="900" pointer-events="none">P₁</text>
+                            </g>
+
+                            <g id="lr-handle-p2" class="cursor-grab">
+                                <circle id="lr-p2-pulse" cx="510" cy="110" r="16" fill="none" stroke="var(--accent-secondary)" stroke-width="2" class="anim-pulse"/>
+                                <circle id="lr-p2-circle" cx="510" cy="110" r="11" fill="var(--accent-secondary)" stroke="#FFFFFF" stroke-width="3"/>
+                                <text id="lr-p2-label" x="510" y="114" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="900" pointer-events="none">P₂</text>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <!-- 圖例說明列 -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs pt-1" style="color: var(--text-muted);">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full inline-block" style="background-color: var(--accent-primary);"></span>真實資料點 (xᵢ, yᵢ)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-4 h-1 rounded inline-block" style="background-color: var(--accent-primary);"></span>你的預測直線 ŷ = wx + b</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3.5 h-0.5 border-b-2 border-dashed border-amber-500 inline-block"></span>預測誤差 (殘差 yᵢ - ŷᵢ)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3.5 h-0.5 border-b-2 border-dashed border-emerald-500 inline-block"></span>AI 最佳解答參考線</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：白話參數控制台 ＆ 即時誤差成績單 -->
+                <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+                    
+                    <!-- 區塊 A：雙向同步滑桿（手拉直線會自動更新滑桿，拉滑桿也會移動直線） -->
+                    <div class="theme-card p-4 sm:p-5 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-black text-base flex items-center gap-2">
+                                <span>🎛️ 直線角度與高度微調</span>
+                                <span class="text-[11px] font-normal px-2 py-0.5 rounded theme-subtle-box" style="color: var(--text-muted);">與畫布拉線雙向同步</span>
+                            </h3>
+                        </div>
+
+                        <!-- 斜率 w 滑桿 -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="font-bold">斜率 w <span class="font-normal opacity-80">（X 每往右 1 格，直線上升幾格）</span></span>
+                                <span id="lr-val-w" class="font-mono-code font-bold px-2 py-0.5 rounded theme-subtle-box" style="color: var(--accent-primary);">0.80</span>
+                            </div>
+                            <input type="range" id="lr-slider-w" min="-2.0" max="2.5" step="0.01" value="0.80" oninput="onLRSliderInput()">
+                        </div>
+
+                        <!-- 截距 b 滑桿 -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="font-bold">截距 b <span class="font-normal opacity-80">（當 X=0 時，直線的起始高度）</span></span>
+                                <span id="lr-val-b" class="font-mono-code font-bold px-2 py-0.5 rounded theme-subtle-box" style="color: var(--accent-secondary);">2.00</span>
+                            </div>
+                            <input type="range" id="lr-slider-b" min="-4.0" max="12.0" step="0.05" value="2.00" oninput="onLRSliderInput()">
+                        </div>
+                    </div>
+
+                    <!-- 區塊 B：白話文誤差成績單 (4 張直覺卡片) -->
+                    <div class="theme-card p-4 sm:p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-black text-base">📊 你的直線準確度成績單</h3>
+                            <span id="lr-grade-badge" class="text-xs font-extrabold px-2.5 py-1 rounded-full text-white" style="background-color: var(--accent-warn);">
+                                💪 還可以更準喔！
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- MAE 白話卡 -->
+                            <div class="theme-subtle-box p-3 space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-extrabold" style="color: var(--text-muted);">MAE 平均絕對誤差</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded font-mono-code border" style="border-color: var(--border-color);">L1 直線距離</span>
+                                </div>
+                                <div class="text-xl font-black font-mono-code" id="lr-metric-mae">0.000</div>
+                                <p class="text-[11px] leading-snug" style="color: var(--text-muted);">
+                                    <strong>白話文：</strong>所有橘色誤差線的「平均長度」，代表平均每點猜錯幾分。
+                                </p>
+                            </div>
+
+                            <!-- SSE 白話卡 -->
+                            <div class="theme-subtle-box p-3 space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-extrabold" style="color: var(--text-muted);">SSE 殘差平方和</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded font-mono-code border" style="border-color: var(--border-color);">正方形總面積</span>
+                                </div>
+                                <div class="text-xl font-black font-mono-code" style="color: var(--accent-warn);" id="lr-metric-sse">0.000</div>
+                                <p class="text-[11px] leading-snug" style="color: var(--text-muted);">
+                                    <strong>白話文：</strong>把每條誤差線當邊長畫正方形，所有正方形加起來的總面積。
+                                </p>
+                            </div>
+
+                            <!-- MSE 核心目標卡 -->
+                            <div class="theme-subtle-box p-3 space-y-1 border-2" style="border-color: var(--accent-primary);">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-extrabold" style="color: var(--accent-primary);">MSE 均方誤差 (核心指標)</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold text-white" style="background-color: var(--accent-primary);">越小越好</span>
+                                </div>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-2xl font-black font-mono-code" style="color: var(--accent-primary);" id="lr-metric-mse">0.000</span>
+                                    <span class="text-[11px] font-mono-code opacity-75" id="lr-optimal-mse-hint">(最佳: 0.42)</span>
+                                </div>
+                                <p class="text-[11px] leading-snug" style="color: var(--text-muted);">
+                                    <strong>為什麼要平方？</strong>防止正負誤差互相抵銷，而且離群越遠的大錯會被「平方放大懲罰」！
+                                </p>
+                            </div>
+
+                            <!-- R2 解釋力指標卡 -->
+                            <div class="theme-subtle-box p-3 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-extrabold" style="color: var(--accent-secondary);">R² 趨勢解釋力得分</span>
+                                    <span class="text-sm font-black font-mono-code" style="color: var(--accent-secondary);" id="lr-metric-r2">0.85</span>
+                                </div>
+                                <!-- 視覺進度條 -->
+                                <div class="w-full h-2.5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                    <div id="lr-r2-bar" class="h-full transition-all duration-200" style="width: 85%; background-color: var(--accent-secondary);"></div>
+                                </div>
+                                <p class="text-[11px] leading-snug" style="color: var(--text-muted);">
+                                    <strong>白話文：</strong>滿分 1.00（100%）。越接近 1 代表你的直線越完美抓到趨勢！
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 區塊 C：MSE 誤差下降軌跡圖 (Loss History Mini SVG) -->
+                    <div class="theme-card p-4 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-bold">📉 調整過程的 MSE 誤差變化軌跡</span>
+                            <span class="font-mono-code text-[11px]" style="color: var(--text-muted);">綠虛線 = 數學最低誤差極限</span>
+                        </div>
+                        <div class="w-full rounded-lg overflow-hidden theme-subtle-box p-1.5">
+                            <svg id="lr-loss-svg" viewBox="0 0 420 95" class="w-full h-auto">
+                                <line id="lr-loss-min-line" x1="10" y1="75" x2="410" y2="75" stroke="#10B981" stroke-width="1.5" stroke-dasharray="4 4"/>
+                                <polyline id="lr-loss-polyline" fill="none" stroke="var(--accent-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points=""/>
+                                <circle id="lr-loss-head" cx="10" cy="75" r="4.5" fill="var(--accent-danger)" />
+                            </svg>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================================
+             第 2 章：邏輯迴歸 (Logistic Regression) — Sigmoid 機率曲線與決策門檻
+             ============================================================================ -->
+        <section id="chapter-2" class="chapter-section space-y-6">
+            <!-- 白話觀念導讀橫幅 -->
+            <div class="theme-card p-5 sm:p-6 border-l-8" style="border-left-color: var(--accent-secondary);">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-0.5 text-xs font-black rounded-md text-white" style="background-color: var(--accent-secondary);">第 2 章・核心直覺</span>
+                            <h2 class="text-xl sm:text-2xl font-black">邏輯迴歸 (Logistic Regression)：把分數變成 0% ~ 100% 的過關機率</h2>
+                        </div>
+                        <p class="text-sm sm:text-base leading-relaxed" style="color: var(--text-muted);">
+                            💡 <strong>為什麼名字叫迴歸，卻用來做「分類」？</strong>當我們想預測「會不會及格 (1 或 0)」、「是不是垃圾信」時，直線會衝破 100% 或跌破 0%。所以科學家用了一個 <strong>S 型曲線 (Sigmoid 函數)</strong>，把所有數值溫柔地壓縮進 <strong>0% 到 100% 的機率</strong>！只要機率高於你設定的「及格門檻 θ」，就判定為過關！
+                        </p>
+                    </div>
+                    <div class="px-4 py-3 rounded-xl theme-subtle-box shrink-0 text-xs space-y-1.5 font-bold">
+                        <div style="color: var(--accent-secondary);">🎯 動手玩看看：</div>
+                        <div>1. 直接在左圖<strong>左右拖曳綠色垂直決策線</strong>！</div>
+                        <div>2. 調整<strong>及格門檻 θ</strong>，體驗「嚴格審核」與「寬鬆放水」的差別。</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- 左側：Sigmoid 互動 SVG 畫布 -->
+                <div class="lg:col-span-7 theme-card p-4 sm:p-5 flex flex-col justify-between space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b" style="border-color: var(--border-color);">
+                        <div class="font-bold text-sm sm:text-base">
+                            情境：考前模擬考分數 (X) vs 正式錄取機率 P(y=1)
+                        </div>
+                        <div class="px-3 py-1 rounded-lg font-mono-code text-xs font-bold text-white" style="background-color: var(--accent-secondary);" id="log-boundary-badge">
+                            決策分界線 x* = 5.00
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="resetLogisticOptimal()" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-white" style="background-color: var(--accent-secondary);">
+                            ✨ 恢復最佳 S 曲線參數
+                        </button>
+                        <span class="text-xs" style="color: var(--text-muted);">💡 提示：直接用滑鼠拉動圖中的<strong>綠色垂直決策線</strong>可快速平移曲線！</span>
+                    </div>
+
+                    <div class="relative w-full rounded-xl overflow-hidden border-2" style="border-color: var(--border-color); background-color: var(--bg-subtle);">
+                        <svg id="log-svg-canvas" viewBox="0 0 620 420" class="w-full h-auto interactive-svg">
+                            <!-- 決策背景分區色塊 -->
+                            <rect id="log-zone-neg" x="60" y="40" width="265" height="330" fill="#EF4444" fill-opacity="0.06" />
+                            <rect id="log-zone-pos" x="325" y="40" width="265" height="330" fill="#2563EB" fill-opacity="0.06" />
+
+                            <!-- 網格層 -->
+                            <g id="log-grid-layer"></g>
+
+                            <!-- 門檻水平虛線 (Threshold theta) -->
+                            <line id="log-thresh-line" x1="60" y1="205" x2="590" y2="205" stroke="var(--accent-warn)" stroke-width="2" stroke-dasharray="6 6" />
+                            <text id="log-thresh-label" x="68" y="198" fill="var(--accent-warn)" font-size="11" font-weight="800">判定門檻 θ = 50%</text>
+
+                            <!-- Sigmoid 曲線路徑 -->
+                            <path id="log-sigmoid-path" d="" fill="none" stroke="var(--accent-primary)" stroke-width="4" stroke-linecap="round" />
+
+                            <!-- 垂直決策邊界線 (可滑鼠左右拖曳) -->
+                            <g id="log-boundary-group" class="cursor-ew-resize">
+                                <line id="log-boundary-hit" x1="325" y1="40" x2="325" y2="370" stroke="transparent" stroke-width="24" />
+                                <line id="log-boundary-line" x1="325" y1="40" x2="325" y2="370" stroke="#10B981" stroke-width="3.5" class="anim-flow" />
+                                <circle id="log-boundary-handle" cx="325" cy="205" r="10" fill="#10B981" stroke="#FFFFFF" stroke-width="2.5" class="anim-breathe" />
+                                <rect id="log-boundary-tag" x="270" y="45" width="110" height="22" rx="6" fill="#10B981" />
+                                <text id="log-boundary-tag-text" x="325" y="60" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="800">⇄ 拉我移動分界</text>
+                            </g>
+
+                            <!-- 樣本點層 (Class 0 與 Class 1，分錯時顯示紅色警示脈衝圈) -->
+                            <g id="log-points-layer"></g>
+
+                            <text x="325" y="408" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800">特徵 X：模擬考綜合實力分數 (0 ~ 10 分)</text>
+                            <text x="18" y="205" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800" transform="rotate(-90, 18, 205)">預測錄取機率 P(y=1)</text>
+                        </svg>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-4 text-xs" style="color: var(--text-muted);">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>實際未錄取 (Class 0)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>實際有錄取 (Class 1)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full border-2 border-rose-500 inline-block"></span>紅圈閃爍 ＝ 被模型猜錯的冤枉點</span>
+                    </div>
+                </div>
+
+                <!-- 右側：3 參數滑桿 + 白話文混淆矩陣 (Confusion Matrix) -->
+                <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+                    <div class="theme-card p-4 sm:p-5 space-y-3.5">
+                        <h3 class="font-black text-base">🎛️ S 曲線形狀與門檻控制台</h3>
+
+                        <!-- 權重 w -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs sm:text-sm">
+                                <span class="font-bold">陡峭度權重 w <span class="font-normal opacity-80">(越大 S 曲線轉折越果斷)</span></span>
+                                <span id="log-val-w" class="font-mono-code font-bold" style="color: var(--accent-primary);">1.80</span>
+                            </div>
+                            <input type="range" id="log-slider-w" min="0.3" max="4.0" step="0.05" value="1.80" oninput="onLogSliderInput()">
+                        </div>
+
+                        <!-- 偏差 b -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs sm:text-sm">
+                                <span class="font-bold">左右平移偏差 b <span class="font-normal opacity-80">(決定曲線中心點位置)</span></span>
+                                <span id="log-val-b" class="font-mono-code font-bold" style="color: var(--accent-secondary);">-9.00</span>
+                            </div>
+                            <input type="range" id="log-slider-b" min="-18.0" max="2.0" step="0.1" value="-9.00" oninput="onLogSliderInput()">
+                        </div>
+
+                        <!-- 門檻 theta -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs sm:text-sm">
+                                <span class="font-bold">及格判定門檻 θ <span class="font-normal opacity-80">(機率幾 % 以上算錄取？)</span></span>
+                                <span id="log-val-thresh" class="font-mono-code font-bold" style="color: var(--accent-warn);">0.50 (50%)</span>
+                            </div>
+                            <input type="range" id="log-slider-thresh" min="0.10" max="0.90" step="0.02" value="0.50" oninput="onLogSliderInput()">
+                        </div>
+                    </div>
+
+                    <!-- 白話文混淆矩陣 -->
+                    <div class="theme-card p-4 sm:p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-black text-base">🧩 白話文混淆矩陣 (Confusion Matrix)</h3>
+                            <span id="log-acc-badge" class="text-xs font-extrabold px-2.5 py-1 rounded-full text-white" style="background-color: var(--accent-secondary);">
+                                準確率 Accuracy: 90%
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <div class="theme-subtle-box p-3 border-l-4 border-emerald-500">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">TP 真正例 (抓對強者)</span>
+                                    <span id="log-cm-tp" class="text-xl font-black font-mono-code">0</span>
+                                </div>
+                                <p class="text-[11px] mt-1" style="color: var(--text-muted);">實際有錄取，你也成功猜他錄取！</p>
+                            </div>
+
+                            <div class="theme-subtle-box p-3 border-l-4 border-rose-500">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-extrabold text-rose-600 dark:text-rose-400">FP 偽正例 (放水誤報)</span>
+                                    <span id="log-cm-fp" class="text-xl font-black font-mono-code">0</span>
+                                </div>
+                                <p class="text-[11px] mt-1" style="color: var(--text-muted);">實際沒錄取，卻被你放水猜錄取！</p>
+                            </div>
+
+                            <div class="theme-subtle-box p-3 border-l-4 border-amber-500">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-extrabold text-amber-600 dark:text-amber-400">FN 偽負例 (嚴格冤枉)</span>
+                                    <span id="log-cm-fn" class="text-xl font-black font-mono-code">0</span>
+                                </div>
+                                <p class="text-[11px] mt-1" style="color: var(--text-muted);">實際會錄取，卻被你嚴格刷掉！</p>
+                            </div>
+
+                            <div class="theme-subtle-box p-3 border-l-4 border-teal-500">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-extrabold text-teal-600 dark:text-teal-400">TN 真負例 (篩對淘汰)</span>
+                                    <span id="log-cm-tn" class="text-xl font-black font-mono-code">0</span>
+                                </div>
+                                <p class="text-[11px] mt-1" style="color: var(--text-muted);">實際沒錄取，你也正確判定淘汰！</p>
+                            </div>
+                        </div>
+
+                        <!-- Cross-Entropy 交叉熵損失直覺卡片 -->
+                        <div class="theme-subtle-box p-3 flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-bold">Cross-Entropy 交叉熵損失 (Log-Loss)</div>
+                                <div class="text-[11px]" style="color: var(--text-muted);">越自信地猜錯，懲罰分數暴增越多（越小越準）</div>
+                            </div>
+                            <div id="log-metric-loss" class="text-xl font-black font-mono-code" style="color: var(--accent-primary);">0.245</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================================
+             第 3 章：KNN 近鄰分類 (K-Nearest Neighbors) — 雷達探針投票與幾何距離
+             ============================================================================ -->
+        <section id="chapter-3" class="chapter-section space-y-6">
+            <div class="theme-card p-5 sm:p-6 border-l-8" style="border-left-color: var(--accent-warn);">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-0.5 text-xs font-black rounded-md text-white" style="background-color: var(--accent-warn);">第 3 章・核心直覺</span>
+                            <h2 class="text-xl sm:text-2xl font-black">KNN 近鄰演算法：物以類聚！問離你最近的 K 個鄰居你是誰</h2>
+                        </div>
+                        <p class="text-sm sm:text-base leading-relaxed" style="color: var(--text-muted);">
+                            💡 <strong>白話文秒懂：</strong>KNN 是最符合人類直覺的演算法——它根本不背公式！當地圖上出現一個<strong>未知的測試探針 🎯</strong>，它就打開雷達掃描<strong>離它最近的 K 個鄰居</strong>，看哪一派人數多就聽誰的（多數決投票）！
+                        </p>
+                    </div>
+                    <div class="px-4 py-3 rounded-xl theme-subtle-box shrink-0 text-xs space-y-1.5 font-bold">
+                        <div style="color: var(--accent-warn);">🧭 動手玩看看：</div>
+                        <div>1. 在左圖<strong>按住滑鼠拖曳綠色 🎯 雷達探針</strong>到不同群落交界處！</div>
+                        <div>2. 切換<strong>「直線距離」與「城市街區轉角距離」</strong>，看雷達圈怎麼變形！</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- 左側：2D 幾何空間雷達探針 SVG -->
+                <div class="lg:col-span-7 theme-card p-4 sm:p-5 flex flex-col justify-between space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b" style="border-color: var(--border-color);">
+                        <div class="font-bold text-sm sm:text-base">
+                            2D 特徵地圖：拖曳「🎯 測試探針」即時掃描最近 K 個鄰居
+                        </div>
+                        <div id="knn-pred-badge" class="px-3 py-1 rounded-lg text-xs font-extrabold text-white" style="background-color: var(--accent-primary);">
+                            預測結果：藍隊 (信心度 80%)
+                        </div>
+                    </div>
+
+                    <div class="relative w-full rounded-xl overflow-hidden border-2" style="border-color: var(--border-color); background-color: var(--bg-subtle);">
+                        <svg id="knn-svg-canvas" viewBox="0 0 620 430" class="w-full h-auto interactive-svg cursor-pointer">
+                            <g id="knn-grid-layer"></g>
+
+                            <!-- 雷達範圍邊界 (歐氏距離=圓形 / 曼哈頓距離=菱形) -->
+                            <circle id="knn-radar-circle" cx="310" cy="215" r="80" fill="var(--accent-secondary)" fill-opacity="0.08" stroke="var(--accent-secondary)" stroke-width="2" stroke-dasharray="6 4" />
+                            <polygon id="knn-radar-diamond" points="" fill="var(--accent-secondary)" fill-opacity="0.08" stroke="var(--accent-secondary)" stroke-width="2" stroke-dasharray="6 4" style="display:none;" />
+
+                            <!-- 探針到 K 個最近鄰居的連線層 -->
+                            <g id="knn-links-layer"></g>
+
+                            <!-- 訓練資料點層 (3 個類別) -->
+                            <g id="knn-points-layer"></g>
+
+                            <!-- 可拖曳的測試探針 (Test Probe) -->
+                            <g id="knn-probe-group" class="cursor-grab">
+                                <circle id="knn-probe-pulse" cx="310" cy="215" r="20" fill="none" stroke="#10B981" stroke-width="2.5" class="anim-pulse" />
+                                <circle id="knn-probe-core" cx="310" cy="215" r="11" fill="#10B981" stroke="#FFFFFF" stroke-width="3" class="anim-breathe" />
+                                <line id="knn-probe-ch-h" x1="294" y1="215" x2="326" y2="215" stroke="#FFFFFF" stroke-width="1.5" pointer-events="none"/>
+                                <line id="knn-probe-ch-v" x1="310" y1="199" x2="310" y2="231" stroke="#FFFFFF" stroke-width="1.5" pointer-events="none"/>
+                                <rect id="knn-probe-label-bg" x="265" y="172" width="90" height="20" rx="5" fill="#0F172A" opacity="0.85" pointer-events="none"/>
+                                <text id="knn-probe-label" x="310" y="186" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="800" pointer-events="none">🎯 拖曳探針</text>
+                            </g>
+
+                            <text x="325" y="418" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800">特徵 X₁：爆發力指數</text>
+                            <text x="18" y="215" text-anchor="middle" fill="var(--text-main)" font-size="13" font-weight="800" transform="rotate(-90, 18, 215)">特徵 X₂：耐力指數</text>
+                        </svg>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs" style="color: var(--text-muted);">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>🌊 海洋藍隊</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>🔥 烈焰紅隊</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>⚡ 雷霆黃隊</span>
+                        </div>
+                        <button onclick="regenerateKNNPoints()" class="theme-btn px-2.5 py-1 text-xs font-bold">🎲 重新隨機佈置隊員</button>
+                    </div>
+                </div>
+
+                <!-- 右側：KNN 控制面板與即時開票所 -->
+                <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+                    <div class="theme-card p-4 sm:p-5 space-y-4">
+                        <h3 class="font-black text-base">🎛️ 雷達探針規則設定</h3>
+
+                        <!-- K 值滑桿 -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs sm:text-sm">
+                                <span class="font-bold">鄰居數量 K <span class="font-normal opacity-80">(要問離你最近的幾個人？)</span></span>
+                                <span id="knn-val-k" class="font-mono-code font-black px-2 py-0.5 rounded theme-subtle-box" style="color: var(--accent-primary);">K = 5 人</span>
+                            </div>
+                            <input type="range" id="knn-slider-k" min="1" max="15" step="1" value="5" oninput="updateKNNScene()">
+                            <p class="text-[11px]" style="color: var(--text-muted);">💡 K=1 容易受單一怪咖影響（過擬合）；K 太大則邊界會變模糊。</p>
+                        </div>
+
+                        <!-- 距離公式切換 -->
+                        <div class="space-y-1.5">
+                            <div class="text-xs font-bold">📏 怎麼量距離？（決定雷達圈的形狀）</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="setKNNMetric('euclidean')" id="knn-btn-euclidean" class="theme-btn active py-2 px-2.5 text-xs font-bold text-center">
+                                    ⭕ 歐幾里得直線距離<br><span class="text-[10px] opacity-80 font-normal">直升機飛過去 (圓形雷達)</span>
+                                </button>
+                                <button onclick="setKNNMetric('manhattan')" id="knn-btn-manhattan" class="theme-btn py-2 px-2.5 text-xs font-bold text-center">
+                                    🏙️ 曼哈頓街區距離<br><span class="text-[10px] opacity-80 font-normal">走十字路口轉彎 (菱形雷達)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 投票權重切換 -->
+                        <div class="space-y-1.5">
+                            <div class="text-xs font-bold">🗳️ 鄰居投票計分規則</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="setKNNWeight('uniform')" id="knn-btn-uniform" class="theme-btn active py-2 px-2.5 text-xs font-bold text-center">
+                                    🙋 一人一票平權<br><span class="text-[10px] opacity-80 font-normal">圈內每個人都算 1 票</span>
+                                </button>
+                                <button onclick="setKNNWeight('distance')" id="knn-btn-distance" class="theme-btn py-2 px-2.5 text-xs font-bold text-center">
+                                    📢 越近講話越大聲<br><span class="text-[10px] opacity-80 font-normal">權重 = 1 / 距離</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 即時開票統計與前 K 名鄰居清單 -->
+                    <div class="theme-card p-4 sm:p-5 space-y-3">
+                        <h3 class="font-black text-base">🗳️ K 近鄰即時開票結果</h3>
+                        <div id="knn-vote-bars" class="space-y-2.5"></div>
+
+                        <div class="pt-2 border-t" style="border-color: var(--border-color);">
+                            <div class="text-xs font-bold mb-1.5">🔍 離探針最近的 <span id="knn-table-k-count">5</span> 位鄰居明細：</div>
+                            <div class="max-h-36 overflow-y-auto rounded-lg theme-subtle-box p-2 text-xs font-mono-code space-y-1" id="knn-neighbors-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================================
+             第 4 章：白話公式速查圖鑑 ＆ Python Scikit-Learn 實戰講義
+             ============================================================================ -->
+        <section id="chapter-4" class="chapter-section space-y-6">
+            <div class="theme-card p-5 sm:p-6">
+                <h2 class="text-xl sm:text-2xl font-black mb-2">📚 三大機器學習演算法：白話公式對照圖鑑</h2>
+                <p class="text-sm mb-4" style="color: var(--text-muted);">把複雜的數學符號翻譯成日常生活的直覺，一眼看懂什麼時候該用哪種模型：</p>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="theme-subtle-box border-b-2" style="border-color: var(--border-color);">
+                                <th class="p-3 font-black">演算法名稱</th>
+                                <th class="p-3 font-black">解決什麼問題？</th>
+                                <th class="p-3 font-black">核心公式 ＆ 白話翻譯</th>
+                                <th class="p-3 font-black">評估好壞的指標</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y" style="border-color: var(--border-color);">
+                            <tr>
+                                <td class="p-3 font-bold" style="color: var(--accent-primary);">📈 線性迴歸<br><span class="text-xs font-normal opacity-75">Linear Regression</span></td>
+                                <td class="p-3"><strong>連續數值預測</strong><br>例：猜房價、猜考分、預測銷量</td>
+                                <td class="p-3">
+                                    <code class="font-mono-code font-bold">ŷ = w·x + b</code><br>
+                                    <span class="text-xs" style="color: var(--text-muted);">預測值 ＝ 斜率 × 特徵 ＋ 起始高度</span>
+                                </td>
+                                <td class="p-3">
+                                    <strong>MSE 均方誤差</strong>（正方形誤差面積越小越準）<br>
+                                    <strong>R² 決定係數</strong>（越接近 1 代表越抓到趨勢）
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold" style="color: var(--accent-secondary);">⚖️ 邏輯迴歸<br><span class="text-xs font-normal opacity-75">Logistic Regression</span></td>
+                                <td class="p-3"><strong>二元機率分類</strong><br>例：會不會及格、是不是垃圾信</td>
+                                <td class="p-3">
+                                    <code class="font-mono-code font-bold">P = 1 / (1 + e<sup>-(wx+b)</sup>)</code><br>
+                                    <span class="text-xs" style="color: var(--text-muted);">把直線分數放進 S 型果汁機，榨出 0%~100% 機率</span>
+                                </td>
+                                <td class="p-3">
+                                    <strong>混淆矩陣 (TP/FP/FN/TN)</strong><br>
+                                    <strong>Cross-Entropy 交叉熵</strong>（懲罰自信猜錯）
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold" style="color: var(--accent-warn);">🧭 KNN 近鄰分類<br><span class="text-xs font-normal opacity-75">K-Nearest Neighbors</span></td>
+                                <td class="p-3"><strong>多類別幾何分類</strong><br>例：客戶分群、手寫數字辨識</td>
+                                <td class="p-3">
+                                    <code class="font-mono-code font-bold">d = √[(x₁-x₂)² + (y₁-y₂)²]</code><br>
+                                    <span class="text-xs" style="color: var(--text-muted);">不背公式，直接量誰離我最近，找前 K 名鄰居投票</span>
+                                </td>
+                                <td class="p-3">
+                                    <strong>Accuracy 準確率</strong><br>
+                                    注意：特徵需要先做標準化（避免大數字主導距離）
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Python Scikit-learn 實戰程式碼 (一鍵複製) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <!-- Code 1: Linear Regression -->
+                <div class="theme-card p-4 flex flex-col justify-between space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-sm" style="color: var(--accent-primary);">🐍 1. 線性迴歸 Python 實戰</span>
+                        <button onclick="copyCode('code-lr', this)" class="theme-btn px-2.5 py-1 text-xs font-bold">📋 複製程式碼</button>
+                    </div>
+                    <pre id="code-lr" class="theme-subtle-box p-3 text-xs font-mono-code overflow-x-auto leading-relaxed"><code>from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
+
+# 1. 準備讀書時數(X)與考分(y)
+X = np.array([[1], [2], [4], [6], [8]])
+y = np.array([2.5, 3.8, 5.2, 7.1, 8.9])
+
+# 2. 建立模型並自動找出最佳直線 (OLS)
+model = LinearRegression()
+model.fit(X, y)
+
+# 3. 印出斜率 w 與截距 b
+print(f"最佳斜率 w = {model.coef_[0]:.2f}")
+print(f"最佳截距 b = {model.intercept_:.2f}")
+print(f"R2 解釋力 = {r2_score(y, model.predict(X)):.3f}")</code></pre>
+                </div>
+
+                <!-- Code 2: Logistic Regression -->
+                <div class="theme-card p-4 flex flex-col justify-between space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-sm" style="color: var(--accent-secondary);">🐍 2. 邏輯迴歸 Python 實戰</span>
+                        <button onclick="copyCode('code-log', this)" class="theme-btn px-2.5 py-1 text-xs font-bold">📋 複製程式碼</button>
+                    </div>
+                    <pre id="code-log" class="theme-subtle-box p-3 text-xs font-mono-code overflow-x-auto leading-relaxed"><code>from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
+import numpy as np
+
+# 1. 模擬考分數(X) 與 是否錄取(y: 0或1)
+X = np.array([[2], [3], [4.5], [6], [7.5], [9]])
+y = np.array([0, 0, 0, 1, 1, 1])
+
+# 2. 訓練 Sigmoid 分類模型
+clf = LogisticRegression()
+clf.fit(X, y)
+
+# 3. 預測 5.5 分的錄取機率
+prob = clf.predict_proba([[5.5]])[0, 1]
+print(f"5.5 分錄取機率: {prob*100:.1f}%")
+print("混淆矩陣:\n", confusion_matrix(y, clf.predict(X)))</code></pre>
+                </div>
+
+                <!-- Code 3: KNN -->
+                <div class="theme-card p-4 flex flex-col justify-between space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-sm" style="color: var(--accent-warn);">🐍 3. KNN 近鄰分類 Python 實戰</span>
+                        <button onclick="copyCode('code-knn', this)" class="theme-btn px-2.5 py-1 text-xs font-bold">📋 複製程式碼</button>
+                    </div>
+                    <pre id="code-knn" class="theme-subtle-box p-3 text-xs font-mono-code overflow-x-auto leading-relaxed"><code>from sklearn.neighbors import KNeighborsClassifier
+import numpy as np
+
+# 1. 2D 座標特徵 (爆發力, 耐力) 與 隊伍標籤
+X = np.array([[2,3], [3,2], [8,8], [7,9], [2,8]])
+y = np.array(['藍隊', '藍隊', '紅隊', '紅隊', '黃隊'])
+
+# 2. 設定找最近的 K=3 個鄰居，距離加權投票
+knn = KNeighborsClassifier(
+    n_neighbors=3,
+    metric='euclidean',
+    weights='distance'
+)
+knn.fit(X, y)
+
+# 3. 放入新探針座標 [6, 7]
+print("預測隊伍:", knn.predict([[6, 7]])[0])</code></pre>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="border-t py-4 mt-8 text-center text-xs" style="border-color: var(--border-color); color: var(--text-muted);">
+        機器學習互動實驗室 (ML01-1 視覺化重製版) — 支援滑鼠拉出起迄點畫直線、即時誤差面積與幾何決策空間探索
+    </footer>
+
+    <!-- ==========================================
+         JavaScript 互動引擎
+         ========================================== -->
+    <script>
+        /* =========================================================
+           全域主題與導覽切換
+           ========================================================= */
+        let currentChapter = 1;
+        let showAllMode = false;
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            ['day', 'night', 'candy'].forEach(t => {
+                const btn = document.getElementById('theme-btn-' + t);
+                if (btn) btn.classList.toggle('active', t === theme);
+            });
+            updateRoadmapVisuals();
+        }
+
+        function switchChapter(chapNum) {
+            currentChapter = chapNum;
+            if (showAllMode) {
+                showAllMode = false;
+                const btnAll = document.getElementById('btn-show-all');
+                btnAll.classList.remove('active');
+                btnAll.innerHTML = '📖 全頁展開總覽';
+            }
+
+            for (let i = 1; i <= 4; i++) {
+                const sec = document.getElementById('chapter-' + i);
+                const tab = document.getElementById('nav-tab-' + i);
+                if (sec) sec.classList.toggle('active', i === chapNum);
+                if (tab) tab.classList.toggle('active', i === chapNum);
+            }
+            updateRoadmapVisuals();
+        }
+
+        function toggleShowAllChapters() {
+            showAllMode = !showAllMode;
+            const btnAll = document.getElementById('btn-show-all');
+            btnAll.classList.toggle('active', showAllMode);
+            btnAll.innerHTML = showAllMode ? '📑 恢復單章專注模式' : '📖 全頁展開總覽';
+
+            for (let i = 1; i <= 4; i++) {
+                const sec = document.getElementById('chapter-' + i);
+                if (sec) sec.classList.toggle('active', showAllMode || i === currentChapter);
+            }
+        }
+
+        function updateRoadmapVisuals() {
+            const titles = {
+                1: '📍 目前關卡：第 1 章・線性迴歸（親手拉出預測線）',
+                2: '📍 目前關卡：第 2 章・邏輯迴歸（移動 S 曲線與門檻）',
+                3: '📍 目前關卡：第 3 章・KNN 近鄰分類（拖曳雷達探針投票）',
+                4: '📍 目前關卡：第 4 章・白話公式圖鑑 ＆ Python 程式碼'
+            };
+            document.getElementById('roadmap-status-badge').textContent = titles[currentChapter];
+
+            const colors = {
+                1: 'var(--accent-primary)',
+                2: 'var(--accent-secondary)',
+                3: 'var(--accent-warn)',
+                4: 'var(--accent-purple)'
+            };
+
+            for (let i = 1; i <= 4; i++) {
+                const circle = document.getElementById('map-circle-' + i);
+                const pulse = document.getElementById('map-pulse-' + i);
+                const text = document.getElementById('map-text-' + i);
+                const isActive = (i === currentChapter);
+
+                if (pulse) pulse.style.display = isActive ? 'block' : 'none';
+                if (circle) {
+                    circle.setAttribute('fill', isActive ? colors[i] : 'var(--bg-card)');
+                    circle.classList.toggle('anim-breathe', isActive);
+                }
+                if (text) {
+                    text.setAttribute('fill', isActive ? '#FFFFFF' : 'var(--text-main)');
+                }
+            }
+        }
+
+        /* =========================================================
+           第 1 章：線性迴歸 (滑鼠拉出起迄點畫直線 P1 -> P2 & 雙端點微調)
+           ========================================================= */
+        const lrScenarios = [
+            {
+                title: '情境 1：每週讀書時數 (X) vs 測驗成績 (Y)',
+                xLabel: '特徵 X：每週讀書時數 (0 ~ 10 小時)',
+                yLabel: '目標 Y：測驗成績 (0 ~ 10 分)',
+                points: [
+                    {x: 1.0, y: 2.4}, {x: 1.8, y: 3.5}, {x: 2.6, y: 3.2}, {x: 3.5, y: 4.9},
+                    {x: 4.5, y: 5.2}, {x: 5.4, y: 6.5}, {x: 6.5, y: 6.8}, {x: 7.5, y: 8.1},
+                    {x: 8.4, y: 8.3}, {x: 9.2, y: 9.4}
+                ]
+            },
+            {
+                title: '情境 2：二手車車齡 (X) vs 殘餘車價 (Y) [負相關]',
+                xLabel: '特徵 X：二手車車齡 (0 ~ 10 年)',
+                yLabel: '目標 Y：二手車殘值 (十萬元)',
+                points: [
+                    {x: 0.8, y: 9.2}, {x: 1.7, y: 8.3}, {x: 2.8, y: 7.8}, {x: 3.6, y: 6.4},
+                    {x: 4.8, y: 5.9}, {x: 5.7, y: 4.6}, {x: 6.8, y: 4.1}, {x: 7.7, y: 2.9},
+                    {x: 8.6, y: 2.5}, {x: 9.3, y: 1.6}
+                ]
+            },
+            {
+                title: '情境 3：廣告投入預算 (X) vs 營收成長 (Y) [高波動挑戰]',
+                xLabel: '特徵 X：社群廣告投入 (萬元)',
+                yLabel: '目標 Y：單月營收成長 (十萬元)',
+                points: [
+                    {x: 1.2, y: 1.8}, {x: 2.0, y: 4.2}, {x: 3.1, y: 2.9}, {x: 4.0, y: 5.8},
+                    {x: 5.0, y: 4.1}, {x: 6.2, y: 7.4}, {x: 7.1, y: 5.6}, {x: 8.0, y: 8.8},
+                    {x: 8.9, y: 7.2}
+                ]
+            }
+        ];
+
+        let lrScenarioIdx = 0;
+        let lrPoints = [...lrScenarios[0].points];
+
+        // 畫布座標轉換常數 (X: 0~10 -> SVG 60~590, Y: 0~10 -> SVG 390~45)
+        const LR_BOX = { xMin: 60, xMax: 590, yMin: 45, yMax: 390 };
+        function lrDataToSvgX(x) { return LR_BOX.xMin + (x / 10) * (LR_BOX.xMax - LR_BOX.xMin); }
+        function lrDataToSvgY(y) { return LR_BOX.yMax - (y / 10) * (LR_BOX.yMax - LR_BOX.yMin); }
+        function lrSvgToDataX(px) { return ((px - LR_BOX.xMin) / (LR_BOX.xMax - LR_BOX.xMin)) * 10; }
+        function lrSvgToDataY(py) { return ((LR_BOX.yMax - py) / (LR_BOX.yMax - LR_BOX.yMin)) * 10; }
+
+        // 使用者直線狀態 (由起點 P1 與終點 P2 定義，並與斜率 w、截距 b 雙向連動)
+        let lrState = {
+            w: 0.65,
+            b: 1.50,
+            p1: { x: 1.5, y: 2.475 },
+            p2: { x: 8.5, y: 7.025 },
+            showSquares: false,
+            dragMode: null, // 'p1', 'p2', 'new-line'
+            lossHistory: []
+        };
+
+        function computeOptimalOLS() {
+            const n = lrPoints.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            lrPoints.forEach(p => {
+                sumX += p.x; sumY += p.y;
+                sumXY += p.x * p.y; sumXX += p.x * p.x;
+            });
+            const meanX = sumX / n;
+            const meanY = sumY / n;
+            const optW = (sumXY - n * meanX * meanY) / (sumXX - n * meanX * meanX);
+            const optB = meanY - optW * meanX;
+            let minMSE = 0;
+            lrPoints.forEach(p => {
+                const err = p.y - (optW * p.x + optB);
+                minMSE += err * err;
+            });
+            minMSE /= n;
+            return { optW, optB, minMSE, meanY };
+        }
+
+        function initLRGrid() {
+            const gridG = document.getElementById('lr-grid-layer');
+            let html = '';
+            for (let i = 0; i <= 10; i += 2) {
+                const gx = lrDataToSvgX(i);
+                const gy = lrDataToSvgY(i);
+                html += `<line x1="${gx}" y1="${LR_BOX.yMin}" x2="${gx}" y2="${LR_BOX.yMax}" stroke="var(--svg-grid)" stroke-width="1"/>`;
+                html += `<text x="${gx}" y="${LR_BOX.yMax + 18}" text-anchor="middle" fill="var(--text-muted)" font-size="11" font-weight="600">${i}</text>`;
+                html += `<line x1="${LR_BOX.xMin}" y1="${gy}" x2="${LR_BOX.xMax}" y2="${gy}" stroke="var(--svg-grid)" stroke-width="1"/>`;
+                html += `<text x="${LR_BOX.xMin - 10}" y="${gy + 4}" text-anchor="end" fill="var(--text-muted)" font-size="11" font-weight="600">${i}</text>`;
+            }
+            html += `<line x1="${LR_BOX.xMin}" y1="${LR_BOX.yMax}" x2="${LR_BOX.xMax}" y2="${LR_BOX.yMax}" stroke="var(--svg-axis)" stroke-width="2"/>`;
+            html += `<line x1="${LR_BOX.xMin}" y1="${LR_BOX.yMin}" x2="${LR_BOX.xMin}" y2="${LR_BOX.yMax}" stroke="var(--svg-axis)" stroke-width="2"/>`;
+            gridG.innerHTML = html;
+        }
+
+        function syncWBFromP1P2() {
+            let dx = lrState.p2.x - lrState.p1.x;
+            if (Math.abs(dx) < 0.08) dx = dx >= 0 ? 0.08 : -0.08;
+            lrState.w = (lrState.p2.y - lrState.p1.y) / dx;
+            lrState.b = lrState.p1.y - lrState.w * lrState.p1.x;
+
+            // 同步更新右側滑桿
+            document.getElementById('lr-slider-w').value = Math.max(-2.0, Math.min(2.5, lrState.w));
+            document.getElementById('lr-slider-b').value = Math.max(-4.0, Math.min(12.0, lrState.b));
+        }
+
+        function syncP1P2FromWB() {
+            const x1 = 1.5, x2 = 8.5;
+            lrState.p1 = { x: x1, y: Math.max(0.3, Math.min(9.7, lrState.w * x1 + lrState.b)) };
+            lrState.p2 = { x: x2, y: Math.max(0.3, Math.min(9.7, lrState.w * x2 + lrState.b)) };
+        }
+
+        function onLRSliderInput() {
+            lrState.w = parseFloat(document.getElementById('lr-slider-w').value);
+            lrState.b = parseFloat(document.getElementById('lr-slider-b').value);
+            syncP1P2FromWB();
+            renderLRScene(true);
+        }
+
+        function renderLRScene(recordHistory = true) {
+            const { optW, optB, minMSE, meanY } = computeOptimalOLS();
+
+            // 1. 更新 AI 最佳參考虛線
+            const ghostLine = document.getElementById('lr-optimal-ghost-line');
+            ghostLine.setAttribute('x1', lrDataToSvgX(0));
+            ghostLine.setAttribute('y1', lrDataToSvgY(optB));
+            ghostLine.setAttribute('x2', lrDataToSvgX(10));
+            ghostLine.setAttribute('y2', lrDataToSvgY(optW * 10 + optB));
+
+            // 2. 更新使用者無限延伸主直線 (x=0 到 x=10)
+            const mainLine = document.getElementById('lr-main-line');
+            mainLine.setAttribute('x1', lrDataToSvgX(0));
+            mainLine.setAttribute('y1', lrDataToSvgY(lrState.b));
+            mainLine.setAttribute('x2', lrDataToSvgX(10));
+            mainLine.setAttribute('y2', lrDataToSvgY(lrState.w * 10 + lrState.b));
+
+            // 3. 更新 P1 與 P2 把手位置
+            const p1SvgX = lrDataToSvgX(lrState.p1.x);
+            const p1SvgY = lrDataToSvgY(lrState.p1.y);
+            const p2SvgX = lrDataToSvgX(lrState.p2.x);
+            const p2SvgY = lrDataToSvgY(lrState.p2.y);
+
+            ['lr-p1-pulse', 'lr-p1-circle'].forEach(id => {
+                const el = document.getElementById(id);
+                el.setAttribute('cx', p1SvgX); el.setAttribute('cy', p1SvgY);
+            });
+            const p1Lbl = document.getElementById('lr-p1-label');
+            p1Lbl.setAttribute('x', p1SvgX); p1Lbl.setAttribute('y', p1SvgY + 3.5);
+
+            ['lr-p2-pulse', 'lr-p2-circle'].forEach(id => {
+                const el = document.getElementById(id);
+                el.setAttribute('cx', p2SvgX); el.setAttribute('cy', p2SvgY);
+            });
+            const p2Lbl = document.getElementById('lr-p2-label');
+            p2Lbl.setAttribute('x', p2SvgX); p2Lbl.setAttribute('y', p2SvgY + 3.5);
+
+            document.getElementById('lr-p1p2-coords').textContent =
+                `起點 P₁(${lrState.p1.x.toFixed(1)}, ${lrState.p1.y.toFixed(1)}) → 終點 P₂(${lrState.p2.x.toFixed(1)}, ${lrState.p2.y.toFixed(1)})`;
+
+            // 4. 繪製資料點、垂直殘差線與誤差面積正方形 (SSE)
+            let pointsHtml = '';
+            let residualsHtml = '';
+            let squaresHtml = '';
+            let sumAbs = 0, sumSq = 0, sumTot = 0;
+
+            lrPoints.forEach((pt, idx) => {
+                const yHat = lrState.w * pt.x + lrState.b;
+                const err = pt.y - yHat;
+                sumAbs += Math.abs(err);
+                sumSq += err * err;
+                sumTot += (pt.y - meanY) * (pt.y - meanY);
+
+                const sx = lrDataToSvgX(pt.x);
+                const sy = lrDataToSvgY(pt.y);
+                const syHat = lrDataToSvgY(yHat);
+                const sidePx = Math.abs(sy - syHat);
+
+                if (lrState.showSquares && sidePx > 1) {
+                    const topY = Math.min(sy, syHat);
+                    const leftX = (pt.x > 7.5) ? (sx - sidePx) : sx;
+                    squaresHtml += `<rect x="${leftX}" y="${topY}" width="${sidePx}" height="${sidePx}" fill="var(--square-fill)" stroke="var(--square-stroke)" stroke-width="1.2" rx="2"/>`;
+                }
+
+                residualsHtml += `<line x1="${sx}" y1="${sy}" x2="${sx}" y2="${syHat}" stroke="var(--accent-warn)" stroke-width="2.2" class="anim-flow"/>`;
+                residualsHtml += `<circle cx="${sx}" cy="${syHat}" r="3.2" fill="var(--accent-warn)"/>`;
+
+                pointsHtml += `
+                    <g>
+                        <circle cx="${sx}" cy="${sy}" r="6.5" fill="var(--accent-primary)" stroke="#FFFFFF" stroke-width="2"/>
+                        <title>資料點 #${idx+1}: (${pt.x}, ${pt.y}) | 預測值: ${yHat.toFixed(2)}</title>
+                    </g>`;
+            });
+
+            document.getElementById('lr-squares-layer').innerHTML = squaresHtml;
+            document.getElementById('lr-residuals-layer').innerHTML = residualsHtml;
+            document.getElementById('lr-points-layer').innerHTML = pointsHtml;
+
+            // 5. 更新方程式與評估指標
+            const n = lrPoints.length;
+            const mae = sumAbs / n;
+            const sse = sumSq;
+            const mse = sumSq / n;
+            const r2 = Math.max(-1, 1 - (sumSq / sumTot));
+
+            const signChar = lrState.b >= 0 ? '+' : '-';
+            document.getElementById('lr-equation-badge').textContent =
+                `ŷ = ${lrState.w.toFixed(2)} x ${signChar} ${Math.abs(lrState.b).toFixed(2)}`;
+            document.getElementById('lr-val-w').textContent = lrState.w.toFixed(2);
+            document.getElementById('lr-val-b').textContent = lrState.b.toFixed(2);
+
+            document.getElementById('lr-metric-mae').textContent = mae.toFixed(3);
+            document.getElementById('lr-metric-sse').textContent = sse.toFixed(2);
+            document.getElementById('lr-metric-mse').textContent = mse.toFixed(3);
+            document.getElementById('lr-optimal-mse-hint').textContent = `(最佳極限: ${minMSE.toFixed(3)})`;
+            document.getElementById('lr-metric-r2').textContent = r2.toFixed(3);
+
+            const r2Percent = Math.max(0, Math.min(100, r2 * 100));
+            document.getElementById('lr-r2-bar').style.width = `${r2Percent}%`;
+
+            // 評語徽章
+            const badge = document.getElementById('lr-grade-badge');
+            if (mse <= minMSE * 1.06) {
+                badge.textContent = '🏆 完美貼合！已達數學最佳解';
+                badge.style.backgroundColor = '#10B981';
+            } else if (mse <= minMSE * 1.5) {
+                badge.textContent = '👍 非常接近囉！再微調看看';
+                badge.style.backgroundColor = 'var(--accent-primary)';
+            } else {
+                badge.textContent = '💪 試著拉動直線讓橘線變短！';
+                badge.style.backgroundColor = 'var(--accent-warn)';
+            }
+
+            // 6. 更新 MSE 軌跡迷你圖
+            if (recordHistory) {
+                lrState.lossHistory.push(mse);
+                if (lrState.lossHistory.length > 45) lrState.lossHistory.shift();
+                renderLRLossChart(minMSE);
+            }
+        }
+
+        function renderLRLossChart(minMSE) {
+            const hist = lrState.lossHistory;
+            if (hist.length === 0) return;
+            const maxVal = Math.max(...hist, minMSE * 3, 2.5);
+            const pts = hist.map((val, idx) => {
+                const x = 15 + (idx / Math.max(1, 44)) * 390;
+                const y = 82 - Math.min(1, val / maxVal) * 68;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            });
+            document.getElementById('lr-loss-polyline').setAttribute('points', pts.join(' '));
+            const lastPt = pts[pts.length - 1].split(',');
+            const head = document.getElementById('lr-loss-head');
+            head.setAttribute('cx', lastPt[0]);
+            head.setAttribute('cy', lastPt[1]);
+
+            const minY = 82 - Math.min(1, minMSE / maxVal) * 68;
+            const minLine = document.getElementById('lr-loss-min-line');
+            minLine.setAttribute('y1', minY);
+            minLine.setAttribute('y2', minY);
+        }
+
+        // 滑鼠在 SVG 畫布上「拉出起點 P1 與終點 P2 畫直線」與「端點拖曳」事件
+        function setupLRCanvasInteractions() {
+            const svg = document.getElementById('lr-svg-canvas');
+            const handleP1 = document.getElementById('lr-handle-p1');
+            const handleP2 = document.getElementById('lr-handle-p2');
+            const rubberLine = document.getElementById('lr-rubberband-line');
+            const statusText = document.getElementById('lr-drag-status-text');
+
+            function getSvgPoint(evt) {
+                const rect = svg.getBoundingClientRect();
+                const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+                const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+                const scaleX = 620 / rect.width;
+                const scaleY = 440 / rect.height;
+                const px = (clientX - rect.left) * scaleX;
+                const py = (clientY - rect.top) * scaleY;
+                const dataX = Math.max(0.2, Math.min(9.8, lrSvgToDataX(px)));
+                const dataY = Math.max(0.2, Math.min(9.8, lrSvgToDataY(py)));
+                return { px, py, dataX, dataY };
+            }
+
+            handleP1.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                lrState.dragMode = 'p1';
+                statusText.innerHTML = '🎯 <strong>正在微調起點 P₁：</strong>放開滑鼠完成定位';
+            });
+
+            handleP2.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                lrState.dragMode = 'p2';
+                statusText.innerHTML = '🎯 <strong>正在微調終點 P₂：</strong>放開滑鼠完成定位';
+            });
+
+            // 在畫布任意處按住拖曳：直接設定 P1 起點，拉向 P2 終點畫出新直線！
+            svg.addEventListener('pointerdown', (e) => {
+                if (lrState.dragMode) return;
+                const pt = getSvgPoint(e);
+                lrState.dragMode = 'new-line';
+                lrState.p1 = { x: pt.dataX, y: pt.dataY };
+                lrState.p2 = { x: Math.min(9.8, pt.dataX + 0.4), y: pt.dataY };
+
+                rubberLine.style.display = 'block';
+                rubberLine.setAttribute('x1', lrDataToSvgX(lrState.p1.x));
+                rubberLine.setAttribute('y1', lrDataToSvgY(lrState.p1.y));
+                rubberLine.setAttribute('x2', lrDataToSvgX(lrState.p2.x));
+                rubberLine.setAttribute('y2', lrDataToSvgY(lrState.p2.y));
+
+                statusText.innerHTML = '✏️ <strong>正在拉出直線：</strong>請拖曳滑鼠至終點位置後放開！';
+                syncWBFromP1P2();
+                renderLRScene(false);
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!lrState.dragMode) return;
+                const pt = getSvgPoint(e);
+
+                if (lrState.dragMode === 'p1') {
+                    lrState.p1 = { x: pt.dataX, y: pt.dataY };
+                } else if (lrState.dragMode === 'p2') {
+                    lrState.p2 = { x: pt.dataX, y: pt.dataY };
+                } else if (lrState.dragMode === 'new-line') {
+                    lrState.p2 = { x: pt.dataX, y: pt.dataY };
+                    rubberLine.setAttribute('x2', lrDataToSvgX(lrState.p2.x));
+                    rubberLine.setAttribute('y2', lrDataToSvgY(lrState.p2.y));
+                }
+
+                syncWBFromP1P2();
+                renderLRScene(true);
+            });
+
+            window.addEventListener('pointerup', () => {
+                if (!lrState.dragMode) return;
+                lrState.dragMode = null;
+                rubberLine.style.display = 'none';
+                statusText.innerHTML = '🖱️ <strong>操作提示：</strong>在畫布任意處「按住滑鼠拖曳」即可拉出起迄點畫直線，或直接拉動線上的 <span style="color:var(--accent-primary)">P₁</span>、<span style="color:var(--accent-secondary)">P₂</span> 圓點！';
+            });
+        }
+
+        // AI 自動最佳擬合平滑動畫
+        function triggerOptimalOLS() {
+            const { optW, optB } = computeOptimalOLS();
+            const startW = lrState.w;
+            const startB = lrState.b;
+            const totalFrames = 28;
+            let frame = 0;
+
+            function step() {
+                frame++;
+                const t = frame / totalFrames;
+                const ease = 1 - Math.pow(1 - t, 3);
+                lrState.w = startW + (optW - startW) * ease;
+                lrState.b = startB + (optB - startB) * ease;
+
+                document.getElementById('lr-slider-w').value = lrState.w;
+                document.getElementById('lr-slider-b').value = lrState.b;
+                syncP1P2FromWB();
+                renderLRScene(true);
+
+                if (frame < totalFrames) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        function toggleSSESquares() {
+            lrState.showSquares = !lrState.showSquares;
+            const btn = document.getElementById('btn-toggle-squares');
+            btn.classList.toggle('active', lrState.showSquares);
+            btn.innerHTML = lrState.showSquares ? '📐 隱藏誤差正方形面積 (SSE)' : '📐 顯示誤差正方形面積 (SSE)';
+            renderLRScene(false);
+        }
+
+        function cycleLRDataset() {
+            lrScenarioIdx = (lrScenarioIdx + 1) % lrScenarios.length;
+            const sc = lrScenarios[lrScenarioIdx];
+            lrPoints = [...sc.points];
+            document.getElementById('lr-scenario-title').textContent = sc.title;
+            document.getElementById('lr-xaxis-label').textContent = sc.xLabel;
+            document.getElementById('lr-yaxis-label').textContent = sc.yLabel;
+            lrState.lossHistory = [];
+            renderLRScene(true);
+        }
+
+        /* =========================================================
+           第 2 章：邏輯迴歸 (Sigmoid 曲線與可拖曳決策邊界)
+           ========================================================= */
+        const logSamples = [
+            {x: 1.0, y: 0}, {x: 1.8, y: 0}, {x: 2.5, y: 0}, {x: 3.2, y: 0}, {x: 4.0, y: 0}, {x: 4.9, y: 0},
+            {x: 4.3, y: 1}, {x: 5.3, y: 1}, {x: 6.1, y: 1}, {x: 7.0, y: 1}, {x: 8.0, y: 1}, {x: 9.0, y: 1}
+        ];
+
+        const LOG_BOX = { xMin: 60, xMax: 590, yMin: 40, yMax: 370 };
+        function logDataToSvgX(x) { return LOG_BOX.xMin + (x / 10) * (LOG_BOX.xMax - LOG_BOX.xMin); }
+        function logDataToSvgY(p) { return LOG_BOX.yMax - p * (LOG_BOX.yMax - LOG_BOX.yMin); }
+        function logSvgToDataX(px) { return ((px - LOG_BOX.xMin) / (LOG_BOX.xMax - LOG_BOX.xMin)) * 10; }
+
+        let logState = { w: 1.80, b: -9.00, thresh: 0.50, draggingBoundary: false };
+
+        function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
+
+        function initLogGrid() {
+            const g = document.getElementById('log-grid-layer');
+            let html = '';
+            for (let i = 0; i <= 10; i += 2) {
+                const gx = logDataToSvgX(i);
+                html += `<line x1="${gx}" y1="${LOG_BOX.yMin}" x2="${gx}" y2="${LOG_BOX.yMax}" stroke="var(--svg-grid)" stroke-width="1"/>`;
+                html += `<text x="${gx}" y="${LOG_BOX.yMax + 16}" text-anchor="middle" fill="var(--text-muted)" font-size="11" font-weight="600">${i}</text>`;
+            }
+            [0, 0.25, 0.5, 0.75, 1.0].forEach(p => {
+                const gy = logDataToSvgY(p);
+                html += `<line x1="${LOG_BOX.xMin}" y1="${gy}" x2="${LOG_BOX.xMax}" y2="${gy}" stroke="var(--svg-grid)" stroke-width="1"/>`;
+                html += `<text x="${LOG_BOX.xMin - 8}" y="${gy + 4}" text-anchor="end" fill="var(--text-muted)" font-size="11" font-weight="600">${Math.round(p*100)}%</text>`;
+            });
+            html += `<line x1="${LOG_BOX.xMin}" y1="${LOG_BOX.yMax}" x2="${LOG_BOX.xMax}" y2="${LOG_BOX.yMax}" stroke="var(--svg-axis)" stroke-width="2"/>`;
+            html += `<line x1="${LOG_BOX.xMin}" y1="${LOG_BOX.yMin}" x2="${LOG_BOX.xMin}" y2="${LOG_BOX.yMax}" stroke="var(--svg-axis)" stroke-width="2"/>`;
+            g.innerHTML = html;
+        }
+
+        function onLogSliderInput() {
+            logState.w = parseFloat(document.getElementById('log-slider-w').value);
+            logState.b = parseFloat(document.getElementById('log-slider-b').value);
+            logState.thresh = parseFloat(document.getElementById('log-slider-thresh').value);
+            renderLogScene();
+        }
+
+        function resetLogisticOptimal() {
+            logState.w = 1.80; logState.b = -9.00; logState.thresh = 0.50;
+            document.getElementById('log-slider-w').value = logState.w;
+            document.getElementById('log-slider-b').value = logState.b;
+            document.getElementById('log-slider-thresh').value = logState.thresh;
+            renderLogScene();
+        }
+
+        function renderLogScene() {
+            document.getElementById('log-val-w').textContent = logState.w.toFixed(2);
+            document.getElementById('log-val-b').textContent = logState.b.toFixed(2);
+            document.getElementById('log-val-thresh').textContent = `${logState.thresh.toFixed(2)} (${Math.round(logState.thresh*100)}%)`;
+
+            // 1. Sigmoid 曲線路徑
+            let d = '';
+            for (let x = 0; x <= 10; x += 0.15) {
+                const p = sigmoid(logState.w * x + logState.b);
+                const sx = logDataToSvgX(x);
+                const sy = logDataToSvgY(p);
+                d += (x === 0 ? `M ${sx} ${sy}` : ` L ${sx} ${sy}`);
+            }
+            document.getElementById('log-sigmoid-path').setAttribute('d', d);
+
+            // 2. 門檻線與垂直決策邊界 x* = (ln(theta / (1-theta)) - b) / w
+            const logit = Math.log(logState.thresh / (1 - logState.thresh));
+            const xStar = (logit - logState.b) / logState.w;
+            const clampedXStar = Math.max(0, Math.min(10, xStar));
+            const bx = logDataToSvgX(clampedXStar);
+            const ty = logDataToSvgY(logState.thresh);
+
+            document.getElementById('log-thresh-line').setAttribute('y1', ty);
+            document.getElementById('log-thresh-line').setAttribute('y2', ty);
+            document.getElementById('log-thresh-label').setAttribute('y', ty - 7);
+            document.getElementById('log-thresh-label').textContent = `判定門檻 θ = ${Math.round(logState.thresh * 100)}%`;
+
+            ['log-boundary-hit', 'log-boundary-line'].forEach(id => {
+                const el = document.getElementById(id);
+                el.setAttribute('x1', bx); el.setAttribute('x2', bx);
+            });
+            const handle = document.getElementById('log-boundary-handle');
+            handle.setAttribute('cx', bx); handle.setAttribute('cy', ty);
+            document.getElementById('log-boundary-tag').setAttribute('x', bx - 55);
+            document.getElementById('log-boundary-tag-text').setAttribute('x', bx);
+
+            document.getElementById('log-zone-neg').setAttribute('width', Math.max(0, bx - LOG_BOX.xMin));
+            document.getElementById('log-zone-pos').setAttribute('x', bx);
+            document.getElementById('log-zone-pos').setAttribute('width', Math.max(0, LOG_BOX.xMax - bx));
+            document.getElementById('log-boundary-badge').textContent = `決策分界線 x* = ${xStar.toFixed(2)} 分`;
+
+            // 3. 繪製樣本點並統計混淆矩陣
+            let tp = 0, fp = 0, fn = 0, tn = 0, totalLoss = 0;
+            let ptsHtml = '';
+
+            logSamples.forEach(s => {
+                const prob = sigmoid(logState.w * s.x + logState.b);
+                const pred = prob >= logState.thresh ? 1 : 0;
+                const isCorrect = (pred === s.y);
+
+                if (s.y === 1 && pred === 1) tp++;
+                else if (s.y === 0 && pred === 1) fp++;
+                else if (s.y === 1 && pred === 0) fn++;
+                else tn++;
+
+                const eps = 1e-6;
+                const pSafe = Math.max(eps, Math.min(1 - eps, prob));
+                totalLoss += -(s.y * Math.log(pSafe) + (1 - s.y) * Math.log(1 - pSafe));
+
+                const sx = logDataToSvgX(s.x);
+                const sy = logDataToSvgY(s.y);
+                const syProb = logDataToSvgY(prob);
+                const color = s.y === 1 ? '#2563EB' : '#EF4444';
+
+                // 連接真實點到 S 曲線預測機率的細虛線
+                ptsHtml += `<line x1="${sx}" y1="${sy}" x2="${sx}" y2="${syProb}" stroke="${color}" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.55"/>`;
+                ptsHtml += `<circle cx="${sx}" cy="${syProb}" r="4" fill="${color}"/>`;
+
+                if (!isCorrect) {
+                    ptsHtml += `<circle cx="${sx}" cy="${sy}" r="13" fill="none" stroke="#E11D48" stroke-width="2.5" class="anim-pulse"/>`;
+                }
+                ptsHtml += `<circle cx="${sx}" cy="${sy}" r="7" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>`;
+            });
+
+            document.getElementById('log-points-layer').innerHTML = ptsHtml;
+            document.getElementById('log-cm-tp').textContent = tp;
+            document.getElementById('log-cm-fp').textContent = fp;
+            document.getElementById('log-cm-fn').textContent = fn;
+            document.getElementById('log-cm-tn').textContent = tn;
+
+            const acc = Math.round(((tp + tn) / logSamples.length) * 100);
+            document.getElementById('log-acc-badge').textContent = `準確率 Accuracy: ${acc}%`;
+            document.getElementById('log-metric-loss').textContent = (totalLoss / logSamples.length).toFixed(3);
+        }
+
+        function setupLogInteractions() {
+            const svg = document.getElementById('log-svg-canvas');
+            const bGroup = document.getElementById('log-boundary-group');
+
+            bGroup.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                logState.draggingBoundary = true;
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!logState.draggingBoundary) return;
+                const rect = svg.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const px = (clientX - rect.left) * (620 / rect.width);
+                const targetXStar = Math.max(1.2, Math.min(8.8, logSvgToDataX(px)));
+
+                const logit = Math.log(logState.thresh / (1 - logState.thresh));
+                logState.b = logit - logState.w * targetXStar;
+                document.getElementById('log-slider-b').value = Math.max(-18, Math.min(2, logState.b));
+                renderLogScene();
+            });
+
+            window.addEventListener('pointerup', () => {
+                logState.draggingBoundary = false;
+            });
+        }
+
+        /* =========================================================
+           第 3 章：KNN 近鄰分類 (雷達探針拖曳與多數決投票)
+           ========================================================= */
+        const KNN_BOX = { xMin: 60, xMax: 590, yMin: 35, yMax: 380 };
+        function knnDataToSvgX(x) { return KNN_BOX.xMin + (x / 10) * (KNN_BOX.xMax - KNN_BOX.xMin); }
+        function knnDataToSvgY(y) { return KNN_BOX.yMax - (y / 10) * (KNN_BOX.yMax - KNN_BOX.yMin); }
+        function knnSvgToDataX(px) { return ((px - KNN_BOX.xMin) / (KNN_BOX.xMax - KNN_BOX.xMin)) * 10; }
+        function knnSvgToDataY(py) { return ((KNN_BOX.yMax - py) / (KNN_BOX.yMax - KNN_BOX.yMin)) * 10; }
+
+        const knnClasses = [
+            { id: 0, name: '🌊 海洋藍隊', color: '#2563EB' },
+            { id: 1, name: '🔥 烈焰紅隊', color: '#E11D48' },
+            { id: 2, name: '⚡ 雷霆黃隊', color: '#F59E0B' }
+        ];
+
+        let knnPoints = [];
+        let knnState = {
+            probe: { x: 5.0, y: 5.0 },
+            k: 5,
+            metric: 'euclidean',
+            weight: 'uniform',
+            draggingProbe: false
+        };
+
+        function initKNNGrid() {
+            const g = document.getElementById('knn-grid-layer');
+            let html = '';
+            for (let i = 0; i <= 10; i += 2) {
+                const gx = knnDataToSvgX(i);
+                const gy = knnDataToSvgY(i);
+                html += `<line x1="${gx}" y1="${KNN_BOX.yMin}" x2="${gx}" y2="${KNN_BOX.yMax}" stroke="var(--svg-grid)" stroke-width="1"/>`;
+                html += `<text x="${gx}" y="${KNN_BOX.yMax + 16}" text-anchor="middle" fill="var(--text-muted)" font-size="11" font-weight="600">${i}</text>`;
+                html += `<line x1="${KNN_BOX.xMin}" y1="${gy}" x2="${KNN_BOX.xMax}" y2="${gy}" stroke="var(--svg-grid)" stroke-width="1"/>`;
+                html += `<text x="${KNN_BOX.xMin - 8}" y="${gy + 4}" text-anchor="end" fill="var(--text-muted)" font-size="11" font-weight="600">${i}</text>`;
+            }
+            g.innerHTML = html;
+        }
+
+        function regenerateKNNPoints() {
+            knnPoints = [
+                // 藍隊群落 (左下)
+                {x: 2.1, y: 2.5, cls: 0}, {x: 2.8, y: 3.6, cls: 0}, {x: 3.5, y: 2.2, cls: 0},
+                {x: 1.8, y: 4.1, cls: 0}, {x: 3.9, y: 3.8, cls: 0}, {x: 4.4, y: 2.9, cls: 0},
+                {x: 2.6, y: 1.6, cls: 0}, {x: 4.6, y: 4.5, cls: 0},
+                // 紅隊群落 (右上)
+                {x: 6.5, y: 6.8, cls: 1}, {x: 7.4, y: 7.9, cls: 1}, {x: 8.2, y: 6.4, cls: 1},
+                {x: 5.8, y: 7.5, cls: 1}, {x: 7.9, y: 8.6, cls: 1}, {x: 8.7, y: 7.5, cls: 1},
+                {x: 6.1, y: 5.7, cls: 1}, {x: 7.1, y: 6.0, cls: 1},
+                // 黃隊群落 (左上與右下混合)
+                {x: 2.5, y: 7.5, cls: 2}, {x: 3.6, y: 8.2, cls: 2}, {x: 4.2, y: 6.8, cls: 2},
+                {x: 2.9, y: 6.2, cls: 2}, {x: 7.2, y: 2.8, cls: 2}, {x: 8.1, y: 3.6, cls: 2},
+                {x: 6.4, y: 3.9, cls: 2}, {x: 5.5, y: 3.2, cls: 2}
+            ].map(p => ({
+                x: Math.max(0.8, Math.min(9.2, p.x + (Math.random() - 0.5) * 0.7)),
+                y: Math.max(0.8, Math.min(9.2, p.y + (Math.random() - 0.5) * 0.7)),
+                cls: p.cls
+            }));
+            updateKNNScene();
+        }
+
+        function setKNNMetric(m) {
+            knnState.metric = m;
+            document.getElementById('knn-btn-euclidean').classList.toggle('active', m === 'euclidean');
+            document.getElementById('knn-btn-manhattan').classList.toggle('active', m === 'manhattan');
+            updateKNNScene();
+        }
+
+        function setKNNWeight(w) {
+            knnState.weight = w;
+            document.getElementById('knn-btn-uniform').classList.toggle('active', w === 'uniform');
+            document.getElementById('knn-btn-distance').classList.toggle('active', w === 'distance');
+            updateKNNScene();
+        }
+
+        function updateKNNScene() {
+            knnState.k = parseInt(document.getElementById('knn-slider-k').value, 10);
+            document.getElementById('knn-val-k').textContent = `K = ${knnState.k} 人`;
+            document.getElementById('knn-table-k-count').textContent = knnState.k;
+
+            const px = knnState.probe.x;
+            const py = knnState.probe.y;
+            const svgPx = knnDataToSvgX(px);
+            const svgPy = knnDataToSvgY(py);
+
+            // 1. 計算每個點到探針的距離並排序
+            const scored = knnPoints.map((pt, idx) => {
+                const dx = Math.abs(pt.x - px);
+                const dy = Math.abs(pt.y - py);
+                const dist = knnState.metric === 'euclidean' ? Math.hypot(dx, dy) : (dx + dy);
+                return { ...pt, idx, dist };
+            }).sort((a, b) => a.dist - b.dist);
+
+            const neighbors = scored.slice(0, knnState.k);
+            const kthDist = neighbors[neighbors.length - 1].dist;
+
+            // 2. 更新雷達圈 (圓形或菱形)
+            const rCircle = document.getElementById('knn-radar-circle');
+            const rDiamond = document.getElementById('knn-radar-diamond');
+            const scaleX = (KNN_BOX.xMax - KNN_BOX.xMin) / 10;
+            const scaleY = (KNN_BOX.yMax - KNN_BOX.yMin) / 10;
+
+            if (knnState.metric === 'euclidean') {
+                rCircle.style.display = 'block';
+                rDiamond.style.display = 'none';
+                rCircle.setAttribute('cx', svgPx);
+                rCircle.setAttribute('cy', svgPy);
+                rCircle.setAttribute('r', kthDist * ((scaleX + scaleY) / 2));
+            } else {
+                rCircle.style.display = 'none';
+                rDiamond.style.display = 'block';
+                const rx = kthDist * scaleX;
+                const ry = kthDist * scaleY;
+                rDiamond.setAttribute('points', `${svgPx},${svgPy - ry} ${svgPx + rx},${svgPy} ${svgPx},${svgPy + ry} ${svgPx - rx},${svgPy}`);
+            }
+
+            // 3. 繪製連線與訓練點
+            const neighborSet = new Set(neighbors.map(n => n.idx));
+            let linksHtml = '';
+            neighbors.forEach(nb => {
+                const nx = knnDataToSvgX(nb.x);
+                const ny = knnDataToSvgY(nb.y);
+                const col = knnClasses[nb.cls].color;
+                if (knnState.metric === 'euclidean') {
+                    linksHtml += `<line x1="${svgPx}" y1="${svgPy}" x2="${nx}" y2="${ny}" stroke="${col}" stroke-width="2.5" class="anim-flow"/>`;
+                } else {
+                    linksHtml += `<polyline points="${svgPx},${svgPy} ${nx},${svgPy} ${nx},${ny}" fill="none" stroke="${col}" stroke-width="2.2" class="anim-flow"/>`;
+                }
+            });
+            document.getElementById('knn-links-layer').innerHTML = linksHtml;
+
+            let ptsHtml = '';
+            knnPoints.forEach((pt, idx) => {
+                const sx = knnDataToSvgX(pt.x);
+                const sy = knnDataToSvgY(pt.y);
+                const col = knnClasses[pt.cls].color;
+                const isNb = neighborSet.has(idx);
+                if (isNb) {
+                    ptsHtml += `<circle cx="${sx}" cy="${sy}" r="11" fill="none" stroke="${col}" stroke-width="2.5"/>`;
+                }
+                ptsHtml += `<circle cx="${sx}" cy="${sy}" r="${isNb ? 7 : 5.5}" fill="${col}" stroke="#FFFFFF" stroke-width="1.8" opacity="${isNb ? 1 : 0.65}"/>`;
+            });
+            document.getElementById('knn-points-layer').innerHTML = ptsHtml;
+
+            // 4. 更新探針位置
+            ['knn-probe-pulse', 'knn-probe-core'].forEach(id => {
+                const el = document.getElementById(id);
+                el.setAttribute('cx', svgPx); el.setAttribute('cy', svgPy);
+            });
+            document.getElementById('knn-probe-ch-h').setAttribute('x1', svgPx - 14);
+            document.getElementById('knn-probe-ch-h').setAttribute('x2', svgPx + 14);
+            document.getElementById('knn-probe-ch-h').setAttribute('y1', svgPy);
+            document.getElementById('knn-probe-ch-h').setAttribute('y2', svgPy);
+
+            document.getElementById('knn-probe-ch-v').setAttribute('x1', svgPx);
+            document.getElementById('knn-probe-ch-v').setAttribute('x2', svgPx);
+            document.getElementById('knn-probe-ch-v').setAttribute('y1', svgPy - 14);
+            document.getElementById('knn-probe-ch-v').setAttribute('y2', svgPy + 14);
+
+            document.getElementById('knn-probe-label-bg').setAttribute('x', svgPx - 45);
+            document.getElementById('knn-probe-label-bg').setAttribute('y', svgPy - 38);
+            document.getElementById('knn-probe-label').setAttribute('x', svgPx);
+            document.getElementById('knn-probe-label').setAttribute('y', svgPy - 24);
+
+            // 5. 統計投票結果
+            const scores = [0, 0, 0];
+            let listHtml = '';
+            neighbors.forEach((nb, rank) => {
+                const w = knnState.weight === 'uniform' ? 1.0 : (1 / Math.max(0.15, nb.dist));
+                scores[nb.cls] += w;
+                const clsInfo = knnClasses[nb.cls];
+                listHtml += `
+                    <div class="flex justify-between items-center py-0.5 border-b last:border-b-0" style="border-color: var(--border-color);">
+                        <span>#${rank+1} <strong style="color:${clsInfo.color}">${clsInfo.name}</strong></span>
+                        <span>距離: ${nb.dist.toFixed(2)} | 票數: +${w.toFixed(2)}</span>
+                    </div>`;
+            });
+            document.getElementById('knn-neighbors-list').innerHTML = listHtml;
+
+            const totalScore = scores.reduce((a, b) => a + b, 0) || 1;
+            let bestCls = 0;
+            if (scores[1] > scores[bestCls]) bestCls = 1;
+            if (scores[2] > scores[bestCls]) bestCls = 2;
+
+            const winInfo = knnClasses[bestCls];
+            const conf = Math.round((scores[bestCls] / totalScore) * 100);
+            const predBadge = document.getElementById('knn-pred-badge');
+            predBadge.textContent = `預測結果：${winInfo.name} (得票率 ${conf}%)`;
+            predBadge.style.backgroundColor = winInfo.color;
+            document.getElementById('knn-probe-core').setAttribute('fill', winInfo.color);
+
+            let barsHtml = '';
+            knnClasses.forEach(c => {
+                const pct = Math.round((scores[c.id] / totalScore) * 100);
+                barsHtml += `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-bold">
+                            <span>${c.name}</span>
+                            <span class="font-mono-code">${scores[c.id].toFixed(1)} 票 (${pct}%)</span>
+                        </div>
+                        <div class="w-full h-2.5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                            <div class="h-full transition-all duration-150" style="width:${pct}%; background-color:${c.color};"></div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('knn-vote-bars').innerHTML = barsHtml;
+        }
+
+        function setupKNNInteractions() {
+            const svg = document.getElementById('knn-svg-canvas');
+
+            function moveProbe(e) {
+                const rect = svg.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const px = (clientX - rect.left) * (620 / rect.width);
+                const py = (clientY - rect.top) * (430 / rect.height);
+                knnState.probe.x = Math.max(0.5, Math.min(9.5, knnSvgToDataX(px)));
+                knnState.probe.y = Math.max(0.5, Math.min(9.5, knnSvgToDataY(py)));
+                updateKNNScene();
+            }
+
+            svg.addEventListener('pointerdown', (e) => {
+                knnState.draggingProbe = true;
+                moveProbe(e);
+            });
+            window.addEventListener('pointermove', (e) => {
+                if (!knnState.draggingProbe) return;
+                moveProbe(e);
+            });
+            window.addEventListener('pointerup', () => {
+                knnState.draggingProbe = false;
+            });
+        }
+
+        /* =========================================================
+           第 4 章：一鍵複製 Python 程式碼
+           ========================================================= */
+        function copyCode(preId, btnEl) {
+            const text = document.getElementById(preId).innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const orig = btnEl.innerHTML;
+            btnEl.innerHTML = '✅ 已複製！';
+            btnEl.classList.add('active');
+            setTimeout(() => {
+                btnEl.innerHTML = orig;
+                btnEl.classList.remove('active');
+            }, 1800);
+        }
+
+        /* =========================================================
+           啟動初始化
+           ========================================================= */
+        window.addEventListener('DOMContentLoaded', () => {
+            initLRGrid();
+            syncP1P2FromWB();
+            renderLRScene(true);
+            setupLRCanvasInteractions();
+
+            initLogGrid();
+            renderLogScene();
+            setupLogInteractions();
+
+            initKNNGrid();
+            regenerateKNNPoints();
+            setupKNNInteractions();
+        });
+    </script>
+</body>
+</html>
