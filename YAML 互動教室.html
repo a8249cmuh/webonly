@@ -1,0 +1,2008 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="day">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YAML 互動教室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --font-sans:'Noto Sans TC',system-ui,-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;
+  --font-serif:'Noto Serif TC','Noto Sans TC',serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Consolas,'Noto Sans TC',monospace;
+  --radius:16px;
+}
+/* ☀️ 白天：Claude 品牌色（象牙白 + 陶土橘） */
+:root[data-theme="day"]{
+  --bg-main:#FAF9F5; --bg-card:#FFFFFF; --bg-soft:#F0EEE6; --code-bg:#F6F4EE; --topbar-bg:rgba(250,249,245,.88);
+  --text-main:#141413; --text-muted:#5E5D59; --border-color:#E3DFD3; --border-strong:#CFCABB;
+  --accent-primary:#D97757; --primary-text:#B5532F; --on-primary:#FFFFFF;
+  --accent-secondary:#6A9BCC; --accent-green:#788C5D; --accent-warn:#C98A2B;
+  --danger:#BF4D43; --ok:#5E8C4A;
+  --t-key:#B5532F; --t-string:#5F7D3C; --t-number:#3F75AE; --t-boolean:#B9771F; --t-null:#87857C; --t-object:#B5577A; --t-array:#7462B0;
+  --card-shadow:0 1px 2px rgba(20,20,19,.04),0 6px 24px -8px rgba(20,20,19,.10);
+  --card-border-width:1px; --glow:rgba(217,119,87,.35);
+}
+/* 🌙 黑夜：Claude 深色 */
+:root[data-theme="night"]{
+  --bg-main:#1F1E1D; --bg-card:#2A2927; --bg-soft:#33322F; --code-bg:#232220; --topbar-bg:rgba(31,30,29,.88);
+  --text-main:#FAF9F5; --text-muted:#B4B1A7; --border-color:#3D3C38; --border-strong:#55534D;
+  --accent-primary:#E08A6D; --primary-text:#F0A388; --on-primary:#1F1E1D;
+  --accent-secondary:#8DB4DD; --accent-green:#A3B886; --accent-warn:#E5B062;
+  --danger:#F07468; --ok:#9CC27F;
+  --t-key:#F0A388; --t-string:#B5CF8E; --t-number:#8DB8E6; --t-boolean:#E8B866; --t-null:#ACA99F; --t-object:#E795B4; --t-array:#B3A6EE;
+  --card-shadow:0 10px 30px rgba(0,0,0,.35);
+  --card-border-width:1px; --glow:rgba(224,138,109,.55);
+}
+/* 🍬 糖果：陶土橘延伸的甜美風 */
+:root[data-theme="candy"]{
+  --bg-main:#FFF3EC; --bg-card:#FFFFFF; --bg-soft:#FFE6D9; --code-bg:#FFF8F3; --topbar-bg:rgba(255,243,236,.92);
+  --text-main:#3A1A0E; --text-muted:#7A3B22; --border-color:#EF7A55; --border-strong:#F2A07F;
+  --accent-primary:#EF6C45; --primary-text:#C2410C; --on-primary:#FFFFFF;
+  --accent-secondary:#16A3C4; --accent-green:#2FA866; --accent-warn:#F5B82E;
+  --danger:#E0245E; --ok:#22A35A;
+  --t-key:#D9480F; --t-string:#23955A; --t-number:#1A86C2; --t-boolean:#D98A00; --t-null:#9A8C86; --t-object:#E0458B; --t-array:#8B5CF6;
+  --card-shadow:4px 4px 0 #3A1A0E;
+  --card-border-width:2px; --glow:rgba(239,108,69,.45);
+}
+
+@keyframes svg-breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.08);opacity:1}}
+@keyframes svg-pulse-ring{0%{transform:scale(.95);opacity:.75}100%{transform:scale(1.7);opacity:0}}
+@keyframes svg-dash-flow{to{stroke-dashoffset:-24}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.breathe{animation:svg-breathe 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.pulse-ring{animation:svg-pulse-ring 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.flow{stroke-dasharray:6 6;animation:svg-dash-flow 1s linear infinite}
+.blink{animation:blink 1s ease-in-out infinite}
+.spin{animation:spin 14s linear infinite;transform-box:fill-box;transform-origin:center}
+.bob{animation:bob 1.4s ease-in-out infinite}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg-main);color:var(--text-main);font-family:var(--font-sans);line-height:1.7;font-size:16px;transition:background .3s,color .3s}
+:root[data-theme="candy"] body{background-image:radial-gradient(rgba(239,108,69,.13) 1.5px,transparent 1.6px);background-size:22px 22px}
+a{color:var(--primary-text)}
+code,kbd{font-family:var(--font-mono);font-size:.92em;background:var(--bg-soft);padding:.1em .4em;border-radius:6px}
+h1,h2,h3{font-family:var(--font-serif);line-height:1.35;margin:0}
+h3{font-size:1.15rem}
+svg text{font-family:var(--font-sans)}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent-primary);outline-offset:2px}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:50;background:var(--topbar-bg);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:var(--card-border-width) solid var(--border-color)}
+.topbar-inner{max-width:1280px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-serif);font-weight:700;font-size:1.1rem;white-space:nowrap;cursor:pointer}
+.brand svg{width:34px;height:34px}
+.nav{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none;padding:2px}
+.nav::-webkit-scrollbar{display:none}
+.nav-sep{width:1px;background:var(--border-color);margin:6px 6px;flex:none}
+.nav-btn{border:var(--card-border-width) solid transparent;background:transparent;padding:6px 12px;border-radius:999px;white-space:nowrap;color:var(--text-muted);font-weight:500;font-size:.92rem;transition:.2s}
+.nav-btn .num{font-family:var(--font-mono);font-size:.8em;opacity:.7;margin-right:4px}
+.nav-btn:hover{background:var(--bg-soft);color:var(--text-main)}
+.nav-btn.active{background:var(--accent-primary);color:var(--on-primary);font-weight:700}
+.nav-btn.pg{border-color:var(--accent-primary);color:var(--primary-text)}
+.nav-btn.pg.active{color:var(--on-primary)}
+.themes{display:flex;gap:4px;background:var(--bg-soft);padding:4px;border-radius:999px;flex:none}
+.theme-btn{border:0;background:transparent;border-radius:999px;padding:4px 10px;font-size:.85rem;color:var(--text-muted)}
+.theme-btn.active{background:var(--bg-card);color:var(--text-main);box-shadow:0 1px 4px rgba(0,0,0,.15);font-weight:700}
+
+/* ---------- hero ---------- */
+.hero{max-width:1280px;margin:0 auto;padding:30px 20px 6px}
+.hero-top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.hero h1{font-size:clamp(1.8rem,3.6vw,2.6rem)}
+.hero h1 .accent{color:var(--primary-text)}
+.hero p{color:var(--text-muted);margin:6px 0 0}
+.now{display:inline-flex;align-items:center;gap:8px;background:var(--bg-card);border:var(--card-border-width) solid var(--border-color);padding:6px 14px;border-radius:999px;font-size:.92rem;box-shadow:var(--card-shadow)}
+.now .dot{width:9px;height:9px;border-radius:50%;background:var(--accent-primary);box-shadow:0 0 0 0 var(--glow);animation:dotpulse 1.8s infinite}
+@keyframes dotpulse{0%{box-shadow:0 0 0 0 var(--glow)}100%{box-shadow:0 0 0 10px transparent}}
+.roadmap-wrap{overflow-x:auto;margin-top:14px}
+#roadmap{display:block;width:100%;min-width:720px;height:auto}
+.rm-node{cursor:pointer;outline:none}
+.rm-dot{fill:var(--bg-card);stroke:var(--border-strong);stroke-width:2.5;transition:.25s;transform-box:fill-box;transform-origin:center}
+.rm-node:hover .rm-dot,.rm-node:focus-visible .rm-dot{stroke:var(--accent-primary)}
+.rm-node.done .rm-dot{stroke:var(--accent-primary)}
+.rm-node.done .rm-num{fill:var(--primary-text)}
+.rm-node.active .rm-dot{fill:var(--accent-primary);stroke:var(--accent-primary);transform:scale(1.14)}
+.rm-num{text-anchor:middle;font-size:15px;font-weight:700;fill:var(--text-muted);font-family:var(--font-mono);pointer-events:none}
+.rm-node.active .rm-num{fill:var(--on-primary)}
+.rm-halo{fill:none;stroke:var(--accent-primary);stroke-width:2;opacity:0}
+.rm-node.active .rm-halo{opacity:.55;animation:svg-breathe 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.rm-pulse{fill:var(--accent-primary);opacity:0}
+.rm-node.active .rm-pulse{animation:svg-pulse-ring 2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.rm-label{font-size:14px;fill:var(--text-muted);text-anchor:middle;font-weight:500}
+.rm-node.active .rm-label{fill:var(--primary-text);font-weight:700}
+.rm-link{stroke:var(--border-strong);stroke-width:2.5;stroke-dasharray:3 7;fill:none;stroke-linecap:round}
+.rm-link.done{stroke:var(--accent-primary);stroke-dasharray:none}
+.rm-link.flow{stroke:var(--accent-primary);stroke-dasharray:7 6;animation:svg-dash-flow 1s linear infinite}
+.rm-divider{stroke:var(--border-strong);stroke-dasharray:2 5}
+.rm-part{font-size:11px;letter-spacing:.12em;fill:var(--text-muted);text-anchor:middle;font-family:var(--font-mono)}
+
+/* ---------- layout ---------- */
+main{max-width:1280px;margin:0 auto;padding:10px 20px 60px}
+.chapter{display:none}
+.chapter.active{display:block;animation:fade-up .45s ease}
+.ch-head{margin:18px 0 18px;max-width:820px}
+.eyebrow{display:inline-block;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.12em;color:var(--primary-text);background:color-mix(in srgb,var(--accent-primary) 12%,transparent);padding:2px 10px;border-radius:999px;margin-bottom:8px}
+.ch-head h2{font-size:clamp(1.5rem,2.8vw,2rem)}
+.lead{color:var(--text-muted);font-size:1.05rem;margin:8px 0 0}
+.card{background:var(--bg-card);border:var(--card-border-width) solid var(--border-color);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:22px;margin-bottom:20px;transition:background .3s,border-color .3s}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.card-head p{margin:2px 0 0;color:var(--text-muted);font-size:.93rem}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.grid-2>.card{margin-bottom:0}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.stack{display:flex;flex-direction:column;gap:20px}
+.mt{margin-top:20px}
+.muted{color:var(--text-muted)}
+.small{font-size:.88rem}
+svg.fluid{display:block;width:100%;height:auto}
+.hint{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--primary-text)}
+.hint::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent-primary);animation:blink 1.2s infinite}
+
+.btn{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);padding:7px 14px;border-radius:10px;font-weight:500;font-size:.92rem;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--accent-primary);color:var(--primary-text)}
+.btn.primary{background:var(--accent-primary);border-color:var(--accent-primary);color:var(--on-primary);font-weight:700}
+.btn.primary:hover{filter:brightness(1.06);color:var(--on-primary)}
+.btn.ghost{background:transparent}
+.btn.active{background:var(--accent-primary);border-color:var(--accent-primary);color:var(--on-primary)}
+:root[data-theme="candy"] .btn{box-shadow:2px 2px 0 #3A1A0E}
+:root[data-theme="candy"] .btn:active{transform:translate(2px,2px);box-shadow:none}
+.copy-btn.copied{background:var(--ok);border-color:var(--ok);color:#fff}
+
+.seg{display:inline-flex;background:var(--bg-soft);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:8px;font-size:.88rem;color:var(--text-muted)}
+.seg button.active{background:var(--bg-card);color:var(--text-main);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:var(--card-border-width) solid var(--border-color);background:var(--bg-soft);border-radius:999px;padding:4px 12px;font-size:.86rem;font-family:var(--font-mono);transition:.15s;color:var(--text-main)}
+.chip:hover{border-color:var(--accent-primary);color:var(--primary-text)}
+.chip.bad{text-decoration:line-through;text-decoration-color:var(--danger);text-decoration-thickness:2px}
+.chip.zh{font-family:var(--font-sans)}
+
+.code{font-family:var(--font-mono);background:var(--code-bg);border:1px solid var(--border-color);border-radius:12px;padding:14px 16px;overflow:auto;font-size:13.5px;line-height:1.7;white-space:pre;margin:0;tab-size:2}
+.t-key{color:var(--t-key);font-weight:600}
+.t-string{color:var(--t-string)}
+.t-number{color:var(--t-number)}
+.t-boolean{color:var(--t-boolean);font-weight:600}
+.t-null{color:var(--t-null);font-style:italic;font-weight:600}
+.t-punc{color:var(--text-muted)}
+.ty-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:.82rem;font-weight:700}
+.ty-string{color:var(--t-string);background:color-mix(in srgb,var(--t-string) 14%,transparent)}
+.ty-number{color:var(--t-number);background:color-mix(in srgb,var(--t-number) 14%,transparent)}
+.ty-boolean{color:var(--t-boolean);background:color-mix(in srgb,var(--t-boolean) 14%,transparent)}
+.ty-null{color:var(--t-null);background:color-mix(in srgb,var(--t-null) 16%,transparent)}
+.ty-object{color:var(--t-object);background:color-mix(in srgb,var(--t-object) 14%,transparent)}
+.ty-array{color:var(--t-array);background:color-mix(in srgb,var(--t-array) 14%,transparent)}
+.ty-list{color:var(--primary-text);background:color-mix(in srgb,var(--accent-primary) 14%,transparent)}
+
+.msg{border-radius:12px;padding:12px 14px;font-size:.95rem;border:1px solid}
+.msg.ok{background:color-mix(in srgb,var(--ok) 10%,transparent);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.msg.err{background:color-mix(in srgb,var(--danger) 9%,transparent);border-color:color-mix(in srgb,var(--danger) 45%,transparent)}
+.msg.warn{background:color-mix(in srgb,var(--accent-warn) 12%,transparent);border-color:color-mix(in srgb,var(--accent-warn) 50%,transparent)}
+.msg b.where{font-family:var(--font-mono)}
+mark.err-char{background:var(--danger);color:#fff;border-radius:3px;padding:0 2px;animation:blink 1s infinite}
+mark.err-char.eol{padding:0 4px}
+
+table.cmp{width:100%;border-collapse:collapse;font-size:.94rem}
+table.cmp th,table.cmp td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border-color);vertical-align:top}
+table.cmp th{color:var(--text-muted);font-weight:500;font-size:.85rem}
+
+/* chapter nav */
+.ch-nav{display:flex;justify-content:space-between;gap:12px;margin-top:28px}
+.ch-nav .btn{padding:10px 18px}
+
+/* ---------- history ---------- */
+.name-tile rect{fill:var(--bg-soft);stroke:var(--border-strong);stroke-width:2}
+.name-tile text.big{font-family:var(--font-mono);font-size:44px;font-weight:700;fill:var(--text-main);text-anchor:middle}
+.name-tile text.sub{font-size:13px;fill:var(--text-muted);text-anchor:middle}
+.name-tile.lit rect{stroke:var(--accent-primary);fill:color-mix(in srgb,var(--accent-primary) 14%,var(--bg-card))}
+.name-tile.lit text.big{fill:var(--primary-text)}
+.use-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.use-list li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--bg-soft)}
+.use-list .ico{font-size:1.3rem;line-height:1.4}
+.use-list b{display:block}
+.use-list span.d{font-size:.88rem;color:var(--text-muted)}
+.tl-axis{stroke:var(--border-strong);stroke-width:3;stroke-linecap:round}
+.tl-progress{stroke:var(--accent-primary);stroke-width:4;stroke-linecap:round;fill:none;transition:d .5s}
+.tl-stem{stroke:var(--border-strong);stroke-width:1.5;stroke-dasharray:3 4}
+.tl-ev{cursor:pointer;outline:none}
+.tl-dot{fill:var(--bg-card);stroke:var(--border-strong);stroke-width:3;transition:.2s}
+.tl-ring{fill:var(--accent-primary);opacity:0}
+.tl-year{font-family:var(--font-mono);font-size:15px;font-weight:700;text-anchor:middle;fill:var(--text-muted)}
+.tl-name{font-size:13px;text-anchor:middle;fill:var(--text-muted)}
+.tl-ev:hover .tl-dot{stroke:var(--accent-primary)}
+.tl-ev.past .tl-dot{stroke:var(--accent-primary);fill:color-mix(in srgb,var(--accent-primary) 30%,var(--bg-card))}
+.tl-ev.active .tl-dot{fill:var(--accent-primary);stroke:var(--accent-primary)}
+.tl-ev.active .tl-ring{animation:svg-pulse-ring 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.tl-ev.active .tl-year,.tl-ev.active .tl-name{fill:var(--primary-text);font-weight:700}
+.tl-detail{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:start;padding:16px;border-radius:14px;background:var(--bg-soft);margin-top:8px;min-height:110px}
+.tl-detail .yr{font-family:var(--font-mono);font-size:2.2rem;font-weight:700;color:var(--primary-text);line-height:1.1}
+.tl-detail h4{margin:0 0 4px;font-size:1.08rem}
+.tl-detail p{margin:0;color:var(--text-muted)}
+.xj-bars rect.track{fill:var(--bg-soft)}
+.xj-bars text{font-size:13px;fill:var(--text-main)}
+.xj-bars .lbl{font-weight:700}
+.xj-code{max-height:300px;font-size:12.5px}
+.xml-tag{color:var(--t-object)}
+input[type=range]{accent-color:var(--accent-primary);width:100%}
+
+/* ---------- rules ---------- */
+.rule{display:flex;gap:14px;align-items:flex-start}
+.rule .n{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;background:color-mix(in srgb,var(--accent-primary) 14%,transparent);color:var(--primary-text)}
+.rule h4{margin:0 0 4px;font-size:1rem}
+.rule p{margin:0;font-size:.9rem;color:var(--text-muted)}
+.rule .ex{margin-top:6px;font-family:var(--font-mono);font-size:.82rem}
+.lab{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px}
+.lab-list{display:flex;flex-direction:column;gap:6px}
+.lab-list button{text-align:left;border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);border-radius:10px;padding:8px 12px;font-size:.9rem;display:flex;gap:8px;align-items:center}
+.lab-list button .i{width:18px;text-align:center}
+.lab-list button:hover{border-color:var(--accent-primary)}
+.lab-list button.active{background:var(--accent-primary);border-color:var(--accent-primary);color:var(--on-primary);font-weight:700}
+.codeview{font-family:var(--font-mono);background:var(--code-bg);border:1px solid var(--border-color);border-radius:12px;padding:10px 0;font-size:14px;overflow:auto}
+.codeview .cl{display:flex;white-space:pre;padding:0 14px 0 0;line-height:1.85}
+.codeview .ln{width:44px;flex:none;text-align:right;padding-right:14px;color:var(--text-muted);opacity:.6;user-select:none}
+.codeview .cl.err{background:color-mix(in srgb,var(--danger) 13%,transparent)}
+.codeview .cl.err .ln{color:var(--danger);opacity:1;font-weight:700}
+.pipe .box{fill:var(--bg-soft);stroke:var(--border-strong);stroke-width:2}
+.pipe text{font-size:14px;fill:var(--text-main);text-anchor:middle;font-weight:500}
+.pipe text.mono{font-family:var(--font-mono);font-size:13px}
+.pipe .link{stroke:var(--accent-primary);stroke-width:3;fill:none}
+.pipe .link.bad{stroke:var(--danger)}
+.pipe .link.off{stroke:var(--border-strong);stroke-dasharray:3 6;animation:none}
+.pipe .res.ok .box{stroke:var(--ok);fill:color-mix(in srgb,var(--ok) 12%,var(--bg-card))}
+.pipe .res.bad .box{stroke:var(--danger);fill:color-mix(in srgb,var(--danger) 12%,var(--bg-card))}
+.pipe .parser .box{stroke:var(--accent-primary)}
+
+/* ---------- types ---------- */
+.ty-node{cursor:pointer;outline:none}
+.ty-node .c{fill:var(--bg-card);stroke-width:3;transition:.2s;transform-box:fill-box;transform-origin:center}
+.ty-node .ring{fill:none;stroke-width:1.5;stroke-dasharray:4 5;opacity:.7}
+.ty-node .halo{fill:none;stroke-width:3;opacity:0}
+.ty-node .zh{font-size:17px;font-weight:700;text-anchor:middle;fill:var(--text-main)}
+.ty-node .en{font-size:11.5px;text-anchor:middle;fill:var(--text-muted);font-family:var(--font-mono)}
+.ty-node:hover .c{transform:scale(1.06)}
+.ty-node.active .c{transform:scale(1.1)}
+.ty-node.active .halo{opacity:.6;animation:svg-breathe 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.ty-spoke{stroke-width:2;fill:none;opacity:.35}
+.ty-spoke.on{opacity:1;stroke-dasharray:6 6;animation:svg-dash-flow 1s linear infinite}
+.ty-hub{fill:var(--accent-primary)}
+.ty-hub-t{fill:var(--on-primary);font-weight:700;text-anchor:middle;font-size:15px}
+.ty-legend{font-size:12px;fill:var(--text-muted)}
+.detail-title{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.detail-title h3{font-size:1.35rem}
+.ex-row{margin-top:12px}
+.ex-row .lab{display:block;font-size:.82rem;color:var(--text-muted);margin-bottom:6px}
+.tipbox{margin-top:14px;padding:10px 14px;border-left:4px solid var(--accent-primary);background:var(--bg-soft);border-radius:0 10px 10px 0;font-size:.92rem}
+.detector{display:flex;gap:10px;margin-top:10px}
+.detector input{flex:1;min-width:0}
+input.txt,select.txt{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);border-radius:10px;padding:8px 12px;font-family:var(--font-mono);font-size:.95rem}
+input.txt:focus,select.txt:focus{outline:none;border-color:var(--accent-primary);box-shadow:0 0 0 3px var(--glow)}
+
+/* ---------- object ---------- */
+.ob-rows{display:flex;flex-direction:column;gap:8px}
+.ob-row{display:grid;grid-template-columns:minmax(0,.8fr) auto minmax(0,1.2fr) auto;gap:6px;align-items:center}
+.ob-row .colon{font-family:var(--font-mono);font-weight:700;color:var(--text-muted)}
+.ob-row input{width:100%}
+.ob-row .x{border:0;background:transparent;color:var(--text-muted);font-size:1.1rem;padding:4px 6px;border-radius:8px}
+.ob-row .x:hover{color:var(--danger);background:var(--bg-soft)}
+.ob-row.bad input.v{border-color:var(--danger)}
+.ob-row-msg{grid-column:1/-1;font-size:.82rem;color:var(--danger);margin-top:-2px}
+.ob-row-msg.warn{color:var(--accent-warn)}
+.ob-svg .row{cursor:pointer}
+.ob-svg .kbox{fill:color-mix(in srgb,var(--t-key) 10%,var(--bg-card));stroke:var(--t-key);stroke-width:2}
+.ob-svg .vbox{stroke-width:2}
+.ob-svg text{font-family:var(--font-mono);font-size:13px;fill:var(--text-main)}
+.ob-svg .tag{font-family:var(--font-sans);font-size:11px;font-weight:700}
+.ob-svg .brace{font-size:34px;font-weight:700;fill:var(--accent-primary)}
+.ob-svg .colon{font-size:18px;font-weight:700;fill:var(--text-muted)}
+.ob-svg .sel{fill:none;stroke:var(--accent-primary);stroke-width:2.5;opacity:.7}
+.anat text{font-size:13px;fill:var(--text-muted);text-anchor:middle}
+.anat .codeT{font-family:var(--font-mono);font-size:24px;font-weight:700;text-anchor:start}
+.anat .bracket{fill:none;stroke-width:2}
+
+/* ---------- array ---------- */
+.arr-svg .cell{stroke-width:2.5;transition:.25s;cursor:pointer}
+.arr-svg text{font-family:var(--font-mono)}
+.arr-svg .val{font-size:16px;font-weight:700;text-anchor:middle;fill:var(--text-main);pointer-events:none}
+.arr-svg .val.small{font-size:13px}
+.arr-svg .sub{font-size:11px;text-anchor:middle;fill:var(--text-muted);pointer-events:none}
+.arr-svg .idx{font-size:13px;text-anchor:middle;fill:var(--text-muted)}
+.arr-svg .idx.on{fill:var(--primary-text);font-weight:700}
+.arr-svg .bracket{font-size:46px;font-weight:700;fill:var(--t-array)}
+.arr-svg .comma{font-size:20px;fill:var(--text-muted);text-anchor:middle}
+.arr-svg .pointer{fill:var(--accent-primary)}
+.arr-ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.arr-info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.arr-info .box{background:var(--bg-soft);border-radius:12px;padding:10px 14px}
+.arr-info .k{font-size:.8rem;color:var(--text-muted)}
+.arr-info .v{font-family:var(--font-mono);font-weight:700;font-size:1.05rem;word-break:break-all}
+
+/* ---------- punctuation ---------- */
+.pg-glyph{cursor:pointer;outline:none}
+.pg-glyph .c{fill:var(--bg-soft);stroke:var(--border-strong);stroke-width:2.5;transition:.2s}
+.pg-glyph .g{font-family:var(--font-mono);font-size:30px;font-weight:700;text-anchor:middle;fill:var(--text-main);pointer-events:none}
+.pg-glyph .l{font-size:13px;text-anchor:middle;fill:var(--text-muted)}
+.pg-glyph .cnt{font-size:11px;text-anchor:middle;fill:var(--text-muted);font-family:var(--font-mono)}
+.pg-glyph .halo{fill:none;stroke:var(--accent-primary);stroke-width:3;opacity:0}
+.pg-glyph:hover .c{stroke:var(--accent-primary)}
+.pg-glyph.active .c{fill:var(--accent-primary);stroke:var(--accent-primary)}
+.pg-glyph.active .g{fill:var(--on-primary)}
+.pg-glyph.active .l{fill:var(--primary-text);font-weight:700}
+.pg-glyph.active .halo{opacity:.6;animation:svg-breathe 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.punc-code .p{border-radius:4px;padding:0 1px;cursor:pointer;transition:.15s;font-weight:700;color:var(--text-muted)}
+.punc-code .p:hover{background:var(--bg-soft)}
+.punc-code .p.hl{background:var(--accent-primary);color:var(--on-primary);box-shadow:0 0 0 3px var(--glow);animation:blink 1.6s infinite}
+.fw-table td.fw{color:var(--danger);font-family:var(--font-mono);font-size:1.15rem}
+.fw-table td.hw{color:var(--ok);font-family:var(--font-mono);font-size:1.15rem;font-weight:700}
+
+/* ---------- playground ---------- */
+.pg-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 16px}
+.pg-toolbar label{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;color:var(--text-muted)}
+.pg-toolbar .grow{flex:1}
+.pg-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,.95fr);gap:20px;align-items:start}
+.pg-grid>.card{margin-bottom:0;display:flex;flex-direction:column;gap:12px;min-height:560px}
+.pg-col-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700;padding:3px 12px;border-radius:999px}
+.badge .d{width:9px;height:9px;border-radius:50%}
+.badge.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,transparent)}
+.badge.ok .d{background:var(--ok);animation:svg-breathe 2s infinite}
+.badge.err{color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent)}
+.badge.err .d{background:var(--danger);animation:blink .9s infinite}
+.editor{position:relative;display:flex;border:var(--card-border-width) solid var(--border-color);border-radius:12px;background:var(--code-bg);overflow:hidden;height:420px}
+.editor:focus-within{border-color:var(--accent-primary);box-shadow:0 0 0 3px var(--glow)}
+.gutter{flex:none;width:46px;padding:12px 8px 12px 0;text-align:right;font-family:var(--font-mono);font-size:13px;line-height:21px;color:var(--text-muted);opacity:.7;overflow:hidden;user-select:none;border-right:1px solid var(--border-color)}
+.gutter div{height:21px}
+.gutter .e{color:var(--danger);opacity:1;font-weight:700;background:color-mix(in srgb,var(--danger) 18%,transparent)}
+#pg-input{flex:1;border:0;outline:0;resize:none;background:transparent;font-family:var(--font-mono);font-size:13px;line-height:21px;padding:12px;white-space:pre;overflow:auto;tab-size:2}
+.pg-status{font-size:.92rem}
+.pg-status .snip{margin-top:8px;font-family:var(--font-mono);font-size:12.5px;background:var(--code-bg);border-radius:8px;padding:8px 10px;white-space:pre;overflow-x:auto}
+.pg-status .actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.shake{animation:shake .4s}
+.pg-out{height:420px;overflow:auto}
+pre.pg-out{white-space:pre}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stats div{background:var(--bg-soft);border-radius:10px;padding:6px 8px;text-align:center}
+.stats b{display:block;font-family:var(--font-mono);font-size:1rem}
+.stats span{font-size:.75rem;color:var(--text-muted)}
+.tree{font-family:var(--font-mono);font-size:13px;background:var(--code-bg);border:1px solid var(--border-color);border-radius:12px;padding:10px 8px}
+.tree details>summary{list-style:none}
+.tree details>summary::-webkit-details-marker{display:none}
+.tr-row{display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.tr-row:hover{background:var(--bg-soft)}
+.tr-row.sel{background:color-mix(in srgb,var(--accent-primary) 20%,transparent);box-shadow:inset 3px 0 0 var(--accent-primary)}
+.tr-tog{display:inline-block;width:14px;color:var(--text-muted);transition:transform .15s;text-align:center}
+details[open]>summary .tr-tog{transform:rotate(90deg)}
+.tr-row.leaf{padding-left:26px}
+.tr-key{color:var(--t-key);font-weight:600}
+.tr-key.idx{color:var(--t-array)}
+.tr-type{font-size:11px;padding:0 6px;border-radius:6px}
+.tr-children{margin-left:14px;border-left:1px dashed var(--border-strong);padding-left:4px}
+.tr-val{overflow:hidden;text-overflow:ellipsis}
+.path-box{display:flex;gap:8px}
+.path-box input{flex:1;min-width:0;font-size:1rem}
+#pg-trace{display:block;width:100%;height:auto}
+.tr-step .box{fill:var(--bg-soft);stroke-width:2}
+.tr-step .lab{font-family:var(--font-mono);font-size:13.5px;font-weight:700;fill:var(--text-main)}
+.tr-step .pv{font-size:11.5px;fill:var(--text-muted)}
+.tr-step .num{font-family:var(--font-mono);font-size:11px;font-weight:700;text-anchor:middle;fill:var(--on-primary)}
+.tr-link{stroke:var(--accent-primary);stroke-width:2.5;fill:none;stroke-dasharray:5 5;animation:svg-dash-flow 1s linear infinite}
+.q-val{max-height:220px;font-size:12.5px}
+.q-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.q-code{display:grid;gap:6px;margin-top:10px}
+.q-code .line{display:flex;align-items:center;gap:8px;font-size:.85rem}
+.q-code .line .tag{flex:none;width:58px;color:var(--text-muted)}
+.q-code .line code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;padding:4px 8px}
+.q-code .btn{padding:3px 8px;font-size:.8rem}
+.help{font-size:.88rem;color:var(--text-muted)}
+.help summary{cursor:pointer;color:var(--primary-text);font-weight:500}
+.help table{margin-top:8px}
+.help td{padding:4px 6px;border-bottom:1px dashed var(--border-color)}
+.help td:first-child{font-family:var(--font-mono);white-space:nowrap;color:var(--text-main)}
+.sub-label{font-size:.82rem;color:var(--text-muted);margin:4px 0 6px}
+
+footer{max-width:1280px;margin:0 auto;padding:20px;color:var(--text-muted);font-size:.85rem;text-align:center;border-top:1px solid var(--border-color)}
+
+@media (max-width:1180px){
+  .pg-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pg-grid .pg-query{grid-column:1/-1;min-height:0}
+}
+@media (max-width:900px){
+  .grid-2,.grid-3,.lab{grid-template-columns:1fr}
+  .pg-grid{grid-template-columns:1fr}
+  .pg-grid>.card{min-height:0}
+  .brand span{display:none}
+  .tl-detail{grid-template-columns:1fr}
+  .arr-info{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  .topbar-inner{flex-wrap:wrap;gap:8px}
+  .nav{order:3;flex-basis:100%}
+  .themes{margin-left:auto}
+  .card{padding:16px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* ---------- YAML 專用 ---------- */
+:root[data-theme="day"]{--t-float:#2F8FBF;--t-timestamp:#2E8A86}
+:root[data-theme="night"]{--t-float:#A9CBEF;--t-timestamp:#7FCFC8}
+:root[data-theme="candy"]{--t-float:#0EA5E9;--t-timestamp:#0E9F95}
+.ty-float{color:var(--t-float);background:color-mix(in srgb,var(--t-float) 14%,transparent)}
+.ty-timestamp{color:var(--t-timestamp);background:color-mix(in srgb,var(--t-timestamp) 14%,transparent)}
+.y-key{color:var(--t-key);font-weight:600}
+.y-str{color:var(--t-string)}
+.y-num{color:var(--t-number)}
+.y-bool{color:var(--t-boolean);font-weight:600}
+.y-null{color:var(--t-null);font-style:italic;font-weight:600}
+.y-date{color:var(--t-timestamp)}
+.y-com{color:var(--text-muted);font-style:italic;opacity:.85}
+.y-dash{color:var(--t-array);font-weight:700}
+.y-anchor{color:var(--t-object);font-weight:700}
+.y-alias{color:var(--t-object);font-weight:700;text-decoration:underline dotted}
+.y-doc{color:var(--accent-primary);font-weight:700}
+.y-block{color:var(--t-boolean);font-weight:700}
+.y-punc{color:var(--text-muted)}
+.y-tag{color:var(--t-float)}
+.tabmark{color:var(--danger);background:color-mix(in srgb,var(--danger) 18%,transparent);border-radius:3px}
+.ind-row{display:flex;align-items:center;gap:6px;padding:3px 0}
+.ind-row button{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);border-radius:8px;width:30px;height:28px;font-weight:700;color:var(--text-muted)}
+.ind-row button:hover{border-color:var(--accent-primary);color:var(--primary-text)}
+.ind-code{flex:1;font-family:var(--font-mono);font-size:14px;background:var(--code-bg);border:1px solid var(--border-color);border-radius:8px;padding:4px 10px;white-space:pre;overflow-x:auto}
+.ind-row.err .ind-code{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,var(--code-bg))}
+.ind-code .sp{color:var(--accent-primary);opacity:.55}
+.ind-n{font-size:.78rem;color:var(--text-muted);width:44px;text-align:right;font-family:var(--font-mono)}
+.ind-tree text{font-family:var(--font-mono);font-size:13px;fill:var(--text-main)}
+.ind-tree .k{font-weight:700}
+.ind-tree .line{fill:none;stroke:var(--border-strong);stroke-width:2}
+.cmp2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.cmp2 .col{background:var(--bg-soft);border-radius:12px;padding:12px 14px;border:2px solid transparent}
+.cmp2 .col.diff{border-color:var(--accent-warn)}
+.cmp2 .k{font-size:.8rem;color:var(--text-muted)}
+.cmp2 .v{font-family:var(--font-mono);font-size:1.05rem;font-weight:700;margin-top:4px;word-break:break-all}
+.nl{color:var(--accent-primary);font-weight:700}
+.seq-svg text{font-family:var(--font-mono)}
+.seq-svg .dash{font-size:22px;font-weight:700;fill:var(--t-array)}
+.seq-svg .idx{font-size:13px;fill:var(--text-muted);text-anchor:end}
+.seq-svg .idx.on{fill:var(--primary-text);font-weight:700}
+.seq-svg .cell{stroke-width:2.5;cursor:pointer}
+.seq-svg .val{font-size:15px;fill:var(--text-main);pointer-events:none}
+.seq-svg .vk{fill:var(--t-key);font-weight:700}
+.sym-glyph{cursor:pointer;outline:none}
+.sym-glyph .c{fill:var(--bg-soft);stroke:var(--border-strong);stroke-width:2.5;transition:.2s}
+.sym-glyph .g{font-family:var(--font-mono);font-size:22px;font-weight:700;text-anchor:middle;fill:var(--text-main);pointer-events:none}
+.sym-glyph .l{font-size:12.5px;text-anchor:middle;fill:var(--text-muted)}
+.sym-glyph .halo{fill:none;stroke:var(--accent-primary);stroke-width:3;opacity:0}
+.sym-glyph:hover .c{stroke:var(--accent-primary)}
+.sym-glyph.active .c{fill:var(--accent-primary);stroke:var(--accent-primary)}
+.sym-glyph.active .g{fill:var(--on-primary)}
+.sym-glyph.active .l{fill:var(--primary-text);font-weight:700}
+.sym-glyph.active .halo{opacity:.6;animation:svg-breathe 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.sym-code .p{border-radius:4px;padding:0 1px;cursor:pointer;transition:.15s;font-weight:700}
+.sym-code .p:hover{background:var(--bg-soft)}
+.sym-code .p.hl{background:var(--accent-primary);color:var(--on-primary)!important;box-shadow:0 0 0 3px var(--glow);animation:blink 1.6s infinite}
+textarea.txt{border:var(--card-border-width) solid var(--border-color);background:var(--code-bg);border-radius:10px;padding:10px 12px;font-family:var(--font-mono);font-size:13.5px;line-height:1.7;width:100%;resize:vertical}
+textarea.txt:focus{outline:none;border-color:var(--accent-primary);box-shadow:0 0 0 3px var(--glow)}
+.res-str{font-family:var(--font-mono);background:var(--code-bg);border:1px dashed var(--border-strong);border-radius:10px;padding:10px 12px;white-space:pre-wrap;min-height:60px;font-size:13.5px;line-height:1.7}
+.pill-note{display:inline-block;font-size:.78rem;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--accent-warn) 18%,transparent);color:var(--text-main)}
+.warn-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.anat-y text{font-size:13px;fill:var(--text-muted)}
+.anat-y .code{font-family:var(--font-mono);font-size:20px;font-weight:700}
+.anat-y .guide{stroke:var(--accent-primary);stroke-width:2;stroke-dasharray:3 4;opacity:.7}
+.anat-y .bracket{fill:none;stroke-width:2}
+.q-code .line .tag{width:78px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand" data-go="history" title="回到第一章">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="11" fill="var(--accent-primary)"/>
+        <text x="20" y="26" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="15" fill="var(--on-primary)">Y:</text>
+      </svg>
+      <span>YAML 互動教室</span>
+    </div>
+    <nav class="nav" id="nav" aria-label="章節"></nav>
+    <div class="themes" role="group" aria-label="主題">
+      <button class="theme-btn" data-theme="day">☀️ 白天</button>
+      <button class="theme-btn" data-theme="night">🌙 黑夜</button>
+      <button class="theme-btn" data-theme="candy">🍬 糖果</button>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-top">
+    <div>
+      <h1>一次搞懂 <span class="accent">YAML</span></h1>
+      <p>YAML Ain't Markup Language · 用「縮排」寫資料：從歷史、規則、型態到親手驗證與取值</p>
+    </div>
+    <div class="now"><span class="dot"></span><span id="now-reading">目前瀏覽：第 1 章</span></div>
+  </div>
+  <div class="roadmap-wrap"><svg id="roadmap" viewBox="0 0 1000 112" role="navigation" aria-label="章節導覽圖"></svg></div>
+</section>
+
+<main id="content">
+
+<!-- ================= 1. 歷史 ================= -->
+<section class="chapter" id="ch-history" data-ch="history">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 1 章</span>
+    <h2>YAML 從哪裡來？</h2>
+    <p class="lead">YAML 和 JSON 一樣是「用文字記錄資料」的格式，但它更在乎<b>人讀起來舒不舒服</b>：不用大括號、少用引號，靠<b>縮排</b>表示層級，還能寫註解。所以它特別常被拿來寫「設定檔」。</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h3>名字的故事</h3><button class="btn" id="name-toggle">🔁 切換名字</button></div>
+      <svg class="fluid" id="name-svg" viewBox="0 0 460 190" aria-label="YAML 名稱拆解"></svg>
+      <p class="small muted" style="margin:8px 0 0" id="name-note"></p>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>今天在哪裡會遇到 YAML？</h3></div>
+      <ul class="use-list">
+        <li><span class="ico">🎯</span><div><b>AI 模型訓練設定</b><span class="d">YOLO 的 data.yaml 記錄資料集路徑與類別名稱；許多訓練超參數也寫成 YAML。</span></div></li>
+        <li><span class="ico">⚙️</span><div><b>GitHub Actions</b><span class="d">.github/workflows/*.yml 描述自動測試、自動部署的流程。</span></div></li>
+        <li><span class="ico">🐳</span><div><b>Docker Compose／Kubernetes</b><span class="d">用 YAML 描述要啟動哪些服務、開哪些連接埠。</span></div></li>
+        <li><span class="ico">📝</span><div><b>部落格與文件</b><span class="d">Hugo、Jekyll 文章開頭的 front matter（標題、日期、標籤）。</span></div></li>
+        <li><span class="ico">🔌</span><div><b>API 規格</b><span class="d">OpenAPI（Swagger）規格檔常用 YAML 撰寫。</span></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="card-head">
+      <div><h3>🕰️ 時間軸</h3><p>點擊年份查看重要事件，或按「自動播放」。</p></div>
+      <button class="btn" id="tl-play">▶ 自動播放</button>
+    </div>
+    <svg class="fluid" id="timeline" viewBox="0 0 1000 190"></svg>
+    <div class="tl-detail" id="tl-detail"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3>🧪 模擬器：同一份資料，YAML vs JSON</h3><p>拉動滑桿增加學生人數，比較兩種寫法。YAML 少了大括號、引號和逗號，而且可以加註解。</p></div>
+      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="yj-com" checked> YAML 加上註解</label>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:6px">
+      <span class="small muted" style="white-space:nowrap">學生人數</span>
+      <input type="range" id="yj-n" min="1" max="6" value="2">
+      <b id="yj-n-val" style="font-family:var(--font-mono);min-width:2ch">2</b>
+    </div>
+    <svg class="fluid xj-bars" id="yj-bars" viewBox="0 0 560 110" style="max-width:720px"></svg>
+    <div class="grid-2 mt">
+      <div><div class="sub-label">YAML</div><pre class="code xj-code" id="yj-yaml"></pre></div>
+      <div><div class="sub-label">JSON</div><pre class="code xj-code" id="yj-json"></pre></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. 規則 ================= -->
+<section class="chapter" id="ch-rules" data-ch="rules">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 2 章</span>
+    <h2>語法規則：縮排就是結構</h2>
+    <p class="lead">JSON 用括號表示層級，YAML 用<b>空白縮排</b>。看起來清爽，但多一個、少一個空白，意思就完全不同。</p>
+  </div>
+  <div class="grid-3">
+    <div class="card rule"><div class="n">1</div><div><h4>用縮排表示層級</h4><p>同一層要對齊；只能用<b>空白鍵</b>，不能用 Tab。建議每層 2 個空白。</p><div class="ex">student:<br>&nbsp;&nbsp;name: 王小明</div></div></div>
+    <div class="card rule"><div class="n">2</div><div><h4>冒號後面一定要空白</h4><p>鍵和值用「冒號 + 空白」分隔。少了空白，整串會被當成文字。</p><div class="ex"><span class="y-key">age</span>: <span class="y-num">19</span> ✅ &nbsp; age:19 ❌</div></div></div>
+    <div class="card rule"><div class="n">3</div><div><h4>清單用「- 」開頭</h4><p>每個項目前面放「減號 + 空白」，同一個清單的 - 要對齊。</p><div class="ex"><span class="y-dash">-</span> 籃球<br><span class="y-dash">-</span> Scratch</div></div></div>
+    <div class="card rule"><div class="n">4</div><div><h4># 開頭是註解</h4><p>這是 JSON 做不到的！# 到行尾都會被忽略，很適合寫說明。</p><div class="ex"><span class="y-com"># 學生基本資料</span></div></div></div>
+    <div class="card rule"><div class="n">5</div><div><h4>字串通常不用加引號</h4><p>但內容有「: 」「 #」、或像 yes、3.10 這種會被誤判的值，就要加引號。</p><div class="ex">version: <span class="y-str">"3.10"</span></div></div></div>
+    <div class="card rule"><div class="n">6</div><div><h4>大小寫有差、--- 分隔文件</h4><p>Name 和 name 是不同的鍵。一個檔案可以用 --- 放多份文件。副檔名 .yaml 或 .yml。</p><div class="ex"><span class="y-doc">---</span></div></div></div>
+  </div>
+
+  <div class="card mt">
+    <div class="card-head">
+      <div><h3>📐 縮排模擬器：空白決定「誰是誰的小孩」</h3><p>用 ← → 調整每一行的縮排，右邊的結構圖會立刻改變。橘色小點代表一個空白。</p></div>
+      <div class="chips" id="ind-presets"></div>
+    </div>
+    <div class="grid-2">
+      <div><div id="ind-rows"></div><div id="ind-msg" class="mt" style="margin-top:12px"></div></div>
+      <div><div class="sub-label">解析出來的結構</div><svg class="fluid ind-tree" id="ind-svg" viewBox="0 0 460 240"></svg></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3>🔬 錯誤實驗室</h3><p>點左邊的「常見錯誤」，看看解析器在哪裡卡住。⚠️ 標記的錯誤更可怕：<b>不會報錯，但結果跟你想的不一樣</b>。</p></div>
+      <span class="hint">點選左側按鈕</span>
+    </div>
+    <div class="lab">
+      <div class="lab-list" id="lab-list"></div>
+      <div class="stack" style="gap:14px">
+        <svg class="fluid pipe" id="lab-pipe" viewBox="0 0 640 110"></svg>
+        <div class="codeview" id="lab-code"></div>
+        <div id="lab-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>YAML vs JSON</h3><p>YAML 1.2 是 JSON 的「超集合」：合法的 JSON 幾乎都能直接當 YAML 讀。</p></div>
+    <div style="overflow-x:auto">
+    <table class="cmp">
+      <tr><th>比較項目</th><th>YAML</th><th>JSON</th></tr>
+      <tr><td>層級表示</td><td>縮排（空白）</td><td>{ } 和 [ ]</td></tr>
+      <tr><td>字串引號</td><td>大多可省略</td><td>一定要雙引號</td></tr>
+      <tr><td>註解</td><td>可以用 #</td><td>不行</td></tr>
+      <tr><td>重複利用</td><td>錨點 &amp; 與別名 *</td><td>沒有</td></tr>
+      <tr><td>多行文字</td><td>| 和 &gt; 很方便</td><td>只能寫 \n</td></tr>
+      <tr><td>適合用途</td><td>人要常常手改的<b>設定檔</b></td><td>程式之間<b>交換資料</b>、API</td></tr>
+      <tr><td>缺點</td><td>縮排錯一格就出事；型態可能被誤判</td><td>括號、逗號多，不能寫註解</td></tr>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. 型態 ================= -->
+<section class="chapter" id="ch-types" data-ch="types">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 3 章</span>
+    <h2>資料型態：YAML 會「猜」型態</h2>
+    <p class="lead">YAML 的值大多不加引號，解析器會依照寫法<b>自動判斷</b>它是字串、數字、布林還是空值。這很方便，但也是 YAML 最容易踩雷的地方。</p>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h3>型態地圖</h3><span class="hint">點擊任一型態</span></div>
+      <svg class="fluid" id="types-svg" viewBox="0 0 540 430"></svg>
+    </div>
+    <div class="card" id="type-detail"></div>
+  </div>
+  <div class="card mt">
+    <div class="card-head"><div><h3>🔍 型態偵測器：同一個值，兩種解析器</h3><p>網頁裡的解析器採用 <b>YAML 1.2</b>；Python 最常用的 <b>PyYAML</b> 卻採用舊的 <b>YAML 1.1</b> 規則。輸入一個值，比較兩邊的結果。</p></div></div>
+    <input class="txt" id="det-input" value="NO" aria-label="輸入一個 YAML 值" style="width:100%">
+    <div class="chips" id="det-chips" style="margin-top:10px"></div>
+    <div id="det-out"></div>
+  </div>
+</section>
+
+<!-- ================= 4. 對應 ================= -->
+<section class="chapter" id="ch-mapping" data-ch="mapping">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 4 章</span>
+    <h2>對應 Mapping：鍵: 值</h2>
+    <p class="lead">對應（mapping）就是一組組「鍵: 值」，相當於 JSON 的物件、Python 的 dict。要放進另一層，就<b>換行再多縮排兩格</b>。</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>對應的構造</h3></div>
+    <svg class="fluid anat-y" id="anat-svg" viewBox="0 0 760 210"></svg>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h3>🛠️ 對應組裝器</h3><p>左邊輸入鍵，右邊輸入值。值可以是一般文字、數字，或流式寫法 <code>[a, b]</code>、<code>{x: 1}</code>。</p></div></div>
+      <div class="ob-rows" id="ob-rows"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="ob-add">＋ 新增一筆</button>
+        <button class="btn ghost" id="ob-reset">⟲ 重設</button>
+      </div>
+      <div class="tipbox">試試把值改成 <code>yes</code>、<code>3.10</code> 或 <code>0912345678</code>，看看型態會變成什麼。值留空白，代表 <code>null</code>。</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>視覺化結果</h3><span class="hint">點一列看取值方式</span></div>
+      <svg class="fluid ob-svg" id="ob-svg" viewBox="0 0 560 300"></svg>
+      <div id="ob-pick" style="margin-top:10px"></div>
+      <div class="grid-2" style="margin-top:12px;gap:12px">
+        <div><div class="card-head" style="margin:0 0 6px"><span class="sub-label" style="margin:0">YAML（區塊風格）</span><button class="btn copy-btn" data-copy="#ob-yaml" style="padding:3px 10px;font-size:.8rem">📋</button></div><pre class="code" id="ob-yaml" style="font-size:12.5px"></pre></div>
+        <div><div class="card-head" style="margin:0 0 6px"><span class="sub-label" style="margin:0">等同的 JSON</span><button class="btn copy-btn" data-copy="#ob-json" style="padding:3px 10px;font-size:.8rem">📋</button></div><pre class="code" id="ob-json" style="font-size:12.5px"></pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5. 序列 ================= -->
+<section class="chapter" id="ch-sequence" data-ch="sequence">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 5 章</span>
+    <h2>序列 Sequence：一排有順序的值</h2>
+    <p class="lead">序列（sequence）相當於 JSON 的陣列、Python 的 list。每一項用「<b>- </b>」開頭；索引一樣從 <b>0</b> 開始。也可以寫成一行的流式風格 <code>[88, 92, 75]</code>。</p>
+  </div>
+  <div class="card">
+    <div class="arr-ctrl">
+      <div class="seg" id="seq-mode">
+        <button data-mode="scores" class="active">數字序列 scores</button>
+        <button data-mode="students">對應序列 students</button>
+      </div>
+      <span style="flex:1"></span>
+      <button class="btn" id="seq-push">＋ 加到最後</button>
+      <button class="btn" id="seq-pop">－ 移除最後</button>
+      <button class="btn ghost" id="seq-reset">⟲ 重設</button>
+    </div>
+    <div class="grid-2">
+      <div>
+        <svg class="fluid seq-svg" id="seq-svg" viewBox="0 0 520 260"></svg>
+        <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
+          <span class="small muted" style="white-space:nowrap">選擇索引</span>
+          <input type="range" id="seq-idx" min="0" max="3" value="0">
+          <b id="seq-idx-val" style="font-family:var(--font-mono);min-width:3ch">0</b>
+        </div>
+      </div>
+      <div>
+        <div class="arr-info" id="seq-info" style="grid-template-columns:1fr 1fr 1fr;margin-top:0"></div>
+        <div class="grid-2" style="margin-top:12px;gap:12px">
+          <div><div class="sub-label">YAML 區塊風格</div><pre class="code" id="seq-block" style="font-size:12.5px;max-height:260px"></pre></div>
+          <div><div class="sub-label">YAML 流式風格</div><pre class="code" id="seq-flow" style="font-size:12.5px;white-space:pre-wrap;max-height:260px"></pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-3">
+    <div class="card rule"><div class="n">0</div><div><h4>索引從 0 開始</h4><p>第 1 項是 <code>[0]</code>，最後一項是 <code>[長度 - 1]</code>，也可以用 <code>[-1]</code> 從後面數。</p></div></div>
+    <div class="card rule"><div class="n">-</div><div><h4>對應放進序列</h4><p><code>- name: 王小明</code> 的下一行 <code>age</code> 要和 <code>name</code> 對齊（比 - 多兩格），它們才屬於同一項。</p></div></div>
+    <div class="card rule"><div class="n">[ ]</div><div><h4>區塊 vs 流式</h4><p>短的清單用 <code>[a, b, c]</code> 一行寫完；長的或巢狀的用「- 」比較好讀。兩種寫法意思完全相同。</p></div></div>
+  </div>
+</section>
+
+<!-- ================= 6. 符號與進階 ================= -->
+<section class="chapter" id="ch-symbols" data-ch="symbols">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 6 章</span>
+    <h2>符號與進階技巧</h2>
+    <p class="lead">YAML 的符號比 JSON 多，但每個都有明確的功能：多行文字、註解、重複利用設定……看懂它們，讀設定檔就不怕了。</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>符號圖鑑</h3><span class="hint">點符號，右側範例會同步亮起</span></div>
+    <svg class="fluid" id="sym-svg" viewBox="0 0 880 130"></svg>
+    <div class="grid-2 mt">
+      <div id="sym-detail" class="tipbox" style="margin:0"></div>
+      <pre class="code sym-code" id="sym-code"></pre>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h3>📜 多行文字模擬器：| 與 &gt;</h3><p>在下面輸入多行文字，切換符號，看看最後讀到的字串長什麼樣子（↵ 代表換行）。</p></div></div>
+      <textarea class="txt" id="blk-input" rows="4" aria-label="多行文字內容">第一行
+第二行
+
+第四行</textarea>
+      <div class="seg mt" id="blk-style" style="margin-top:10px;flex-wrap:wrap"></div>
+      <div id="blk-desc" class="small muted" style="margin:8px 0"></div>
+      <div class="grid-2" style="gap:12px">
+        <div><div class="sub-label">YAML 原始碼</div><pre class="code" id="blk-src" style="font-size:12.5px"></pre></div>
+        <div><div class="sub-label">讀到的字串</div><div class="res-str" id="blk-out"></div><div class="small muted" style="margin-top:6px">JSON：<code id="blk-json"></code></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h3>⚓ 錨點 &amp; 與別名 *：不要重複寫</h3><p>用 <code>&amp;名字</code> 標記一段設定，再用 <code>*名字</code> 引用；<code>&lt;&lt;: *名字</code> 會把整段合併進來，再覆寫想改的值。可以直接修改左邊試試。</p></div></div>
+      <textarea class="txt" id="anc-input" rows="13" aria-label="錨點範例" spellcheck="false"></textarea>
+      <div id="anc-msg" style="margin-top:8px"></div>
+      <div class="sub-label" style="margin-top:8px">展開後的結果（JSON）</div>
+      <pre class="code" id="anc-out" style="font-size:12.5px;max-height:260px"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 7. Playground ================= -->
+<section class="chapter" id="ch-playground" data-ch="playground">
+  <div class="ch-head">
+    <span class="eyebrow">PART 2 · Playground</span>
+    <h2>YAML Playground：排版、驗證、取值</h2>
+    <p class="lead">在左邊貼上 YAML，會即時驗證並提醒容易誤判的值；按「格式化」重新排版或轉成 JSON；在右邊輸入路徑（例如 <code>student.name</code> 或 <code>student.scores[1]</code>）立刻看到值。貼 JSON 進來也可以，格式化後就變成 YAML。</p>
+  </div>
+  <div class="card pg-toolbar">
+    <label>範例 <select class="txt" id="pg-sample" style="font-family:var(--font-sans);font-size:.9rem;max-width:240px"></select></label>
+    <span class="grow"></span>
+    <label>縮排 <select class="txt" id="pg-indent" style="font-size:.88rem"><option value="2">2 空格</option><option value="4">4 空格</option></select></label>
+    <label><input type="checkbox" id="pg-sort"> 鍵依字母排序</label>
+    <button class="btn primary" id="pg-format">✨ 格式化排版</button>
+    <button class="btn" id="pg-flow">🗜️ 轉成流式（一行）</button>
+    <button class="btn" id="pg-undo" disabled>↶ 復原</button>
+    <button class="btn copy-btn" id="pg-copy">📋 複製</button>
+    <button class="btn ghost" id="pg-clear">🗑️ 清除</button>
+  </div>
+  <div class="pg-grid mt">
+    <div class="card">
+      <div class="pg-col-head"><h3>① 輸入 YAML</h3><span class="badge" id="pg-badge"></span></div>
+      <div class="editor"><div class="gutter" id="pg-gutter"></div><textarea id="pg-input" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="YAML 輸入區"></textarea></div>
+      <div class="pg-status" id="pg-status"></div>
+    </div>
+    <div class="card">
+      <div class="pg-col-head"><h3>② 結果</h3><div class="seg" id="pg-view"><button data-view="yaml" class="active">YAML 排版</button><button data-view="json">轉成 JSON</button><button data-view="tree">樹狀</button></div></div>
+      <pre class="code pg-out" id="pg-yaml"></pre>
+      <pre class="code pg-out" id="pg-json" hidden></pre>
+      <div class="tree pg-out" id="pg-tree" hidden></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn copy-btn" id="pg-copy-out" style="padding:4px 10px;font-size:.82rem">📋 複製這個結果</button></div>
+      <div class="stats" id="pg-stats"></div>
+    </div>
+    <div class="card pg-query">
+      <div class="pg-col-head"><h3>③ 路徑取值</h3><span class="hint">樹狀檢視也可以點</span></div>
+      <div class="path-box"><input class="txt" id="pg-path" placeholder="例如 student.name" aria-label="取值路徑" autocomplete="off" spellcheck="false"></div>
+      <div><div class="sub-label">試試看：</div><div class="chips" id="pg-examples"></div></div>
+      <svg id="pg-trace" viewBox="0 0 340 80"></svg>
+      <div id="pg-result"></div>
+      <details class="help">
+        <summary>路徑寫法說明</summary>
+        <table>
+          <tr><td>student.name</td><td>用「.」一層一層往下取對應的鍵</td></tr>
+          <tr><td>student.scores[1]</td><td>序列用 [索引]，從 0 開始</td></tr>
+          <tr><td>student.scores.1</td><td>也可以用「.數字」取序列的項目</td></tr>
+          <tr><td>scores[-1]</td><td>負數索引：-1 是最後一項</td></tr>
+          <tr><td>classmates[*].name</td><td>[*] 取出每一項的 name</td></tr>
+          <tr><td>scores.length</td><td>序列的長度（項目數）</td></tr>
+          <tr><td>jobs.test.runs-on</td><td>鍵裡有「-」也可以直接寫</td></tr>
+          <tr><td>["first name"]</td><td>鍵含空白或「.」時，用 ["…"] 包起來</td></tr>
+          <tr><td>[0].name</td><td>最外層是序列時，從 [0] 開始</td></tr>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer>YAML 互動教室 · 規格依據 YAML 1.2.2（yaml.org）· 解析器：js-yaml 4.1.0（MIT）內嵌於本頁，所有驗證都在你的瀏覽器中進行 · 姊妹篇：<a href="https://claude.ai/artifact/6fA3nchyvpGJPBri4h2H7p">JSON 互動教室</a></footer>
+
+<script>
+/*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
+!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).jsyaml={})}(this,(function(e){"use strict";function t(e){return null==e}var n={isNothing:t,isObject:function(e){return"object"==typeof e&&null!==e},toArray:function(e){return Array.isArray(e)?e:t(e)?[]:[e]},repeat:function(e,t){var n,i="";for(n=0;n<t;n+=1)i+=e;return i},isNegativeZero:function(e){return 0===e&&Number.NEGATIVE_INFINITY===1/e},extend:function(e,t){var n,i,r,o;if(t)for(n=0,i=(o=Object.keys(t)).length;n<i;n+=1)e[r=o[n]]=t[r];return e}};function i(e,t){var n="",i=e.reason||"(unknown reason)";return e.mark?(e.mark.name&&(n+='in "'+e.mark.name+'" '),n+="("+(e.mark.line+1)+":"+(e.mark.column+1)+")",!t&&e.mark.snippet&&(n+="\n\n"+e.mark.snippet),i+" "+n):i}function r(e,t){Error.call(this),this.name="YAMLException",this.reason=e,this.mark=t,this.message=i(this,!1),Error.captureStackTrace?Error.captureStackTrace(this,this.constructor):this.stack=(new Error).stack||""}r.prototype=Object.create(Error.prototype),r.prototype.constructor=r,r.prototype.toString=function(e){return this.name+": "+i(this,e)};var o=r;function a(e,t,n,i,r){var o="",a="",l=Math.floor(r/2)-1;return i-t>l&&(t=i-l+(o=" ... ").length),n-i>l&&(n=i+l-(a=" ...").length),{str:o+e.slice(t,n).replace(/\t/g,"→")+a,pos:i-t+o.length}}function l(e,t){return n.repeat(" ",t-e.length)+e}var c=function(e,t){if(t=Object.create(t||null),!e.buffer)return null;t.maxLength||(t.maxLength=79),"number"!=typeof t.indent&&(t.indent=1),"number"!=typeof t.linesBefore&&(t.linesBefore=3),"number"!=typeof t.linesAfter&&(t.linesAfter=2);for(var i,r=/\r?\n|\r|\0/g,o=[0],c=[],s=-1;i=r.exec(e.buffer);)c.push(i.index),o.push(i.index+i[0].length),e.position<=i.index&&s<0&&(s=o.length-2);s<0&&(s=o.length-1);var u,p,f="",d=Math.min(e.line+t.linesAfter,c.length).toString().length,h=t.maxLength-(t.indent+d+3);for(u=1;u<=t.linesBefore&&!(s-u<0);u++)p=a(e.buffer,o[s-u],c[s-u],e.position-(o[s]-o[s-u]),h),f=n.repeat(" ",t.indent)+l((e.line-u+1).toString(),d)+" | "+p.str+"\n"+f;for(p=a(e.buffer,o[s],c[s],e.position,h),f+=n.repeat(" ",t.indent)+l((e.line+1).toString(),d)+" | "+p.str+"\n",f+=n.repeat("-",t.indent+d+3+p.pos)+"^\n",u=1;u<=t.linesAfter&&!(s+u>=c.length);u++)p=a(e.buffer,o[s+u],c[s+u],e.position-(o[s]-o[s+u]),h),f+=n.repeat(" ",t.indent)+l((e.line+u+1).toString(),d)+" | "+p.str+"\n";return f.replace(/\n$/,"")},s=["kind","multi","resolve","construct","instanceOf","predicate","represent","representName","defaultStyle","styleAliases"],u=["scalar","sequence","mapping"];var p=function(e,t){if(t=t||{},Object.keys(t).forEach((function(t){if(-1===s.indexOf(t))throw new o('Unknown option "'+t+'" is met in definition of "'+e+'" YAML type.')})),this.options=t,this.tag=e,this.kind=t.kind||null,this.resolve=t.resolve||function(){return!0},this.construct=t.construct||function(e){return e},this.instanceOf=t.instanceOf||null,this.predicate=t.predicate||null,this.represent=t.represent||null,this.representName=t.representName||null,this.defaultStyle=t.defaultStyle||null,this.multi=t.multi||!1,this.styleAliases=function(e){var t={};return null!==e&&Object.keys(e).forEach((function(n){e[n].forEach((function(e){t[String(e)]=n}))})),t}(t.styleAliases||null),-1===u.indexOf(this.kind))throw new o('Unknown kind "'+this.kind+'" is specified for "'+e+'" YAML type.')};function f(e,t){var n=[];return e[t].forEach((function(e){var t=n.length;n.forEach((function(n,i){n.tag===e.tag&&n.kind===e.kind&&n.multi===e.multi&&(t=i)})),n[t]=e})),n}function d(e){return this.extend(e)}d.prototype.extend=function(e){var t=[],n=[];if(e instanceof p)n.push(e);else if(Array.isArray(e))n=n.concat(e);else{if(!e||!Array.isArray(e.implicit)&&!Array.isArray(e.explicit))throw new o("Schema.extend argument should be a Type, [ Type ], or a schema definition ({ implicit: [...], explicit: [...] })");e.implicit&&(t=t.concat(e.implicit)),e.explicit&&(n=n.concat(e.explicit))}t.forEach((function(e){if(!(e instanceof p))throw new o("Specified list of YAML types (or a single Type object) contains a non-Type object.");if(e.loadKind&&"scalar"!==e.loadKind)throw new o("There is a non-scalar type in the implicit list of a schema. Implicit resolving of such types is not supported.");if(e.multi)throw new o("There is a multi type in the implicit list of a schema. Multi tags can only be listed as explicit.")})),n.forEach((function(e){if(!(e instanceof p))throw new o("Specified list of YAML types (or a single Type object) contains a non-Type object.")}));var i=Object.create(d.prototype);return i.implicit=(this.implicit||[]).concat(t),i.explicit=(this.explicit||[]).concat(n),i.compiledImplicit=f(i,"implicit"),i.compiledExplicit=f(i,"explicit"),i.compiledTypeMap=function(){var e,t,n={scalar:{},sequence:{},mapping:{},fallback:{},multi:{scalar:[],sequence:[],mapping:[],fallback:[]}};function i(e){e.multi?(n.multi[e.kind].push(e),n.multi.fallback.push(e)):n[e.kind][e.tag]=n.fallback[e.tag]=e}for(e=0,t=arguments.length;e<t;e+=1)arguments[e].forEach(i);return n}(i.compiledImplicit,i.compiledExplicit),i};var h=d,g=new p("tag:yaml.org,2002:str",{kind:"scalar",construct:function(e){return null!==e?e:""}}),m=new p("tag:yaml.org,2002:seq",{kind:"sequence",construct:function(e){return null!==e?e:[]}}),y=new p("tag:yaml.org,2002:map",{kind:"mapping",construct:function(e){return null!==e?e:{}}}),b=new h({explicit:[g,m,y]});var A=new p("tag:yaml.org,2002:null",{kind:"scalar",resolve:function(e){if(null===e)return!0;var t=e.length;return 1===t&&"~"===e||4===t&&("null"===e||"Null"===e||"NULL"===e)},construct:function(){return null},predicate:function(e){return null===e},represent:{canonical:function(){return"~"},lowercase:function(){return"null"},uppercase:function(){return"NULL"},camelcase:function(){return"Null"},empty:function(){return""}},defaultStyle:"lowercase"});var v=new p("tag:yaml.org,2002:bool",{kind:"scalar",resolve:function(e){if(null===e)return!1;var t=e.length;return 4===t&&("true"===e||"True"===e||"TRUE"===e)||5===t&&("false"===e||"False"===e||"FALSE"===e)},construct:function(e){return"true"===e||"True"===e||"TRUE"===e},predicate:function(e){return"[object Boolean]"===Object.prototype.toString.call(e)},represent:{lowercase:function(e){return e?"true":"false"},uppercase:function(e){return e?"TRUE":"FALSE"},camelcase:function(e){return e?"True":"False"}},defaultStyle:"lowercase"});function w(e){return 48<=e&&e<=55}function k(e){return 48<=e&&e<=57}var C=new p("tag:yaml.org,2002:int",{kind:"scalar",resolve:function(e){if(null===e)return!1;var t,n,i=e.length,r=0,o=!1;if(!i)return!1;if("-"!==(t=e[r])&&"+"!==t||(t=e[++r]),"0"===t){if(r+1===i)return!0;if("b"===(t=e[++r])){for(r++;r<i;r++)if("_"!==(t=e[r])){if("0"!==t&&"1"!==t)return!1;o=!0}return o&&"_"!==t}if("x"===t){for(r++;r<i;r++)if("_"!==(t=e[r])){if(!(48<=(n=e.charCodeAt(r))&&n<=57||65<=n&&n<=70||97<=n&&n<=102))return!1;o=!0}return o&&"_"!==t}if("o"===t){for(r++;r<i;r++)if("_"!==(t=e[r])){if(!w(e.charCodeAt(r)))return!1;o=!0}return o&&"_"!==t}}if("_"===t)return!1;for(;r<i;r++)if("_"!==(t=e[r])){if(!k(e.charCodeAt(r)))return!1;o=!0}return!(!o||"_"===t)},construct:function(e){var t,n=e,i=1;if(-1!==n.indexOf("_")&&(n=n.replace(/_/g,"")),"-"!==(t=n[0])&&"+"!==t||("-"===t&&(i=-1),t=(n=n.slice(1))[0]),"0"===n)return 0;if("0"===t){if("b"===n[1])return i*parseInt(n.slice(2),2);if("x"===n[1])return i*parseInt(n.slice(2),16);if("o"===n[1])return i*parseInt(n.slice(2),8)}return i*parseInt(n,10)},predicate:function(e){return"[object Number]"===Object.prototype.toString.call(e)&&e%1==0&&!n.isNegativeZero(e)},represent:{binary:function(e){return e>=0?"0b"+e.toString(2):"-0b"+e.toString(2).slice(1)},octal:function(e){return e>=0?"0o"+e.toString(8):"-0o"+e.toString(8).slice(1)},decimal:function(e){return e.toString(10)},hexadecimal:function(e){return e>=0?"0x"+e.toString(16).toUpperCase():"-0x"+e.toString(16).toUpperCase().slice(1)}},defaultStyle:"decimal",styleAliases:{binary:[2,"bin"],octal:[8,"oct"],decimal:[10,"dec"],hexadecimal:[16,"hex"]}}),x=new RegExp("^(?:[-+]?(?:[0-9][0-9_]*)(?:\\.[0-9_]*)?(?:[eE][-+]?[0-9]+)?|\\.[0-9_]+(?:[eE][-+]?[0-9]+)?|[-+]?\\.(?:inf|Inf|INF)|\\.(?:nan|NaN|NAN))$");var I=/^[-+]?[0-9]+e/;var S=new p("tag:yaml.org,2002:float",{kind:"scalar",resolve:function(e){return null!==e&&!(!x.test(e)||"_"===e[e.length-1])},construct:function(e){var t,n;return n="-"===(t=e.replace(/_/g,"").toLowerCase())[0]?-1:1,"+-".indexOf(t[0])>=0&&(t=t.slice(1)),".inf"===t?1===n?Number.POSITIVE_INFINITY:Number.NEGATIVE_INFINITY:".nan"===t?NaN:n*parseFloat(t,10)},predicate:function(e){return"[object Number]"===Object.prototype.toString.call(e)&&(e%1!=0||n.isNegativeZero(e))},represent:function(e,t){var i;if(isNaN(e))switch(t){case"lowercase":return".nan";case"uppercase":return".NAN";case"camelcase":return".NaN"}else if(Number.POSITIVE_INFINITY===e)switch(t){case"lowercase":return".inf";case"uppercase":return".INF";case"camelcase":return".Inf"}else if(Number.NEGATIVE_INFINITY===e)switch(t){case"lowercase":return"-.inf";case"uppercase":return"-.INF";case"camelcase":return"-.Inf"}else if(n.isNegativeZero(e))return"-0.0";return i=e.toString(10),I.test(i)?i.replace("e",".e"):i},defaultStyle:"lowercase"}),O=b.extend({implicit:[A,v,C,S]}),j=O,T=new RegExp("^([0-9][0-9][0-9][0-9])-([0-9][0-9])-([0-9][0-9])$"),N=new RegExp("^([0-9][0-9][0-9][0-9])-([0-9][0-9]?)-([0-9][0-9]?)(?:[Tt]|[ \\t]+)([0-9][0-9]?):([0-9][0-9]):([0-9][0-9])(?:\\.([0-9]*))?(?:[ \\t]*(Z|([-+])([0-9][0-9]?)(?::([0-9][0-9]))?))?$");var F=new p("tag:yaml.org,2002:timestamp",{kind:"scalar",resolve:function(e){return null!==e&&(null!==T.exec(e)||null!==N.exec(e))},construct:function(e){var t,n,i,r,o,a,l,c,s=0,u=null;if(null===(t=T.exec(e))&&(t=N.exec(e)),null===t)throw new Error("Date resolve error");if(n=+t[1],i=+t[2]-1,r=+t[3],!t[4])return new Date(Date.UTC(n,i,r));if(o=+t[4],a=+t[5],l=+t[6],t[7]){for(s=t[7].slice(0,3);s.length<3;)s+="0";s=+s}return t[9]&&(u=6e4*(60*+t[10]+ +(t[11]||0)),"-"===t[9]&&(u=-u)),c=new Date(Date.UTC(n,i,r,o,a,l,s)),u&&c.setTime(c.getTime()-u),c},instanceOf:Date,represent:function(e){return e.toISOString()}});var E=new p("tag:yaml.org,2002:merge",{kind:"scalar",resolve:function(e){return"<<"===e||null===e}}),M="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r";var L=new p("tag:yaml.org,2002:binary",{kind:"scalar",resolve:function(e){if(null===e)return!1;var t,n,i=0,r=e.length,o=M;for(n=0;n<r;n++)if(!((t=o.indexOf(e.charAt(n)))>64)){if(t<0)return!1;i+=6}return i%8==0},construct:function(e){var t,n,i=e.replace(/[\r\n=]/g,""),r=i.length,o=M,a=0,l=[];for(t=0;t<r;t++)t%4==0&&t&&(l.push(a>>16&255),l.push(a>>8&255),l.push(255&a)),a=a<<6|o.indexOf(i.charAt(t));return 0===(n=r%4*6)?(l.push(a>>16&255),l.push(a>>8&255),l.push(255&a)):18===n?(l.push(a>>10&255),l.push(a>>2&255)):12===n&&l.push(a>>4&255),new Uint8Array(l)},predicate:function(e){return"[object Uint8Array]"===Object.prototype.toString.call(e)},represent:function(e){var t,n,i="",r=0,o=e.length,a=M;for(t=0;t<o;t++)t%3==0&&t&&(i+=a[r>>18&63],i+=a[r>>12&63],i+=a[r>>6&63],i+=a[63&r]),r=(r<<8)+e[t];return 0===(n=o%3)?(i+=a[r>>18&63],i+=a[r>>12&63],i+=a[r>>6&63],i+=a[63&r]):2===n?(i+=a[r>>10&63],i+=a[r>>4&63],i+=a[r<<2&63],i+=a[64]):1===n&&(i+=a[r>>2&63],i+=a[r<<4&63],i+=a[64],i+=a[64]),i}}),_=Object.prototype.hasOwnProperty,D=Object.prototype.toString;var U=new p("tag:yaml.org,2002:omap",{kind:"sequence",resolve:function(e){if(null===e)return!0;var t,n,i,r,o,a=[],l=e;for(t=0,n=l.length;t<n;t+=1){if(i=l[t],o=!1,"[object Object]"!==D.call(i))return!1;for(r in i)if(_.call(i,r)){if(o)return!1;o=!0}if(!o)return!1;if(-1!==a.indexOf(r))return!1;a.push(r)}return!0},construct:function(e){return null!==e?e:[]}}),q=Object.prototype.toString;var Y=new p("tag:yaml.org,2002:pairs",{kind:"sequence",resolve:function(e){if(null===e)return!0;var t,n,i,r,o,a=e;for(o=new Array(a.length),t=0,n=a.length;t<n;t+=1){if(i=a[t],"[object Object]"!==q.call(i))return!1;if(1!==(r=Object.keys(i)).length)return!1;o[t]=[r[0],i[r[0]]]}return!0},construct:function(e){if(null===e)return[];var t,n,i,r,o,a=e;for(o=new Array(a.length),t=0,n=a.length;t<n;t+=1)i=a[t],r=Object.keys(i),o[t]=[r[0],i[r[0]]];return o}}),R=Object.prototype.hasOwnProperty;var B=new p("tag:yaml.org,2002:set",{kind:"mapping",resolve:function(e){if(null===e)return!0;var t,n=e;for(t in n)if(R.call(n,t)&&null!==n[t])return!1;return!0},construct:function(e){return null!==e?e:{}}}),K=j.extend({implicit:[F,E],explicit:[L,U,Y,B]}),P=Object.prototype.hasOwnProperty,W=/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/,H=/[\x85\u2028\u2029]/,$=/[,\[\]\{\}]/,G=/^(?:!|!!|![a-z\-]+!)$/i,V=/^(?:!|[^,\[\]\{\}])(?:%[0-9a-f]{2}|[0-9a-z\-#;\/\?:@&=\+\$,_\.!~\*'\(\)\[\]])*$/i;function Z(e){return Object.prototype.toString.call(e)}function J(e){return 10===e||13===e}function Q(e){return 9===e||32===e}function z(e){return 9===e||32===e||10===e||13===e}function X(e){return 44===e||91===e||93===e||123===e||125===e}function ee(e){var t;return 48<=e&&e<=57?e-48:97<=(t=32|e)&&t<=102?t-97+10:-1}function te(e){return 48===e?"\0":97===e?"":98===e?"\b":116===e||9===e?"\t":110===e?"\n":118===e?"\v":102===e?"\f":114===e?"\r":101===e?"":32===e?" ":34===e?'"':47===e?"/":92===e?"\\":78===e?"":95===e?" ":76===e?"\u2028":80===e?"\u2029":""}function ne(e){return e<=65535?String.fromCharCode(e):String.fromCharCode(55296+(e-65536>>10),56320+(e-65536&1023))}for(var ie=new Array(256),re=new Array(256),oe=0;oe<256;oe++)ie[oe]=te(oe)?1:0,re[oe]=te(oe);function ae(e,t){this.input=e,this.filename=t.filename||null,this.schema=t.schema||K,this.onWarning=t.onWarning||null,this.legacy=t.legacy||!1,this.json=t.json||!1,this.listener=t.listener||null,this.implicitTypes=this.schema.compiledImplicit,this.typeMap=this.schema.compiledTypeMap,this.length=e.length,this.position=0,this.line=0,this.lineStart=0,this.lineIndent=0,this.firstTabInLine=-1,this.documents=[]}function le(e,t){var n={name:e.filename,buffer:e.input.slice(0,-1),position:e.position,line:e.line,column:e.position-e.lineStart};return n.snippet=c(n),new o(t,n)}function ce(e,t){throw le(e,t)}function se(e,t){e.onWarning&&e.onWarning.call(null,le(e,t))}var ue={YAML:function(e,t,n){var i,r,o;null!==e.version&&ce(e,"duplication of %YAML directive"),1!==n.length&&ce(e,"YAML directive accepts exactly one argument"),null===(i=/^([0-9]+)\.([0-9]+)$/.exec(n[0]))&&ce(e,"ill-formed argument of the YAML directive"),r=parseInt(i[1],10),o=parseInt(i[2],10),1!==r&&ce(e,"unacceptable YAML version of the document"),e.version=n[0],e.checkLineBreaks=o<2,1!==o&&2!==o&&se(e,"unsupported YAML version of the document")},TAG:function(e,t,n){var i,r;2!==n.length&&ce(e,"TAG directive accepts exactly two arguments"),i=n[0],r=n[1],G.test(i)||ce(e,"ill-formed tag handle (first argument) of the TAG directive"),P.call(e.tagMap,i)&&ce(e,'there is a previously declared suffix for "'+i+'" tag handle'),V.test(r)||ce(e,"ill-formed tag prefix (second argument) of the TAG directive");try{r=decodeURIComponent(r)}catch(t){ce(e,"tag prefix is malformed: "+r)}e.tagMap[i]=r}};function pe(e,t,n,i){var r,o,a,l;if(t<n){if(l=e.input.slice(t,n),i)for(r=0,o=l.length;r<o;r+=1)9===(a=l.charCodeAt(r))||32<=a&&a<=1114111||ce(e,"expected valid JSON character");else W.test(l)&&ce(e,"the stream contains non-printable characters");e.result+=l}}function fe(e,t,i,r){var o,a,l,c;for(n.isObject(i)||ce(e,"cannot merge mappings; the provided source object is unacceptable"),l=0,c=(o=Object.keys(i)).length;l<c;l+=1)a=o[l],P.call(t,a)||(t[a]=i[a],r[a]=!0)}function de(e,t,n,i,r,o,a,l,c){var s,u;if(Array.isArray(r))for(s=0,u=(r=Array.prototype.slice.call(r)).length;s<u;s+=1)Array.isArray(r[s])&&ce(e,"nested arrays are not supported inside keys"),"object"==typeof r&&"[object Object]"===Z(r[s])&&(r[s]="[object Object]");if("object"==typeof r&&"[object Object]"===Z(r)&&(r="[object Object]"),r=String(r),null===t&&(t={}),"tag:yaml.org,2002:merge"===i)if(Array.isArray(o))for(s=0,u=o.length;s<u;s+=1)fe(e,t,o[s],n);else fe(e,t,o,n);else e.json||P.call(n,r)||!P.call(t,r)||(e.line=a||e.line,e.lineStart=l||e.lineStart,e.position=c||e.position,ce(e,"duplicated mapping key")),"__proto__"===r?Object.defineProperty(t,r,{configurable:!0,enumerable:!0,writable:!0,value:o}):t[r]=o,delete n[r];return t}function he(e){var t;10===(t=e.input.charCodeAt(e.position))?e.position++:13===t?(e.position++,10===e.input.charCodeAt(e.position)&&e.position++):ce(e,"a line break is expected"),e.line+=1,e.lineStart=e.position,e.firstTabInLine=-1}function ge(e,t,n){for(var i=0,r=e.input.charCodeAt(e.position);0!==r;){for(;Q(r);)9===r&&-1===e.firstTabInLine&&(e.firstTabInLine=e.position),r=e.input.charCodeAt(++e.position);if(t&&35===r)do{r=e.input.charCodeAt(++e.position)}while(10!==r&&13!==r&&0!==r);if(!J(r))break;for(he(e),r=e.input.charCodeAt(e.position),i++,e.lineIndent=0;32===r;)e.lineIndent++,r=e.input.charCodeAt(++e.position)}return-1!==n&&0!==i&&e.lineIndent<n&&se(e,"deficient indentation"),i}function me(e){var t,n=e.position;return!(45!==(t=e.input.charCodeAt(n))&&46!==t||t!==e.input.charCodeAt(n+1)||t!==e.input.charCodeAt(n+2)||(n+=3,0!==(t=e.input.charCodeAt(n))&&!z(t)))}function ye(e,t){1===t?e.result+=" ":t>1&&(e.result+=n.repeat("\n",t-1))}function be(e,t){var n,i,r=e.tag,o=e.anchor,a=[],l=!1;if(-1!==e.firstTabInLine)return!1;for(null!==e.anchor&&(e.anchorMap[e.anchor]=a),i=e.input.charCodeAt(e.position);0!==i&&(-1!==e.firstTabInLine&&(e.position=e.firstTabInLine,ce(e,"tab characters must not be used in indentation")),45===i)&&z(e.input.charCodeAt(e.position+1));)if(l=!0,e.position++,ge(e,!0,-1)&&e.lineIndent<=t)a.push(null),i=e.input.charCodeAt(e.position);else if(n=e.line,we(e,t,3,!1,!0),a.push(e.result),ge(e,!0,-1),i=e.input.charCodeAt(e.position),(e.line===n||e.lineIndent>t)&&0!==i)ce(e,"bad indentation of a sequence entry");else if(e.lineIndent<t)break;return!!l&&(e.tag=r,e.anchor=o,e.kind="sequence",e.result=a,!0)}function Ae(e){var t,n,i,r,o=!1,a=!1;if(33!==(r=e.input.charCodeAt(e.position)))return!1;if(null!==e.tag&&ce(e,"duplication of a tag property"),60===(r=e.input.charCodeAt(++e.position))?(o=!0,r=e.input.charCodeAt(++e.position)):33===r?(a=!0,n="!!",r=e.input.charCodeAt(++e.position)):n="!",t=e.position,o){do{r=e.input.charCodeAt(++e.position)}while(0!==r&&62!==r);e.position<e.length?(i=e.input.slice(t,e.position),r=e.input.charCodeAt(++e.position)):ce(e,"unexpected end of the stream within a verbatim tag")}else{for(;0!==r&&!z(r);)33===r&&(a?ce(e,"tag suffix cannot contain exclamation marks"):(n=e.input.slice(t-1,e.position+1),G.test(n)||ce(e,"named tag handle cannot contain such characters"),a=!0,t=e.position+1)),r=e.input.charCodeAt(++e.position);i=e.input.slice(t,e.position),$.test(i)&&ce(e,"tag suffix cannot contain flow indicator characters")}i&&!V.test(i)&&ce(e,"tag name cannot contain such characters: "+i);try{i=decodeURIComponent(i)}catch(t){ce(e,"tag name is malformed: "+i)}return o?e.tag=i:P.call(e.tagMap,n)?e.tag=e.tagMap[n]+i:"!"===n?e.tag="!"+i:"!!"===n?e.tag="tag:yaml.org,2002:"+i:ce(e,'undeclared tag handle "'+n+'"'),!0}function ve(e){var t,n;if(38!==(n=e.input.charCodeAt(e.position)))return!1;for(null!==e.anchor&&ce(e,"duplication of an anchor property"),n=e.input.charCodeAt(++e.position),t=e.position;0!==n&&!z(n)&&!X(n);)n=e.input.charCodeAt(++e.position);return e.position===t&&ce(e,"name of an anchor node must contain at least one character"),e.anchor=e.input.slice(t,e.position),!0}function we(e,t,i,r,o){var a,l,c,s,u,p,f,d,h,g=1,m=!1,y=!1;if(null!==e.listener&&e.listener("open",e),e.tag=null,e.anchor=null,e.kind=null,e.result=null,a=l=c=4===i||3===i,r&&ge(e,!0,-1)&&(m=!0,e.lineIndent>t?g=1:e.lineIndent===t?g=0:e.lineIndent<t&&(g=-1)),1===g)for(;Ae(e)||ve(e);)ge(e,!0,-1)?(m=!0,c=a,e.lineIndent>t?g=1:e.lineIndent===t?g=0:e.lineIndent<t&&(g=-1)):c=!1;if(c&&(c=m||o),1!==g&&4!==i||(d=1===i||2===i?t:t+1,h=e.position-e.lineStart,1===g?c&&(be(e,h)||function(e,t,n){var i,r,o,a,l,c,s,u=e.tag,p=e.anchor,f={},d=Object.create(null),h=null,g=null,m=null,y=!1,b=!1;if(-1!==e.firstTabInLine)return!1;for(null!==e.anchor&&(e.anchorMap[e.anchor]=f),s=e.input.charCodeAt(e.position);0!==s;){if(y||-1===e.firstTabInLine||(e.position=e.firstTabInLine,ce(e,"tab characters must not be used in indentation")),i=e.input.charCodeAt(e.position+1),o=e.line,63!==s&&58!==s||!z(i)){if(a=e.line,l=e.lineStart,c=e.position,!we(e,n,2,!1,!0))break;if(e.line===o){for(s=e.input.charCodeAt(e.position);Q(s);)s=e.input.charCodeAt(++e.position);if(58===s)z(s=e.input.charCodeAt(++e.position))||ce(e,"a whitespace character is expected after the key-value separator within a block mapping"),y&&(de(e,f,d,h,g,null,a,l,c),h=g=m=null),b=!0,y=!1,r=!1,h=e.tag,g=e.result;else{if(!b)return e.tag=u,e.anchor=p,!0;ce(e,"can not read an implicit mapping pair; a colon is missed")}}else{if(!b)return e.tag=u,e.anchor=p,!0;ce(e,"can not read a block mapping entry; a multiline key may not be an implicit key")}}else 63===s?(y&&(de(e,f,d,h,g,null,a,l,c),h=g=m=null),b=!0,y=!0,r=!0):y?(y=!1,r=!0):ce(e,"incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line"),e.position+=1,s=i;if((e.line===o||e.lineIndent>t)&&(y&&(a=e.line,l=e.lineStart,c=e.position),we(e,t,4,!0,r)&&(y?g=e.result:m=e.result),y||(de(e,f,d,h,g,m,a,l,c),h=g=m=null),ge(e,!0,-1),s=e.input.charCodeAt(e.position)),(e.line===o||e.lineIndent>t)&&0!==s)ce(e,"bad indentation of a mapping entry");else if(e.lineIndent<t)break}return y&&de(e,f,d,h,g,null,a,l,c),b&&(e.tag=u,e.anchor=p,e.kind="mapping",e.result=f),b}(e,h,d))||function(e,t){var n,i,r,o,a,l,c,s,u,p,f,d,h=!0,g=e.tag,m=e.anchor,y=Object.create(null);if(91===(d=e.input.charCodeAt(e.position)))a=93,s=!1,o=[];else{if(123!==d)return!1;a=125,s=!0,o={}}for(null!==e.anchor&&(e.anchorMap[e.anchor]=o),d=e.input.charCodeAt(++e.position);0!==d;){if(ge(e,!0,t),(d=e.input.charCodeAt(e.position))===a)return e.position++,e.tag=g,e.anchor=m,e.kind=s?"mapping":"sequence",e.result=o,!0;h?44===d&&ce(e,"expected the node content, but found ','"):ce(e,"missed comma between flow collection entries"),f=null,l=c=!1,63===d&&z(e.input.charCodeAt(e.position+1))&&(l=c=!0,e.position++,ge(e,!0,t)),n=e.line,i=e.lineStart,r=e.position,we(e,t,1,!1,!0),p=e.tag,u=e.result,ge(e,!0,t),d=e.input.charCodeAt(e.position),!c&&e.line!==n||58!==d||(l=!0,d=e.input.charCodeAt(++e.position),ge(e,!0,t),we(e,t,1,!1,!0),f=e.result),s?de(e,o,y,p,u,f,n,i,r):l?o.push(de(e,null,y,p,u,f,n,i,r)):o.push(u),ge(e,!0,t),44===(d=e.input.charCodeAt(e.position))?(h=!0,d=e.input.charCodeAt(++e.position)):h=!1}ce(e,"unexpected end of the stream within a flow collection")}(e,d)?y=!0:(l&&function(e,t){var i,r,o,a,l,c=1,s=!1,u=!1,p=t,f=0,d=!1;if(124===(a=e.input.charCodeAt(e.position)))r=!1;else{if(62!==a)return!1;r=!0}for(e.kind="scalar",e.result="";0!==a;)if(43===(a=e.input.charCodeAt(++e.position))||45===a)1===c?c=43===a?3:2:ce(e,"repeat of a chomping mode identifier");else{if(!((o=48<=(l=a)&&l<=57?l-48:-1)>=0))break;0===o?ce(e,"bad explicit indentation width of a block scalar; it cannot be less than one"):u?ce(e,"repeat of an indentation width identifier"):(p=t+o-1,u=!0)}if(Q(a)){do{a=e.input.charCodeAt(++e.position)}while(Q(a));if(35===a)do{a=e.input.charCodeAt(++e.position)}while(!J(a)&&0!==a)}for(;0!==a;){for(he(e),e.lineIndent=0,a=e.input.charCodeAt(e.position);(!u||e.lineIndent<p)&&32===a;)e.lineIndent++,a=e.input.charCodeAt(++e.position);if(!u&&e.lineIndent>p&&(p=e.lineIndent),J(a))f++;else{if(e.lineIndent<p){3===c?e.result+=n.repeat("\n",s?1+f:f):1===c&&s&&(e.result+="\n");break}for(r?Q(a)?(d=!0,e.result+=n.repeat("\n",s?1+f:f)):d?(d=!1,e.result+=n.repeat("\n",f+1)):0===f?s&&(e.result+=" "):e.result+=n.repeat("\n",f):e.result+=n.repeat("\n",s?1+f:f),s=!0,u=!0,f=0,i=e.position;!J(a)&&0!==a;)a=e.input.charCodeAt(++e.position);pe(e,i,e.position,!1)}}return!0}(e,d)||function(e,t){var n,i,r;if(39!==(n=e.input.charCodeAt(e.position)))return!1;for(e.kind="scalar",e.result="",e.position++,i=r=e.position;0!==(n=e.input.charCodeAt(e.position));)if(39===n){if(pe(e,i,e.position,!0),39!==(n=e.input.charCodeAt(++e.position)))return!0;i=e.position,e.position++,r=e.position}else J(n)?(pe(e,i,r,!0),ye(e,ge(e,!1,t)),i=r=e.position):e.position===e.lineStart&&me(e)?ce(e,"unexpected end of the document within a single quoted scalar"):(e.position++,r=e.position);ce(e,"unexpected end of the stream within a single quoted scalar")}(e,d)||function(e,t){var n,i,r,o,a,l,c;if(34!==(l=e.input.charCodeAt(e.position)))return!1;for(e.kind="scalar",e.result="",e.position++,n=i=e.position;0!==(l=e.input.charCodeAt(e.position));){if(34===l)return pe(e,n,e.position,!0),e.position++,!0;if(92===l){if(pe(e,n,e.position,!0),J(l=e.input.charCodeAt(++e.position)))ge(e,!1,t);else if(l<256&&ie[l])e.result+=re[l],e.position++;else if((a=120===(c=l)?2:117===c?4:85===c?8:0)>0){for(r=a,o=0;r>0;r--)(a=ee(l=e.input.charCodeAt(++e.position)))>=0?o=(o<<4)+a:ce(e,"expected hexadecimal character");e.result+=ne(o),e.position++}else ce(e,"unknown escape sequence");n=i=e.position}else J(l)?(pe(e,n,i,!0),ye(e,ge(e,!1,t)),n=i=e.position):e.position===e.lineStart&&me(e)?ce(e,"unexpected end of the document within a double quoted scalar"):(e.position++,i=e.position)}ce(e,"unexpected end of the stream within a double quoted scalar")}(e,d)?y=!0:!function(e){var t,n,i;if(42!==(i=e.input.charCodeAt(e.position)))return!1;for(i=e.input.charCodeAt(++e.position),t=e.position;0!==i&&!z(i)&&!X(i);)i=e.input.charCodeAt(++e.position);return e.position===t&&ce(e,"name of an alias node must contain at least one character"),n=e.input.slice(t,e.position),P.call(e.anchorMap,n)||ce(e,'unidentified alias "'+n+'"'),e.result=e.anchorMap[n],ge(e,!0,-1),!0}(e)?function(e,t,n){var i,r,o,a,l,c,s,u,p=e.kind,f=e.result;if(z(u=e.input.charCodeAt(e.position))||X(u)||35===u||38===u||42===u||33===u||124===u||62===u||39===u||34===u||37===u||64===u||96===u)return!1;if((63===u||45===u)&&(z(i=e.input.charCodeAt(e.position+1))||n&&X(i)))return!1;for(e.kind="scalar",e.result="",r=o=e.position,a=!1;0!==u;){if(58===u){if(z(i=e.input.charCodeAt(e.position+1))||n&&X(i))break}else if(35===u){if(z(e.input.charCodeAt(e.position-1)))break}else{if(e.position===e.lineStart&&me(e)||n&&X(u))break;if(J(u)){if(l=e.line,c=e.lineStart,s=e.lineIndent,ge(e,!1,-1),e.lineIndent>=t){a=!0,u=e.input.charCodeAt(e.position);continue}e.position=o,e.line=l,e.lineStart=c,e.lineIndent=s;break}}a&&(pe(e,r,o,!1),ye(e,e.line-l),r=o=e.position,a=!1),Q(u)||(o=e.position+1),u=e.input.charCodeAt(++e.position)}return pe(e,r,o,!1),!!e.result||(e.kind=p,e.result=f,!1)}(e,d,1===i)&&(y=!0,null===e.tag&&(e.tag="?")):(y=!0,null===e.tag&&null===e.anchor||ce(e,"alias node should not have any properties")),null!==e.anchor&&(e.anchorMap[e.anchor]=e.result)):0===g&&(y=c&&be(e,h))),null===e.tag)null!==e.anchor&&(e.anchorMap[e.anchor]=e.result);else if("?"===e.tag){for(null!==e.result&&"scalar"!==e.kind&&ce(e,'unacceptable node kind for !<?> tag; it should be "scalar", not "'+e.kind+'"'),s=0,u=e.implicitTypes.length;s<u;s+=1)if((f=e.implicitTypes[s]).resolve(e.result)){e.result=f.construct(e.result),e.tag=f.tag,null!==e.anchor&&(e.anchorMap[e.anchor]=e.result);break}}else if("!"!==e.tag){if(P.call(e.typeMap[e.kind||"fallback"],e.tag))f=e.typeMap[e.kind||"fallback"][e.tag];else for(f=null,s=0,u=(p=e.typeMap.multi[e.kind||"fallback"]).length;s<u;s+=1)if(e.tag.slice(0,p[s].tag.length)===p[s].tag){f=p[s];break}f||ce(e,"unknown tag !<"+e.tag+">"),null!==e.result&&f.kind!==e.kind&&ce(e,"unacceptable node kind for !<"+e.tag+'> tag; it should be "'+f.kind+'", not "'+e.kind+'"'),f.resolve(e.result,e.tag)?(e.result=f.construct(e.result,e.tag),null!==e.anchor&&(e.anchorMap[e.anchor]=e.result)):ce(e,"cannot resolve a node with !<"+e.tag+"> explicit tag")}return null!==e.listener&&e.listener("close",e),null!==e.tag||null!==e.anchor||y}function ke(e){var t,n,i,r,o=e.position,a=!1;for(e.version=null,e.checkLineBreaks=e.legacy,e.tagMap=Object.create(null),e.anchorMap=Object.create(null);0!==(r=e.input.charCodeAt(e.position))&&(ge(e,!0,-1),r=e.input.charCodeAt(e.position),!(e.lineIndent>0||37!==r));){for(a=!0,r=e.input.charCodeAt(++e.position),t=e.position;0!==r&&!z(r);)r=e.input.charCodeAt(++e.position);for(i=[],(n=e.input.slice(t,e.position)).length<1&&ce(e,"directive name must not be less than one character in length");0!==r;){for(;Q(r);)r=e.input.charCodeAt(++e.position);if(35===r){do{r=e.input.charCodeAt(++e.position)}while(0!==r&&!J(r));break}if(J(r))break;for(t=e.position;0!==r&&!z(r);)r=e.input.charCodeAt(++e.position);i.push(e.input.slice(t,e.position))}0!==r&&he(e),P.call(ue,n)?ue[n](e,n,i):se(e,'unknown document directive "'+n+'"')}ge(e,!0,-1),0===e.lineIndent&&45===e.input.charCodeAt(e.position)&&45===e.input.charCodeAt(e.position+1)&&45===e.input.charCodeAt(e.position+2)?(e.position+=3,ge(e,!0,-1)):a&&ce(e,"directives end mark is expected"),we(e,e.lineIndent-1,4,!1,!0),ge(e,!0,-1),e.checkLineBreaks&&H.test(e.input.slice(o,e.position))&&se(e,"non-ASCII line breaks are interpreted as content"),e.documents.push(e.result),e.position===e.lineStart&&me(e)?46===e.input.charCodeAt(e.position)&&(e.position+=3,ge(e,!0,-1)):e.position<e.length-1&&ce(e,"end of the stream or a document separator is expected")}function Ce(e,t){t=t||{},0!==(e=String(e)).length&&(10!==e.charCodeAt(e.length-1)&&13!==e.charCodeAt(e.length-1)&&(e+="\n"),65279===e.charCodeAt(0)&&(e=e.slice(1)));var n=new ae(e,t),i=e.indexOf("\0");for(-1!==i&&(n.position=i,ce(n,"null byte is not allowed in input")),n.input+="\0";32===n.input.charCodeAt(n.position);)n.lineIndent+=1,n.position+=1;for(;n.position<n.length-1;)ke(n);return n.documents}var xe={loadAll:function(e,t,n){null!==t&&"object"==typeof t&&void 0===n&&(n=t,t=null);var i=Ce(e,n);if("function"!=typeof t)return i;for(var r=0,o=i.length;r<o;r+=1)t(i[r])},load:function(e,t){var n=Ce(e,t);if(0!==n.length){if(1===n.length)return n[0];throw new o("expected a single document in the stream, but found more")}}},Ie=Object.prototype.toString,Se=Object.prototype.hasOwnProperty,Oe=65279,je={0:"\\0",7:"\\a",8:"\\b",9:"\\t",10:"\\n",11:"\\v",12:"\\f",13:"\\r",27:"\\e",34:'\\"',92:"\\\\",133:"\\N",160:"\\_",8232:"\\L",8233:"\\P"},Te=["y","Y","yes","Yes","YES","on","On","ON","n","N","no","No","NO","off","Off","OFF"],Ne=/^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/;function Fe(e){var t,i,r;if(t=e.toString(16).toUpperCase(),e<=255)i="x",r=2;else if(e<=65535)i="u",r=4;else{if(!(e<=4294967295))throw new o("code point within a string may not be greater than 0xFFFFFFFF");i="U",r=8}return"\\"+i+n.repeat("0",r-t.length)+t}function Ee(e){this.schema=e.schema||K,this.indent=Math.max(1,e.indent||2),this.noArrayIndent=e.noArrayIndent||!1,this.skipInvalid=e.skipInvalid||!1,this.flowLevel=n.isNothing(e.flowLevel)?-1:e.flowLevel,this.styleMap=function(e,t){var n,i,r,o,a,l,c;if(null===t)return{};for(n={},r=0,o=(i=Object.keys(t)).length;r<o;r+=1)a=i[r],l=String(t[a]),"!!"===a.slice(0,2)&&(a="tag:yaml.org,2002:"+a.slice(2)),(c=e.compiledTypeMap.fallback[a])&&Se.call(c.styleAliases,l)&&(l=c.styleAliases[l]),n[a]=l;return n}(this.schema,e.styles||null),this.sortKeys=e.sortKeys||!1,this.lineWidth=e.lineWidth||80,this.noRefs=e.noRefs||!1,this.noCompatMode=e.noCompatMode||!1,this.condenseFlow=e.condenseFlow||!1,this.quotingType='"'===e.quotingType?2:1,this.forceQuotes=e.forceQuotes||!1,this.replacer="function"==typeof e.replacer?e.replacer:null,this.implicitTypes=this.schema.compiledImplicit,this.explicitTypes=this.schema.compiledExplicit,this.tag=null,this.result="",this.duplicates=[],this.usedDuplicates=null}function Me(e,t){for(var i,r=n.repeat(" ",t),o=0,a=-1,l="",c=e.length;o<c;)-1===(a=e.indexOf("\n",o))?(i=e.slice(o),o=c):(i=e.slice(o,a+1),o=a+1),i.length&&"\n"!==i&&(l+=r),l+=i;return l}function Le(e,t){return"\n"+n.repeat(" ",e.indent*t)}function _e(e){return 32===e||9===e}function De(e){return 32<=e&&e<=126||161<=e&&e<=55295&&8232!==e&&8233!==e||57344<=e&&e<=65533&&e!==Oe||65536<=e&&e<=1114111}function Ue(e){return De(e)&&e!==Oe&&13!==e&&10!==e}function qe(e,t,n){var i=Ue(e),r=i&&!_e(e);return(n?i:i&&44!==e&&91!==e&&93!==e&&123!==e&&125!==e)&&35!==e&&!(58===t&&!r)||Ue(t)&&!_e(t)&&35===e||58===t&&r}function Ye(e,t){var n,i=e.charCodeAt(t);return i>=55296&&i<=56319&&t+1<e.length&&(n=e.charCodeAt(t+1))>=56320&&n<=57343?1024*(i-55296)+n-56320+65536:i}function Re(e){return/^\n* /.test(e)}function Be(e,t,n,i,r,o,a,l){var c,s,u=0,p=null,f=!1,d=!1,h=-1!==i,g=-1,m=De(s=Ye(e,0))&&s!==Oe&&!_e(s)&&45!==s&&63!==s&&58!==s&&44!==s&&91!==s&&93!==s&&123!==s&&125!==s&&35!==s&&38!==s&&42!==s&&33!==s&&124!==s&&61!==s&&62!==s&&39!==s&&34!==s&&37!==s&&64!==s&&96!==s&&function(e){return!_e(e)&&58!==e}(Ye(e,e.length-1));if(t||a)for(c=0;c<e.length;u>=65536?c+=2:c++){if(!De(u=Ye(e,c)))return 5;m=m&&qe(u,p,l),p=u}else{for(c=0;c<e.length;u>=65536?c+=2:c++){if(10===(u=Ye(e,c)))f=!0,h&&(d=d||c-g-1>i&&" "!==e[g+1],g=c);else if(!De(u))return 5;m=m&&qe(u,p,l),p=u}d=d||h&&c-g-1>i&&" "!==e[g+1]}return f||d?n>9&&Re(e)?5:a?2===o?5:2:d?4:3:!m||a||r(e)?2===o?5:2:1}function Ke(e,t,n,i,r){e.dump=function(){if(0===t.length)return 2===e.quotingType?'""':"''";if(!e.noCompatMode&&(-1!==Te.indexOf(t)||Ne.test(t)))return 2===e.quotingType?'"'+t+'"':"'"+t+"'";var a=e.indent*Math.max(1,n),l=-1===e.lineWidth?-1:Math.max(Math.min(e.lineWidth,40),e.lineWidth-a),c=i||e.flowLevel>-1&&n>=e.flowLevel;switch(Be(t,c,e.indent,l,(function(t){return function(e,t){var n,i;for(n=0,i=e.implicitTypes.length;n<i;n+=1)if(e.implicitTypes[n].resolve(t))return!0;return!1}(e,t)}),e.quotingType,e.forceQuotes&&!i,r)){case 1:return t;case 2:return"'"+t.replace(/'/g,"''")+"'";case 3:return"|"+Pe(t,e.indent)+We(Me(t,a));case 4:return">"+Pe(t,e.indent)+We(Me(function(e,t){var n,i,r=/(\n+)([^\n]*)/g,o=(l=e.indexOf("\n"),l=-1!==l?l:e.length,r.lastIndex=l,He(e.slice(0,l),t)),a="\n"===e[0]||" "===e[0];var l;for(;i=r.exec(e);){var c=i[1],s=i[2];n=" "===s[0],o+=c+(a||n||""===s?"":"\n")+He(s,t),a=n}return o}(t,l),a));case 5:return'"'+function(e){for(var t,n="",i=0,r=0;r<e.length;i>=65536?r+=2:r++)i=Ye(e,r),!(t=je[i])&&De(i)?(n+=e[r],i>=65536&&(n+=e[r+1])):n+=t||Fe(i);return n}(t)+'"';default:throw new o("impossible error: invalid scalar style")}}()}function Pe(e,t){var n=Re(e)?String(t):"",i="\n"===e[e.length-1];return n+(i&&("\n"===e[e.length-2]||"\n"===e)?"+":i?"":"-")+"\n"}function We(e){return"\n"===e[e.length-1]?e.slice(0,-1):e}function He(e,t){if(""===e||" "===e[0])return e;for(var n,i,r=/ [^ ]/g,o=0,a=0,l=0,c="";n=r.exec(e);)(l=n.index)-o>t&&(i=a>o?a:l,c+="\n"+e.slice(o,i),o=i+1),a=l;return c+="\n",e.length-o>t&&a>o?c+=e.slice(o,a)+"\n"+e.slice(a+1):c+=e.slice(o),c.slice(1)}function $e(e,t,n,i){var r,o,a,l="",c=e.tag;for(r=0,o=n.length;r<o;r+=1)a=n[r],e.replacer&&(a=e.replacer.call(n,String(r),a)),(Ve(e,t+1,a,!0,!0,!1,!0)||void 0===a&&Ve(e,t+1,null,!0,!0,!1,!0))&&(i&&""===l||(l+=Le(e,t)),e.dump&&10===e.dump.charCodeAt(0)?l+="-":l+="- ",l+=e.dump);e.tag=c,e.dump=l||"[]"}function Ge(e,t,n){var i,r,a,l,c,s;for(a=0,l=(r=n?e.explicitTypes:e.implicitTypes).length;a<l;a+=1)if(((c=r[a]).instanceOf||c.predicate)&&(!c.instanceOf||"object"==typeof t&&t instanceof c.instanceOf)&&(!c.predicate||c.predicate(t))){if(n?c.multi&&c.representName?e.tag=c.representName(t):e.tag=c.tag:e.tag="?",c.represent){if(s=e.styleMap[c.tag]||c.defaultStyle,"[object Function]"===Ie.call(c.represent))i=c.represent(t,s);else{if(!Se.call(c.represent,s))throw new o("!<"+c.tag+'> tag resolver accepts not "'+s+'" style');i=c.represent[s](t,s)}e.dump=i}return!0}return!1}function Ve(e,t,n,i,r,a,l){e.tag=null,e.dump=n,Ge(e,n,!1)||Ge(e,n,!0);var c,s=Ie.call(e.dump),u=i;i&&(i=e.flowLevel<0||e.flowLevel>t);var p,f,d="[object Object]"===s||"[object Array]"===s;if(d&&(f=-1!==(p=e.duplicates.indexOf(n))),(null!==e.tag&&"?"!==e.tag||f||2!==e.indent&&t>0)&&(r=!1),f&&e.usedDuplicates[p])e.dump="*ref_"+p;else{if(d&&f&&!e.usedDuplicates[p]&&(e.usedDuplicates[p]=!0),"[object Object]"===s)i&&0!==Object.keys(e.dump).length?(!function(e,t,n,i){var r,a,l,c,s,u,p="",f=e.tag,d=Object.keys(n);if(!0===e.sortKeys)d.sort();else if("function"==typeof e.sortKeys)d.sort(e.sortKeys);else if(e.sortKeys)throw new o("sortKeys must be a boolean or a function");for(r=0,a=d.length;r<a;r+=1)u="",i&&""===p||(u+=Le(e,t)),c=n[l=d[r]],e.replacer&&(c=e.replacer.call(n,l,c)),Ve(e,t+1,l,!0,!0,!0)&&((s=null!==e.tag&&"?"!==e.tag||e.dump&&e.dump.length>1024)&&(e.dump&&10===e.dump.charCodeAt(0)?u+="?":u+="? "),u+=e.dump,s&&(u+=Le(e,t)),Ve(e,t+1,c,!0,s)&&(e.dump&&10===e.dump.charCodeAt(0)?u+=":":u+=": ",p+=u+=e.dump));e.tag=f,e.dump=p||"{}"}(e,t,e.dump,r),f&&(e.dump="&ref_"+p+e.dump)):(!function(e,t,n){var i,r,o,a,l,c="",s=e.tag,u=Object.keys(n);for(i=0,r=u.length;i<r;i+=1)l="",""!==c&&(l+=", "),e.condenseFlow&&(l+='"'),a=n[o=u[i]],e.replacer&&(a=e.replacer.call(n,o,a)),Ve(e,t,o,!1,!1)&&(e.dump.length>1024&&(l+="? "),l+=e.dump+(e.condenseFlow?'"':"")+":"+(e.condenseFlow?"":" "),Ve(e,t,a,!1,!1)&&(c+=l+=e.dump));e.tag=s,e.dump="{"+c+"}"}(e,t,e.dump),f&&(e.dump="&ref_"+p+" "+e.dump));else if("[object Array]"===s)i&&0!==e.dump.length?(e.noArrayIndent&&!l&&t>0?$e(e,t-1,e.dump,r):$e(e,t,e.dump,r),f&&(e.dump="&ref_"+p+e.dump)):(!function(e,t,n){var i,r,o,a="",l=e.tag;for(i=0,r=n.length;i<r;i+=1)o=n[i],e.replacer&&(o=e.replacer.call(n,String(i),o)),(Ve(e,t,o,!1,!1)||void 0===o&&Ve(e,t,null,!1,!1))&&(""!==a&&(a+=","+(e.condenseFlow?"":" ")),a+=e.dump);e.tag=l,e.dump="["+a+"]"}(e,t,e.dump),f&&(e.dump="&ref_"+p+" "+e.dump));else{if("[object String]"!==s){if("[object Undefined]"===s)return!1;if(e.skipInvalid)return!1;throw new o("unacceptable kind of an object to dump "+s)}"?"!==e.tag&&Ke(e,e.dump,t,a,u)}null!==e.tag&&"?"!==e.tag&&(c=encodeURI("!"===e.tag[0]?e.tag.slice(1):e.tag).replace(/!/g,"%21"),c="!"===e.tag[0]?"!"+c:"tag:yaml.org,2002:"===c.slice(0,18)?"!!"+c.slice(18):"!<"+c+">",e.dump=c+" "+e.dump)}return!0}function Ze(e,t){var n,i,r=[],o=[];for(Je(e,r,o),n=0,i=o.length;n<i;n+=1)t.duplicates.push(r[o[n]]);t.usedDuplicates=new Array(i)}function Je(e,t,n){var i,r,o;if(null!==e&&"object"==typeof e)if(-1!==(r=t.indexOf(e)))-1===n.indexOf(r)&&n.push(r);else if(t.push(e),Array.isArray(e))for(r=0,o=e.length;r<o;r+=1)Je(e[r],t,n);else for(r=0,o=(i=Object.keys(e)).length;r<o;r+=1)Je(e[i[r]],t,n)}function Qe(e,t){return function(){throw new Error("Function yaml."+e+" is removed in js-yaml 4. Use yaml."+t+" instead, which is now safe by default.")}}var ze=p,Xe=h,et=b,tt=O,nt=j,it=K,rt=xe.load,ot=xe.loadAll,at={dump:function(e,t){var n=new Ee(t=t||{});n.noRefs||Ze(e,n);var i=e;return n.replacer&&(i=n.replacer.call({"":i},"",i)),Ve(n,0,i,!0,!0)?n.dump+"\n":""}}.dump,lt=o,ct={binary:L,float:S,map:y,null:A,pairs:Y,set:B,timestamp:F,bool:v,int:C,merge:E,omap:U,seq:m,str:g},st=Qe("safeLoad","load"),ut=Qe("safeLoadAll","loadAll"),pt=Qe("safeDump","dump"),ft={Type:ze,Schema:Xe,FAILSAFE_SCHEMA:et,JSON_SCHEMA:tt,CORE_SCHEMA:nt,DEFAULT_SCHEMA:it,load:rt,loadAll:ot,dump:at,YAMLException:lt,types:ct,safeLoad:st,safeLoadAll:ut,safeDump:pt};e.CORE_SCHEMA=nt,e.DEFAULT_SCHEMA=it,e.FAILSAFE_SCHEMA=et,e.JSON_SCHEMA=tt,e.Schema=Xe,e.Type=ze,e.YAMLException=lt,e.default=ft,e.dump=at,e.load=rt,e.loadAll=ot,e.safeDump=pt,e.safeLoad=st,e.safeLoadAll=ut,e.types=ct,Object.defineProperty(e,"__esModule",{value:!0})}));
+
+</script>
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const Y = window.jsyaml;
+const TYPE_ZH = {string:'字串', number:'數字', boolean:'布林', null:'空值', object:'對應', array:'序列', list:'多筆結果'};
+const TYPE_EN = {string:'str', number:'number', boolean:'bool', null:'null', object:'map', array:'seq', list:''};
+const TY = {str:{zh:'字串',c:'string'}, int:{zh:'整數',c:'number'}, float:{zh:'浮點數',c:'float'}, bool:{zh:'布林',c:'boolean'}, null:{zh:'空值',c:'null'}, timestamp:{zh:'日期',c:'timestamp'}, map:{zh:'對應',c:'object'}, seq:{zh:'序列',c:'array'}};
+const typeOf = v => v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
+const trunc = (s, n) => { s = String(s); let out = '', w = 0; for (const c of s) { w += /[\u2E80-\uFFFF]/.test(c) ? 2 : 1; if (w > n) return out + '…'; out += c; } return out; };
+function showNum(v) { return Number.isNaN(v) ? '.nan' : v === Infinity ? '.inf' : v === -Infinity ? '-.inf' : String(v); }
+function preview(v, n = 26) {
+  const t = typeOf(v);
+  if (t === 'array') return `序列 · ${v.length} 項`;
+  if (t === 'object') return `對應 · ${Object.keys(v).length} 個鍵`;
+  if (t === 'number') return showNum(v);
+  return trunc(t === 'string' ? JSON.stringify(v) : String(v), n);
+}
+const L = (...a) => a.join('\n');
+
+/* ===== JSON 高亮 ===== */
+function hl(src) {
+  const re = /("(?:\\.|[^\\"\n])*")(\s*:)?|\b(true|false)\b|\b(null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|([{}\[\],])/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))) {
+    out += esc(src.slice(last, m.index));
+    if (m[1]) out += m[2] ? `<span class="t-key">${esc(m[1])}</span>${esc(m[2].slice(0, -1))}<span class="t-punc">:</span>` : `<span class="t-string">${esc(m[1])}</span>`;
+    else if (m[3]) out += `<span class="t-boolean">${m[3]}</span>`;
+    else if (m[4]) out += `<span class="t-null">null</span>`;
+    else if (m[5]) out += `<span class="t-number">${m[5]}</span>`;
+    else out += `<span class="t-punc">${esc(m[6])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+
+/* ===== 型態判斷：YAML 1.2 core vs PyYAML（YAML 1.1） ===== */
+const RE_TS = /^\d{4}-\d\d?-\d\d?(?:(?:[Tt]|[ \t]+)\d\d?:\d\d:\d\d(?:\.\d*)?(?:[ \t]*(?:Z|[-+]\d\d?(?::\d\d)?))?)?$/;
+function classify12(s) {
+  if (s === '' || /^(null|Null|NULL|~)$/.test(s)) return { type: 'null', value: null };
+  if (/^(true|True|TRUE)$/.test(s)) return { type: 'bool', value: true };
+  if (/^(false|False|FALSE)$/.test(s)) return { type: 'bool', value: false };
+  if (/^[-+]?[0-9]+$/.test(s)) return { type: 'int', value: parseInt(s, 10) };
+  if (/^0o[0-7]+$/.test(s)) return { type: 'int', value: parseInt(s.slice(2), 8) };
+  if (/^0x[0-9a-fA-F]+$/.test(s)) return { type: 'int', value: parseInt(s.slice(2), 16) };
+  if (/^[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?$/.test(s)) return { type: 'float', value: parseFloat(s) };
+  if (/^[-+]?\.(inf|Inf|INF)$/.test(s)) return { type: 'float', value: s[0] === '-' ? -Infinity : Infinity };
+  if (/^\.(nan|NaN|NAN)$/.test(s)) return { type: 'float', value: NaN };
+  if (RE_TS.test(s)) return { type: 'timestamp', value: s };
+  return { type: 'str', value: s };
+}
+function sexa(s) { const neg = s[0] === '-'; const parts = s.replace(/^[-+]/, '').replace(/_/g, '').split(':'); let v = 0; parts.forEach(p => { v = v * 60 + parseFloat(p); }); return neg ? -v : v; }
+function classify11(s) {
+  if (s === '' || /^(~|null|Null|NULL)$/.test(s)) return { type: 'null', value: null };
+  if (/^(yes|Yes|YES|true|True|TRUE|on|On|ON)$/.test(s)) return { type: 'bool', value: true };
+  if (/^(no|No|NO|false|False|FALSE|off|Off|OFF)$/.test(s)) return { type: 'bool', value: false };
+  if (/^[-+]?0b[01_]+$/.test(s)) return { type: 'int', value: (s[0] === '-' ? -1 : 1) * parseInt(s.replace(/^[-+]?0b/, '').replace(/_/g, ''), 2) };
+  if (/^[-+]?0x[0-9a-fA-F_]+$/.test(s)) return { type: 'int', value: (s[0] === '-' ? -1 : 1) * parseInt(s.replace(/^[-+]?0x/, '').replace(/_/g, ''), 16) };
+  if (/^[-+]?0[0-7_]+$/.test(s)) return { type: 'int', value: (s[0] === '-' ? -1 : 1) * parseInt(s.replace(/^[-+]?0/, '').replace(/_/g, '') || '0', 8) };
+  if (/^[-+]?(0|[1-9][0-9_]*)$/.test(s)) return { type: 'int', value: parseInt(s.replace(/_/g, ''), 10) };
+  if (/^[-+]?[1-9][0-9_]*(:[0-5]?[0-9])+$/.test(s)) return { type: 'int', value: sexa(s) };
+  if (/^[-+]?([0-9][0-9_]*)\.[0-9_]*([eE][-+][0-9]+)?$/.test(s) || /^\.[0-9_]+([eE][-+][0-9]+)?$/.test(s)) return { type: 'float', value: parseFloat(s.replace(/_/g, '')) };
+  if (/^[-+]?[0-9][0-9_]*(:[0-5]?[0-9])+\.[0-9_]*$/.test(s)) return { type: 'float', value: sexa(s) };
+  if (/^[-+]?\.(inf|Inf|INF)$/.test(s)) return { type: 'float', value: s[0] === '-' ? -Infinity : Infinity };
+  if (/^\.(nan|NaN|NAN)$/.test(s)) return { type: 'float', value: NaN };
+  if (/^\d{4}-\d\d-\d\d$/.test(s) || RE_TS.test(s)) return { type: 'timestamp', value: s };
+  return { type: 'str', value: s };
+}
+function fmtC(r) { if (r.type === 'str') return JSON.stringify(r.value); if (r.type === 'float' || r.type === 'int') return showNum(r.value); if (r.type === 'null') return 'null'; if (r.type === 'bool') return r.value ? 'true' : 'false'; return String(r.value); }
+function sameC(a, b) { return a.type === b.type && (a.type === 'float' && Number.isNaN(a.value) ? Number.isNaN(b.value) : String(a.value) === String(b.value)); }
+
+/* ===== YAML 語法高亮 ===== */
+function yScalarHL(v) {
+  const s = v.trim(); if (!s) return esc(v);
+  const lead = v.slice(0, v.indexOf(s[0])), trail = v.slice(lead.length + s.length);
+  let h;
+  if (/^["']/.test(s)) h = `<span class="y-str">${esc(s)}</span>`;
+  else if (/^\*/.test(s)) h = `<span class="y-alias">${esc(s)}</span>`;
+  else if (/^[|>][+-]?\d*$/.test(s)) h = `<span class="y-block">${esc(s)}</span>`;
+  else if (/^[\[{]/.test(s)) h = esc(s).replace(/([\[\]{},])/g, '<span class="y-punc">$1</span>');
+  else {
+    let pre = '', rest = s, mm;
+    while ((mm = rest.match(/^(&[^\s,\[\]{}]+|!\S*)(\s+|$)/))) { pre += `<span class="${mm[1][0] === '&' ? 'y-anchor' : 'y-tag'}">${esc(mm[1])}</span>${mm[2]}`; rest = rest.slice(mm[0].length); }
+    if (!rest) h = pre;
+    else if (/^\*/.test(rest)) h = pre + `<span class="y-alias">${esc(rest)}</span>`;
+    else if (/^[|>][+-]?\d*$/.test(rest)) h = pre + `<span class="y-block">${esc(rest)}</span>`;
+    else if (/^["'\[{]/.test(rest)) h = pre + yScalarHL(rest);
+    else {
+      const c = classify12(rest).type;
+      const cls = c === 'int' || c === 'float' ? 'y-num' : c === 'bool' ? 'y-bool' : c === 'null' ? 'y-null' : c === 'timestamp' ? 'y-date' : 'y-str';
+      h = pre + `<span class="${cls}">${esc(rest)}</span>`;
+    }
+  }
+  return esc(lead) + h + esc(trail);
+}
+function splitComment(v) {
+  let q = null;
+  for (let i = 0; i < v.length; i++) {
+    const c = v[i];
+    if (q) { if (c === q) q = null; continue; }
+    if ((c === '"' || c === "'") && (i === 0 || /[\s\[{,:]/.test(v[i - 1]))) { q = c; continue; }
+    if (c === '#' && (i === 0 || /\s/.test(v[i - 1]))) return [v.slice(0, i), v.slice(i)];
+  }
+  return [v, ''];
+}
+function yhlLine(line) {
+  let out = '', rest = line;
+  const dm = rest.match(/^(---|\.\.\.)(?=\s|$)/);
+  if (dm) { out += `<span class="y-doc">${dm[1]}</span>`; rest = rest.slice(3); }
+  const [code, com] = splitComment(rest);
+  const m = code.match(/^(\s*)((?:-(?:\s+|$))*)(.*)$/);
+  out += esc(m[1]) + m[2].replace(/-/g, '<span class="y-dash">-</span>');
+  const body = m[3];
+  const km = body.match(/^("(?:\\.|[^"\\])*"|'(?:''|[^'])*'|[^\s#'"\[{,][^#]*?)(\s*):(\s+|$)(.*)$/);
+  if (km && !/^[|>]/.test(body)) out += `<span class="${km[1] === '<<' ? 'y-alias' : 'y-key'}">${esc(km[1])}</span>${esc(km[2])}<span class="y-punc">:</span>${esc(km[3])}` + yScalarHL(km[4]);
+  else out += yScalarHL(body);
+  if (com) out += `<span class="y-com">${esc(com)}</span>`;
+  return out;
+}
+function yhl(src) {
+  const lines = String(src).split('\n'); let blk = -1; const out = [];
+  for (const line of lines) {
+    const ind = line.match(/^ */)[0].length;
+    if (blk >= 0) { if (line.trim() === '' || ind > blk) { out.push(`<span class="y-str">${esc(line)}</span>`); continue; } blk = -1; }
+    out.push(yhlLine(line));
+    const [code] = splitComment(line);
+    if (/(:\s+|^\s*(-\s+)+|^)(&\S+\s+)?[|>][+-]?\d*\s*$/.test(code)) blk = ind;
+  }
+  return out.join('\n').replace(/\t/g, '<span class="tabmark">⇥ </span>');
+}
+
+/* ===== 驗證：中文錯誤訊息 ===== */
+function posToLC(text, pos) {
+  pos = Math.max(0, Math.min(pos, text.length));
+  let line = 1, ls = 0;
+  for (let k = 0; k < pos; k++) if (text[k] === '\n') { line++; ls = k + 1; }
+  return { line, col: pos - ls + 1 };
+}
+function lineStart(text, line) { let p = 0; for (let k = 1; k < line; k++) { const n = text.indexOf('\n', p); if (n < 0) return text.length; p = n + 1; } return p; }
+function lintYAML(text) {
+  const lines = text.split('\n'); const warnings = []; let blk = -1, pos = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].replace(/\r$/, ''); const start = pos; pos += lines[i].length + 1;
+    const ind = line.match(/^ */)[0].length;
+    if (blk >= 0) { if (line.trim() === '' || ind > blk) continue; blk = -1; }
+    const lead = line.match(/^[ \t\u3000]*/)[0];
+    const err = (msg, col) => ({ error: { msg, line: i + 1, col, pos: start + col - 1 }, warnings });
+    if (lead.includes('\t')) return err('縮排不能用 Tab 鍵！YAML 只能用「空白鍵」縮排（建議每一層 2 個空白）。很多編輯器可以設定「按 Tab 自動換成空白」。', lead.indexOf('\t') + 1);
+    if (lead.includes('\u3000')) return err('偵測到全形空白「　」，縮排請用半形空白。', lead.indexOf('\u3000') + 1);
+    let b = line.slice(lead.length);
+    if (!b || b[0] === '#') continue;
+    let off = lead.length, inList = false, mm;
+    if (/^---(\s|$)/.test(b)) { off += 3; b = b.slice(3); const t = b.match(/^\s*/)[0]; off += t.length; b = b.slice(t.length); if (!b || b[0] === '#') continue; }
+    while ((mm = b.match(/^-\s+/))) { off += mm[0].length; b = b.slice(mm[0].length); inList = true; }
+    if (/^-[^\s\-\d.]/.test(b)) warnings.push({ line: i + 1, msg: `「-」後面少了空白：「${trunc(b, 14)}」會被當成一般文字，而不是清單項目。請寫成「- ${trunc(b.slice(1), 10)}」` });
+    if (!/^["'\[{&*!|>]/.test(b)) {
+      const fw = b.match(/^([^:：#\s][^:：#]*?)：/);
+      if (fw && !inList && !/:\s/.test(b)) return err('偵測到全形冒號「：」。YAML 的鍵與值之間必須用「半形冒號 + 空白」，例如 name: 王小明（先切換到英文輸入法）', off + fw[0].length);
+      if (fw && !/:\s/.test(b)) warnings.push({ line: i + 1, msg: `這一行有全形冒號「：」，整行「${trunc(b, 14)}」會被當成一段文字` });
+      const ns = b.match(/^([A-Za-z_\u4e00-\u9fff][\w\u4e00-\u9fff-]*):(?=[^\s:\/\\])/);
+      if (ns) return err(`冒號後面少了空白：請寫成「${ns[1]}: ${trunc(b.slice(ns[0].length), 12)}」。YAML 規定鍵和值之間要用「冒號 + 空白」，否則整串會被當成文字。`, off + ns[0].length + 1);
+    }
+    const [code] = splitComment(line);
+    if (/(:\s+|^\s*(-\s+)+|^)(&\S+\s+)?[|>][+-]?\d*\s*$/.test(code)) blk = ind;
+  }
+  return { warnings };
+}
+function scalarWarnings(text) {
+  const out = []; const lines = text.split('\n'); let blk = -1;
+  lines.forEach((raw, i) => {
+    const line = raw.replace(/\r$/, ''); const ind = line.match(/^ */)[0].length;
+    if (blk >= 0) { if (!line.trim() || ind > blk) return; blk = -1; }
+    const [code] = splitComment(line);
+    if (/(:\s+|^\s*(-\s+)+|^)(&\S+\s+)?[|>][+-]?\d*\s*$/.test(code)) blk = ind;
+    let b = code.trim(); if (!b) return;
+    if (/^(---|\.\.\.)/.test(b)) { b = b.slice(3).trim(); if (!b) return; }
+    while (/^-\s+/.test(b)) b = b.replace(/^-\s+/, '');
+    let key = null, val = b;
+    const km = b.match(/^([^\s#'"\[{][^#]*?):(?:\s+(.*))?$/);
+    if (km) { key = km[1].trim(); val = (km[2] || '').trim(); }
+    const check = (s, what) => {
+      if (!s || /^["'\[{&*!|>#]/.test(s)) return;
+      const a = classify12(s), c = classify11(s);
+      if (!sameC(a, c)) out.push({ line: i + 1, msg: `${what}「${s}」：本頁（YAML 1.2）讀成${TY[a.type].zh} ${fmtC(a)}，但 Python 的 PyYAML（YAML 1.1）會讀成${TY[c.type].zh} ${fmtC(c)}。要當文字請加引號 "${s}"` });
+      else if (a.type === 'float' && /^[-+]?\d+\.\d*0$/.test(s)) out.push({ line: i + 1, msg: `${what}「${s}」會被讀成數字 ${a.value}，尾端的 0 會消失。版本號這類資料請加引號 "${s}"` });
+      else if (a.type === 'int' && /^0\d/.test(s)) out.push({ line: i + 1, msg: `${what}「${s}」會被讀成數字，開頭的 0 會不見。編號、電話請加引號 "${s}"` });
+    };
+    if (key !== null) check(key, '鍵'); if (val) check(val, '值');
+  });
+  return out;
+}
+function zhReason(reason, text, line) {
+  const r = String(reason || '');
+  const src = (text.split('\n')[line - 1] || '');
+  if (/tab characters/.test(r)) return '縮排不能用 Tab 鍵，只能用空白。';
+  if (/bad indentation of a mapping entry/.test(r)) {
+    const after = src.replace(/^\s*(-\s+)*[^:]*:\s+/, '');
+    if (/:\s/.test(after) && after !== src) return '值裡面出現了「: 」（冒號 + 空白），YAML 會以為又是一組「鍵: 值」。請用引號把整個值包起來，例如 "學習: 從做中學"';
+    const prev = text.split('\n').slice(0, line - 1).reverse().find(l => l.trim() && !l.trim().startsWith('#')) || '';
+    if (/^\s*-\s/.test(prev) && prev.match(/^\s*/)[0].length === src.match(/^\s*/)[0].length) return '清單（- 項目）和「鍵: 值」不能混在同一層。這個鍵要嘛縮排到 - 項目裡面，要嘛往左移到上一層。';
+    return '縮排不正確：這一行的空白數量和同一層的其他鍵對不齊。同一層的鍵必須用完全相同數量的空白。';
+  }
+  if (/bad indentation of a sequence entry/.test(r)) return '清單項目「- 」的縮排不正確：同一個清單的 - 必須對齊。';
+  if (/multiline key may not be an implicit key/.test(r)) return '讀不到「鍵: 值」：可能是這一行或上一行少了冒號後面的空白，或是少了冒號。';
+  if (/a colon is missed/.test(r)) return '少了冒號：「鍵」後面要接「: 」。';
+  if (/duplicated mapping key/.test(r)) return '鍵重複了：同一層不能有兩個一樣的鍵。';
+  if (/within a double quoted scalar/.test(r)) return '雙引號 " 沒有結束：找不到對應的結尾雙引號。';
+  if (/within a single quoted scalar/.test(r)) return "單引號 ' 沒有結束：找不到對應的結尾單引號。";
+  if (/missed comma between flow collection entries/.test(r)) return '流式寫法 [ ] 或 { } 裡面，項目之間少了逗號，或是括號沒有關起來。';
+  if (/within a flow collection/.test(r)) return '流式寫法的 [ 或 { 沒有關起來。';
+  if (/unidentified alias/.test(r)) { const n = (r.match(/"(.*)"/) || [])[1]; return `找不到錨點 &${n || ''}：別名 *${n || ''} 必須寫在對應的 &${n || ''} 之後。`; }
+  if (/end of the stream or a document separator is expected/.test(r)) return '結構錯誤：這一行沒辦法接在前面的結構後面。常見原因是最外層同時出現「- 清單」和「鍵: 值」，或縮排不一致。';
+  if (/deficient indentation/.test(r)) return '縮排不足：這一行應該要比上一層多一些空白。';
+  if (/unknown tag/.test(r)) return '不認得的標籤（! 開頭的寫法）。';
+  if (/non-printable/.test(r)) return '內容含有看不見的特殊控制字元。';
+  if (/incomplete explicit mapping pair/.test(r)) return '「鍵: 值」不完整。';
+  return '語法錯誤（' + r + '）';
+}
+function normalize(v) {
+  if (v instanceof Date) { const iso = v.toISOString(); return /T00:00:00\.000Z$/.test(iso) ? iso.slice(0, 10) : iso; }
+  if (Array.isArray(v)) return v.map(normalize);
+  if (v && typeof v === 'object') { const o = {}; Object.keys(v).forEach(k => { o[k] = normalize(v[k]); }); return o; }
+  return v;
+}
+function validateYAML(text) {
+  if (!Y) return { ok: false, error: { msg: 'YAML 解析器沒有載入成功。', line: 1, col: 1, pos: 0 }, warnings: [] };
+  const lint = lintYAML(text);
+  if (lint.error) return { ok: false, error: lint.error, warnings: lint.warnings };
+  if (!text.trim()) return { ok: false, error: { msg: '內容是空的，請輸入 YAML。', line: 1, col: 1, pos: 0 }, warnings: [] };
+  let value, multi = false;
+  const fromErr = e => {
+    const mk = e.mark || { line: 0, column: 0, position: 0 };
+    const line = mk.line + 1;
+    return { ok: false, error: { msg: zhReason(e.reason || e.message, text, line), line, col: mk.column + 1, pos: Math.min(mk.position, text.length) }, warnings: lint.warnings };
+  };
+  try { value = Y.load(text); }
+  catch (e) {
+    if (/single document/.test(e.reason || e.message)) { try { value = Y.loadAll(text); multi = true; } catch (e2) { return fromErr(e2); } }
+    else return fromErr(e);
+  }
+  if (value === undefined) value = null;
+  value = normalize(value);
+  const warnings = lint.warnings.concat(scalarWarnings(text));
+  if (multi) warnings.unshift({ line: 0, msg: `偵測到 ${value.length} 份文件（用 --- 分隔），下面以序列（陣列）的方式顯示。` });
+  return { ok: true, value, warnings, multi };
+}
+function errorLineHTML(text, pos) {
+  const ls = text.lastIndexOf('\n', pos - 1) + 1;
+  let le = text.indexOf('\n', pos); if (le < 0) le = text.length;
+  const line = text.slice(ls, le), col = pos - ls, c = line[col];
+  const vis = s => esc(s).replace(/\t/g, '<span class="tabmark">⇥ </span>');
+  if (c === undefined || c === '\n') return vis(line) + '<mark class="err-char eol"> </mark>';
+  return vis(line.slice(0, col)) + `<mark class="err-char">${c === '\t' ? '⇥' : c === ' ' ? '␣' : esc(c)}</mark>` + vis(line.slice(col + 1));
+}
+
+/* ===== 複製 ===== */
+async function copyText(text, btn) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    try { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) {}
+  }
+  if (!btn) return;
+  const old = btn.dataset.label || btn.innerHTML; btn.dataset.label = old;
+  btn.innerHTML = ok ? '✅ 已複製！' : '⚠️ 無法複製'; btn.classList.toggle('copied', ok);
+  clearTimeout(btn._t); btn._t = setTimeout(() => { btn.innerHTML = old; btn.classList.remove('copied'); }, 1600);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-copy]'); if (b) { const t = $(b.dataset.copy); if (t) copyText(t.textContent, b); }
+  const bt = e.target.closest('[data-copy-text]'); if (bt) copyText(bt.dataset.copyText, bt);
+});
+
+/* ===== 主題 ===== */
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  $$('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+  try { localStorage.setItem('yaml-class-theme', t); } catch (e) {}
+}
+$$('.theme-btn').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.theme)));
+let savedTheme = 'day';
+try { savedTheme = localStorage.getItem('yaml-class-theme') || 'day'; } catch (e) {}
+setTheme(['day', 'night', 'candy'].includes(savedTheme) ? savedTheme : 'day');
+
+/* ===== 章節導覽 ===== */
+const CHAPTERS = [
+  {id:'history', n:1, short:'歷史', title:'YAML 從哪裡來'},
+  {id:'rules', n:2, short:'語法規則', title:'縮排就是結構'},
+  {id:'types', n:3, short:'資料型態', title:'YAML 會猜型態'},
+  {id:'mapping', n:4, short:'對應', title:'對應 Mapping'},
+  {id:'sequence', n:5, short:'序列', title:'序列 Sequence'},
+  {id:'symbols', n:6, short:'符號與進階', title:'符號與進階技巧'},
+  {id:'playground', n:7, short:'Playground', title:'排版、驗證、取值'}
+];
+let current = null;
+function buildNav() {
+  let h = '';
+  CHAPTERS.forEach(c => {
+    if (c.id === 'playground') h += '<span class="nav-sep"></span>';
+    h += c.id === 'playground' ? `<button class="nav-btn pg" data-go="${c.id}">▶ Playground</button>` : `<button class="nav-btn" data-go="${c.id}"><span class="num">${c.n}</span>${c.short}</button>`;
+  });
+  $('#nav').innerHTML = h;
+}
+function buildRoadmap() {
+  const xs = CHAPTERS.map((c, i) => 70 + i * (860 / 6)); const y = 54;
+  let s = '';
+  for (let i = 0; i < xs.length - 1; i++) s += `<path class="rm-link" d="M${xs[i] + 26} ${y} L${xs[i + 1] - 26} ${y}"/>`;
+  const dx = (xs[5] + xs[6]) / 2;
+  s += `<line class="rm-divider" x1="${dx}" y1="6" x2="${dx}" y2="108"/>`;
+  s += `<text class="rm-part" x="${(xs[0] + xs[5]) / 2}" y="13">PART 1 · 認識 YAML</text><text class="rm-part" x="${xs[6]}" y="13">PART 2</text>`;
+  CHAPTERS.forEach((c, i) => {
+    s += `<g class="rm-node" data-go="${c.id}" tabindex="0" role="button" aria-label="第 ${c.n} 章 ${c.short}">
+      <circle class="rm-pulse" cx="${xs[i]}" cy="${y}" r="21"/><circle class="rm-halo" cx="${xs[i]}" cy="${y}" r="28"/><circle class="rm-dot" cx="${xs[i]}" cy="${y}" r="21"/>
+      <text class="rm-num" x="${xs[i]}" y="${y + 5}">${c.id === 'playground' ? '▶' : c.n}</text><text class="rm-label" x="${xs[i]}" y="${y + 48}">${c.short}</text></g>`;
+  });
+  $('#roadmap').innerHTML = s;
+}
+function buildChapterNav() {
+  CHAPTERS.forEach((c, i) => {
+    const sec = $(`#ch-${c.id}`); const nav = document.createElement('div'); nav.className = 'ch-nav';
+    const prev = CHAPTERS[i - 1], next = CHAPTERS[i + 1];
+    nav.innerHTML = (prev ? `<button class="btn" data-go="${prev.id}">← 第 ${prev.n} 章 ${prev.short}</button>` : '<span></span>') +
+      (next ? `<button class="btn primary" data-go="${next.id}">${next.id === 'playground' ? '前往 Playground ▶' : '下一章：' + next.short + ' →'}</button>` : '<span></span>');
+    sec.appendChild(nav);
+  });
+}
+function goTo(id, opts = {}) {
+  let i = CHAPTERS.findIndex(c => c.id === id);
+  if (i < 0) { i = 0; id = 'history'; }
+  const changed = current !== id; current = id;
+  $$('.chapter').forEach(s => s.classList.toggle('active', s.dataset.ch === id));
+  $$('.nav-btn').forEach(b => { const on = b.dataset.go === id; b.classList.toggle('active', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  $$('.rm-node').forEach((g, k) => { g.classList.toggle('active', k === i); g.classList.toggle('done', k < i); });
+  $$('.rm-link').forEach((p, k) => { p.classList.toggle('done', k < i - 1); p.classList.toggle('flow', k === i - 1); });
+  const c = CHAPTERS[i];
+  $('#now-reading').innerHTML = `目前瀏覽：<b>${c.id === 'playground' ? 'Part 2' : '第 ' + c.n + ' 章'}</b> · ${c.title}`;
+  const nb = $(`.nav-btn[data-go="${id}"]`); if (nb && nb.scrollIntoView) nb.scrollIntoView({ block: 'nearest', inline: 'center' });
+  if (location.hash.slice(1) !== id) { try { location.hash = id; } catch (e) {} }
+  if (changed && opts.scroll !== false) { const top = $('#content').getBoundingClientRect().top + window.scrollY - 70; if (window.scrollY > top) window.scrollTo({ top, behavior: 'smooth' }); }
+  if (id !== 'history') stopTimeline();
+  if (id === 'playground') pgRender();
+}
+document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); goTo(g.dataset.go); } });
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.rm-node,.tl-ev,.ty-node,.sym-glyph')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+});
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h && h !== current) goTo(h, { scroll: false }); });
+
+/* ===== 1. 歷史 ===== */
+let nameEra = 1;
+function drawName() {
+  const sets = [
+    { w: ['Yet', 'Another', 'Markup', 'Language'], zh: '「又一個標記語言」', note: '2001 年剛誕生時的名字。「Yet Another…」是當時工程師常用的自嘲式命名。' },
+    { w: ['YAML', "Ain't", 'Markup', 'Language'], zh: '「YAML 不是標記語言」', note: '後來改成「遞迴縮寫」：第一個字 Y 又代表 YAML 自己。改名是為了強調 YAML 的重點是<b>資料</b>，而不是像 HTML 那樣標記文件。' }
+  ];
+  const S = sets[nameEra]; let s = '';
+  ['Y', 'A', 'M', 'L'].forEach((Lt, k) => {
+    const x = 14 + k * 110;
+    s += `<g class="name-tile lit"><rect x="${x}" y="10" width="96" height="92" rx="16" class="${k === 0 && nameEra ? 'breathe' : ''}"/>
+      <text class="big" x="${x + 48}" y="70">${Lt}</text><text class="sub" x="${x + 48}" y="94">${S.w[k]}</text></g>`;
+  });
+  if (nameEra) s += `<path d="M62 106 C 62 150, 30 150, 30 112" fill="none" stroke="var(--accent-primary)" stroke-width="2" class="flow"/><path d="M26 116 L30 106 L36 115" fill="none" stroke="var(--accent-primary)" stroke-width="2"/><text x="80" y="140" font-size="12" fill="var(--primary-text)" font-weight="700">Y 又指回 YAML 自己</text>`;
+  s += `<text x="230" y="176" text-anchor="middle" font-size="16" fill="var(--text-main)" font-weight="700">${S.zh}</text>`;
+  $('#name-svg').innerHTML = s;
+  $('#name-note').innerHTML = S.note + ' 官方建議的副檔名是 <code>.yaml</code>，<code>.yml</code> 也很常見。';
+}
+const EVENTS = [
+  {y:2001, s:'YAML 誕生', t:'Clark Evans 提出 YAML', d:'Clark Evans 與 Ingy döt Net、Oren Ben-Kiki 一起設計 YAML，目標是做出「人好讀、好寫」的資料格式。'},
+  {y:2004, s:'YAML 1.0', t:'第一版正式規格', d:'YAML 1.0 規格發布，定義了縮排、清單（序列）、對應等基本語法。'},
+  {y:2005, s:'YAML 1.1', t:'YAML 1.1 與 Ruby on Rails', d:'YAML 1.1 發布。Ruby on Rails 用 YAML 寫設定檔（例如 database.yml），讓 YAML 在開發者之間流行。Python 常用的 PyYAML 到今天仍採用 1.1 的規則，例如 yes / no 會被當成布林值。'},
+  {y:2009, s:'YAML 1.2', t:'成為 JSON 的超集合', d:'YAML 1.2 發布，讓合法的 JSON 幾乎都能直接當 YAML 讀；同時把 yes / no / on / off 從布林值中移除，只留下 true / false。'},
+  {y:2014, s:'雲端設定', t:'Docker Compose、Kubernetes', d:'2014 年前後，Docker Compose（前身 fig）與 Kubernetes 都選用 YAML 描述服務與部署；加上更早的 Ansible，YAML 成為雲端與 DevOps 設定檔的主流。'},
+  {y:2019, s:'GitHub Actions', t:'GitHub Actions 推出', d:'GitHub Actions 推出，用 .github/workflows 裡的 YAML 檔描述自動測試、自動部署流程。'},
+  {y:2021, s:'YAML 1.2.2', t:'YAML 1.2.2 修訂版', d:'YAML 規格團隊發布 1.2.2 修訂版，沒有新增語法，主要是修正與釐清規格文字。今天連 AI 訓練設定（例如 YOLO 的 data.yaml）也常用 YAML。'}
+];
+let tlIdx = 0, tlTimer = null;
+const tlX = y => 60 + (y - 2001) / (2021 - 2001) * 880;
+function buildTimeline() {
+  const Yb = 95; let s = `<line class="tl-axis" x1="30" y1="${Yb}" x2="970" y2="${Yb}"/><path class="tl-progress" id="tl-prog" d="M30 ${Yb} L30 ${Yb}"/>`;
+  EVENTS.forEach((ev, i) => {
+    const cx = tlX(ev.y), up = i % 2 === 0;
+    s += `<g class="tl-ev" data-i="${i}" tabindex="0" role="button" aria-label="${ev.y} ${ev.t}">
+      <line class="tl-stem" x1="${cx}" y1="${Yb}" x2="${cx}" y2="${up ? Yb - 26 : Yb + 26}"/>
+      <circle class="tl-ring" cx="${cx}" cy="${Yb}" r="12"/><circle class="tl-dot" cx="${cx}" cy="${Yb}" r="9"/>
+      <rect x="${cx - 50}" y="${up ? Yb - 80 : Yb + 26}" width="100" height="56" fill="transparent"/>
+      <text class="tl-year" x="${cx}" y="${up ? Yb - 34 : Yb + 46}">${ev.y}</text>
+      <text class="tl-name" x="${cx}" y="${up ? Yb - 54 : Yb + 66}">${ev.s}</text></g>`;
+  });
+  const svg = $('#timeline'); svg.innerHTML = s;
+  svg.addEventListener('click', e => { const g = e.target.closest('.tl-ev'); if (g) { stopTimeline(); selectEvent(+g.dataset.i); } });
+  selectEvent(0);
+}
+function selectEvent(i) {
+  tlIdx = i; const ev = EVENTS[i];
+  $$('.tl-ev').forEach((g, k) => { g.classList.toggle('active', k === i); g.classList.toggle('past', k < i); });
+  $('#tl-prog').setAttribute('d', `M30 95 L${tlX(ev.y)} 95`);
+  $('#tl-detail').innerHTML = `<div class="yr">${ev.y}</div><div><h4>${ev.t}</h4><p>${ev.d}</p></div>`;
+}
+function stopTimeline() { if (tlTimer) { clearInterval(tlTimer); tlTimer = null; $('#tl-play').textContent = '▶ 自動播放'; } }
+$('#tl-play').addEventListener('click', () => {
+  if (tlTimer) return stopTimeline();
+  $('#tl-play').textContent = '⏸ 暫停';
+  selectEvent(tlIdx >= EVENTS.length - 1 ? 0 : tlIdx + 1);
+  tlTimer = setInterval(() => { if (tlIdx >= EVENTS.length - 1) return stopTimeline(); selectEvent(tlIdx + 1); }, 2600);
+});
+const NAMES = ['王小明', '林小美', '陳大文', '張家豪', '李安琪', '黃志明'];
+function updateYJ() {
+  const n = +$('#yj-n').value, com = $('#yj-com').checked; $('#yj-n-val').textContent = n;
+  const list = NAMES.slice(0, n).map((name, k) => ({ name, age: 18 + (k % 3) }));
+  const json = JSON.stringify({ students: list }, null, 2);
+  let yml = com ? '# 班級學生名單\n' : '';
+  yml += 'students:\n';
+  list.forEach((s, k) => { yml += `  - name: ${s.name}${com && k === 0 ? '   # 班長' : ''}\n    age: ${s.age}\n`; });
+  yml = yml.trimEnd();
+  $('#yj-json').innerHTML = hl(json); $('#yj-yaml').innerHTML = yhl(yml);
+  const a = yml.length, b = json.length, mx = Math.max(a, b), W = 380;
+  const pct = Math.round((1 - a / b) * 100);
+  $('#yj-bars').innerHTML = `
+    <text class="lbl" x="0" y="30">YAML</text><rect class="track" x="70" y="14" width="${W}" height="24" rx="8"/>
+    <rect x="70" y="14" width="${W * a / mx}" height="24" rx="8" fill="var(--accent-primary)" style="transition:width .4s"/><text x="${70 + W * a / mx + 8}" y="31">${a} 字元</text>
+    <text class="lbl" x="0" y="74">JSON</text><rect class="track" x="70" y="58" width="${W}" height="24" rx="8"/>
+    <rect x="70" y="58" width="${W * b / mx}" height="24" rx="8" fill="var(--t-object)" style="transition:width .4s"/><text x="${70 + W * b / mx + 8}" y="75">${b} 字元</text>
+    <text x="70" y="104" fill="var(--primary-text)" font-weight="700">${pct > 0 ? `YAML 少用了約 ${pct}% 的字元${com ? '，而且還多了註解' : ''}` : `加了註解的 YAML 比較長，但多了說明`}：沒有 { } [ ] , 和鍵的引號。</text>`;
+}
+$('#yj-n').addEventListener('input', updateYJ); $('#yj-com').addEventListener('change', updateYJ);
+
+/* ===== 2. 縮排模擬器 ===== */
+const IND_PRESETS = {
+  '✅ 正確': [0, 2, 2, 4, 2],
+  'city 沒縮排': [0, 2, 2, 2, 2],
+  'age 縮太多': [0, 2, 2, 4, 4],
+  'name 只縮 1 格': [0, 1, 2, 4, 2],
+  '全部沒縮排': [0, 0, 0, 0, 0]
+};
+const IND_TEXT = ['student:', 'name: 王小明', 'address:', 'city: 台中市', 'age: 19'];
+let indArr = [0, 2, 2, 4, 2];
+function renderInd() {
+  const text = IND_TEXT.map((t, i) => ' '.repeat(indArr[i]) + t).join('\n');
+  const r = validateYAML(text);
+  $('#ind-rows').innerHTML = IND_TEXT.map((t, i) => `<div class="ind-row ${!r.ok && r.error.line === i + 1 ? 'err' : ''}" data-i="${i}">
+    <button data-d="-1" aria-label="減少縮排">←</button><button data-d="1" aria-label="增加縮排">→</button>
+    <code class="ind-code">${'<span class="sp">·</span>'.repeat(indArr[i])}${yhl(t)}</code><span class="ind-n">${indArr[i]} 格</span></div>`).join('');
+  const svg = $('#ind-svg');
+  if (!r.ok) {
+    $('#ind-msg').innerHTML = `<div class="msg err">❌ <b class="where">第 ${r.error.line} 行</b>：${esc(r.error.msg)}</div>`;
+    svg.setAttribute('viewBox', '0 0 460 120');
+    svg.innerHTML = `<circle class="pulse-ring" cx="60" cy="60" r="22" fill="var(--danger)"/><circle cx="60" cy="60" r="22" fill="var(--danger)"/><text x="60" y="66" text-anchor="middle" style="fill:#fff;font-size:20px;font-weight:700">✗</text><text x="100" y="56" style="font-family:var(--font-sans);font-size:15px;font-weight:700">解析失敗，結構圖無法產生</text><text x="100" y="80" style="font-family:var(--font-sans);font-size:13px;fill:var(--text-muted)">同一層的縮排必須一樣多</text>`;
+    return;
+  }
+  $('#ind-msg').innerHTML = `<div class="msg ok">✅ 解析成功。對應的 JSON：<pre class="code" style="margin-top:8px;font-size:12px">${hl(JSON.stringify(r.value))}</pre></div>`;
+  const rows = [];
+  (function walk(v, depth, parent) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(v).forEach(k => { const me = rows.length; const child = v[k]; const isObj = child && typeof child === 'object'; rows.push({ k, depth, parent, leaf: isObj ? null : child }); if (isObj) walk(child, depth + 1, me); });
+  })(r.value, 0, -1);
+  const rowH = 42, H = 20 + rows.length * rowH;
+  const cols = ['var(--accent-primary)', 'var(--t-object)', 'var(--t-array)', 'var(--t-number)', 'var(--t-string)'];
+  let s = '';
+  rows.forEach((row, i) => {
+    const x = 14 + row.depth * 64, y = 10 + i * rowH;
+    if (row.parent >= 0) { const p = rows[row.parent]; const px = 14 + p.depth * 64 + 16, py = 10 + row.parent * rowH + 32; s += `<path class="line" d="M${px} ${py} L${px} ${y + 16} L${x} ${y + 16}"/>`; }
+  });
+  rows.forEach((row, i) => {
+    const x = 14 + row.depth * 64, y = 10 + i * rowH, col = cols[row.depth % cols.length];
+    const label = row.leaf === null && rows[i + 1] && rows[i + 1].parent === i ? row.k + ':' : `${row.k}: ${row.leaf === null ? 'null（空值）' : String(row.leaf)}`;
+    const w = Math.min(440 - x, 24 + [...label].reduce((a, c) => a + (/[\u2E80-\uFFFF]/.test(c) ? 13.5 : 8.1), 0));
+    s += `<rect x="${x}" y="${y}" width="${w}" height="32" rx="9" style="fill:color-mix(in srgb, ${col} 12%, var(--bg-card));stroke:${col}" stroke-width="2" class="${row.leaf === null && !(rows[i + 1] && rows[i + 1].parent === i) ? 'blink' : ''}"/>
+      <text class="k" x="${x + 12}" y="${y + 21}" style="fill:${col}">${esc(label)}</text>`;
+    if (row.depth > 0) s += `<text x="${x - 4}" y="${y - 2}" text-anchor="end" style="font-size:10px;fill:var(--text-muted)">第${row.depth + 1}層</text>`;
+  });
+  svg.setAttribute('viewBox', `0 0 460 ${Math.max(H, 120)}`); svg.innerHTML = s;
+}
+function buildInd() {
+  $('#ind-presets').innerHTML = Object.keys(IND_PRESETS).map(k => `<button class="chip zh" data-p="${esc(k)}">${esc(k)}</button>`).join('');
+  $('#ind-presets').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) { indArr = IND_PRESETS[b.dataset.p].slice(); renderInd(); } });
+  $('#ind-rows').addEventListener('click', e => { const b = e.target.closest('button[data-d]'); if (!b) return; const i = +b.closest('.ind-row').dataset.i; indArr[i] = Math.max(0, Math.min(8, indArr[i] + +b.dataset.d)); renderInd(); });
+  renderInd();
+}
+
+/* ===== 2. 錯誤實驗室 ===== */
+const BASE = ['student:', '  name: 王小明', '  age: 19', '  hobbies:', '    - 籃球', '    - Scratch'];
+const withLines = (rep) => BASE.map((l, i) => rep[i] !== undefined ? rep[i] : l).filter(l => l !== null);
+const MISTAKES = [
+  {i:'✅', name:'正確版本', text:L(...BASE), fix:'縮排整齊、冒號後有空白、清單用「- 」開頭。'},
+  {i:'❶', name:'用 Tab 縮排', text:L(...withLines({2:'\tage: 19'})), fix:'把 Tab 換成 2 個空白。可以在 VS Code 右下角設定「Spaces: 2」。'},
+  {i:'❷', name:'縮排沒對齊', text:L(...withLines({2:'   age: 19'})), fix:'age 前面要跟 name 一樣是 2 個空白。'},
+  {i:'❸', name:'冒號後沒空白', text:L(...withLines({2:'  age:19'})), fix:'寫成 age: 19（冒號後加一個空白）。'},
+  {i:'❹', name:'全形冒號', text:L(...withLines({1:'  name：王小明'})), fix:'把「：」改成半形「: 」。'},
+  {i:'❺', name:'值裡有「: 」', text:L(...withLines({2:'  age: 19', 3:'  motto: 學習: 從做中學\n  hobbies:'})), fix:'值裡有「冒號 + 空白」時，用引號包起來：motto: "學習: 從做中學"'},
+  {i:'❻', name:'引號沒關', text:L(...withLines({1:'  name: "王小明'})), fix:'補上結尾的雙引號："王小明"'},
+  {i:'❼', name:'鍵重複', text:L(...withLines({2:'  age: 19\n  age: 20'})), fix:'同一層的鍵不能重複，刪掉其中一個。'},
+  {i:'❽', name:'清單和鍵混在一起', text:L(...BASE, '    nickname: 小明'), fix:'nickname 應該往左移到和 hobbies 同一層（2 個空白）。'},
+  {i:'⚠️', name:'「-」後沒空白', trap:true, text:L(...withLines({4:'    -籃球', 5:'    -Scratch'})), fix:'寫成「- 籃球」。否則 hobbies 會變成一段文字 "-籃球 -Scratch"，而不是清單！'},
+  {i:'⚠️', name:'挪威問題 NO', trap:true, text:L(...withLines({3:'  country: NO\n  hobbies:'})), fix:'國家代碼 NO（挪威）在 PyYAML 會變成 False！請寫成 country: "NO"。'},
+  {i:'⚠️', name:'版本號 3.10', trap:true, text:L(...withLines({3:'  python: 3.10\n  hobbies:'})), fix:'3.10 會被讀成數字 3.1。版本號請加引號："3.10"。'}
+];
+function buildLab() {
+  $('#lab-list').innerHTML = MISTAKES.map((m, k) => `<button data-k="${k}"><span class="i">${m.i}</span>${m.name}</button>`).join('');
+  $('#lab-list').addEventListener('click', e => { const b = e.target.closest('button'); if (b) selectMistake(+b.dataset.k); });
+  selectMistake(1);
+}
+function selectMistake(k) {
+  $$('#lab-list button').forEach((b, j) => b.classList.toggle('active', j === k));
+  const m = MISTAKES[k]; const r = validateYAML(m.text); const lines = m.text.split('\n');
+  const wl = r.ok ? r.warnings.map(w => w.line) : [];
+  $('#lab-code').innerHTML = lines.map((ln, j) => {
+    const isErr = !r.ok && r.error.line === j + 1, isW = wl.includes(j + 1);
+    const body = isErr ? errorLineHTML(m.text, r.error.pos) : yhl(ln);
+    return `<div class="cl${isErr ? ' err' : ''}" ${isW ? 'style="background:color-mix(in srgb,var(--accent-warn) 16%,transparent)"' : ''}><span class="ln">${j + 1}</span><span>${body || ' '}</span></div>`;
+  }).join('');
+  const state = !r.ok ? 'bad' : r.warnings.length ? 'warn' : 'ok';
+  drawPipe(state);
+  if (!r.ok) $('#lab-msg').innerHTML = `<div class="msg err">❌ <b class="where">第 ${r.error.line} 行，第 ${r.error.col} 個字</b>：${esc(r.error.msg)}<br><span class="small"><b>🔧 修正方式：</b>${esc(m.fix)}</span></div>`;
+  else {
+    const w = r.warnings.map(x => `<div>⚠️ 第 ${x.line} 行：${esc(x.msg)}</div>`).join('');
+    $('#lab-msg').innerHTML = `<div class="msg ${state === 'ok' ? 'ok' : 'warn'}">${state === 'ok' ? '✅ <b>解析成功！</b>' : '⚠️ <b>沒有報錯，但結果可能不是你想要的！</b>'}<br><span class="small">${esc(m.fix)}</span>${w ? `<div class="small" style="margin-top:6px">${w}</div>` : ''}
+      <pre class="code" style="margin-top:8px;font-size:12.5px">${hl(JSON.stringify(r.value, null, 2))}</pre></div>`;
+  }
+}
+function drawPipe(state) {
+  const col = state === 'ok' ? 'var(--ok)' : state === 'warn' ? 'var(--accent-warn)' : 'var(--danger)';
+  const t1 = state === 'ok' ? '✓ dict 字典' : state === 'warn' ? '⚠ 結果怪怪的' : '✗ YAMLError';
+  const t2 = state === 'ok' ? '可以開始取值了' : state === 'warn' ? '型態或結構被誤判' : '整份設定都讀不到';
+  $('#lab-pipe').innerHTML = `
+    <g><rect class="box" x="10" y="30" width="150" height="54" rx="12"/><text x="85" y="55">YAML 文字</text><text class="mono" x="85" y="73" style="fill:var(--text-muted)">config.yaml</text></g>
+    <path class="link flow" d="M162 57 L240 57"/>
+    <g class="parser"><circle class="pulse-ring" cx="320" cy="57" r="30" fill="${col}" opacity=".4"/><rect class="box" x="242" y="30" width="156" height="54" rx="12"/><text class="mono" x="320" y="55">yaml.safe_load()</text><text x="320" y="74" style="fill:var(--text-muted);font-size:12px">解析器</text></g>
+    <path class="link ${state === 'bad' ? 'bad blink' : 'flow'}" d="M400 57 L478 57" style="${state === 'warn' ? 'stroke:var(--accent-warn)' : ''}"/>
+    <g><rect class="box ${state === 'bad' ? 'blink' : 'breathe'}" x="480" y="30" width="150" height="54" rx="12" style="stroke:${col};fill:color-mix(in srgb, ${col} 12%, var(--bg-card))"/>
+      <text x="555" y="55" style="font-weight:700;fill:${col}">${t1}</text><text x="555" y="74" style="fill:var(--text-muted);font-size:12px">${t2}</text></g>`;
+}
+
+/* ===== 3. 型態 ===== */
+const TYPES = {
+  str:{desc:'大多數文字<b>不用加引號</b>就是字串。雙引號裡可以用跳脫字元（\\n 換行）；單引號則原樣保留內容。', good:['王小明', 'Hello World', '"第一行\\n第二行"', "'C:\\Users'", '"yes"', '"3.10"'], bad:['yes', '3.10', '#hashtag', '學習: 從做中學'], badNote:'這些看起來像文字，但會被當成別的東西或出錯', tip:'不確定會不會被誤判的時候，加上引號就對了。'},
+  int:{desc:'不加引號的整數。也支援 <code>0x</code> 十六進位與 <code>0o</code> 八進位。', good:['42', '-7', '0x1F', '0o14'], bad:['007', '0912345678', '1:30'], badNote:'像編號、電話、時間的值會被誤判', tip:'學號、電話、郵遞區號這類「看起來像數字的編號」請加引號，否則開頭的 0 會不見。'},
+  float:{desc:'有小數點或科學記號的數字；還有 <code>.inf</code>（無限大）與 <code>.nan</code>（不是數字）。', good:['3.14', '-0.5', '6.02e+23', '.inf', '.nan'], bad:['3.10', '6.02e23'], badNote:'3.10 會變 3.1；6.02e23 在 PyYAML 是字串', tip:'JSON 沒有 .inf 和 .nan，轉成 JSON 時要特別注意。'},
+  bool:{desc:'YAML 1.2 只認得 <code>true</code> / <code>false</code>（也接受 True、TRUE 等大小寫）。', good:['true', 'false', 'True', 'FALSE'], bad:['yes', 'no', 'on', 'off', 'NO'], badNote:'在 PyYAML（YAML 1.1）會變成布林值', tip:'著名的「挪威問題」：國家代碼 NO 被 PyYAML 讀成 False。要當文字就加引號。'},
+  null:{desc:'用 <code>null</code> 或 <code>~</code> 表示，甚至<b>什麼都不寫</b>也是 null。', good:['null', '~', 'NULL'], bad:['None', '"null"', 'nil'], badNote:'這些都只是字串', tip:'「key:」後面什麼都沒寫，值就是 null。'},
+  timestamp:{desc:'符合 ISO 8601 的日期或時間，例如 2026-11-14。這是 YAML 1.1 的型態，PyYAML 和本頁的解析器都會辨識。', good:['2026-11-14', '2026-11-14T09:30:00+08:00'], bad:['2026/11/14', '11-14-2026'], badNote:'格式不對就只是字串', tip:'轉成 JSON 時，日期會變成字串。Python 讀進來會是 datetime.date 物件。'},
+  map:{desc:'一組「鍵: 值」，相當於 JSON 的物件、Python 的 dict。可以寫成多行的區塊風格，或一行的 <code>{ }</code> 流式風格。', good:['{name: 王小明, age: 19}', '{}'], bad:['{name 王小明}', '{a: 1'], badNote:'少了冒號或括號', tip:'下一章會詳細介紹對應。'},
+  seq:{desc:'有順序的一串值，相當於 JSON 的陣列、Python 的 list。用「- 」逐行列出，或用 <code>[ ]</code> 寫成一行。', good:['[1, 2, 3]', '[籃球, 繪畫]', '[]'], bad:['[1, 2', '(1, 2)'], badNote:'括號沒關，或用了小括號', tip:'第 5 章會詳細介紹序列。'}
+};
+const TYPE_ORDER = ['str', 'int', 'float', 'bool', 'null', 'timestamp', 'seq', 'map'];
+function buildTypes() {
+  const cx = 270, cy = 205, R = 150; let s = '';
+  const pos = {};
+  TYPE_ORDER.forEach((t, k) => { const a = (-90 + k * 45) * Math.PI / 180; pos[t] = [cx + R * Math.cos(a), cy + R * Math.sin(a)]; });
+  TYPE_ORDER.forEach(t => { const [x, y] = pos[t]; s += `<path class="ty-spoke" data-t="${t}" d="M${cx} ${cy} L${x} ${y}" stroke="var(--t-${TY[t].c})"/>`; });
+  s += `<circle class="pulse-ring" cx="${cx}" cy="${cy}" r="46" fill="var(--accent-primary)" opacity=".35"/><circle class="ty-hub" cx="${cx}" cy="${cy}" r="46"/>
+    <text class="ty-hub-t" x="${cx}" y="${cy - 2}">YAML</text><text class="ty-hub-t" x="${cx}" y="${cy + 17}" style="font-size:12px;font-weight:500">的值 value</text>`;
+  TYPE_ORDER.forEach(t => {
+    const [x, y] = pos[t]; const structural = t === 'map' || t === 'seq'; const c = `var(--t-${TY[t].c})`;
+    s += `<g class="ty-node" data-t="${t}" tabindex="0" role="button" aria-label="${TY[t].zh} ${t}">
+      <circle class="halo" cx="${x}" cy="${y}" r="52" stroke="${c}"/>
+      ${structural ? `<circle class="ring spin" cx="${x}" cy="${y}" r="48" stroke="${c}"/>` : ''}
+      <circle class="c" cx="${x}" cy="${y}" r="40" stroke="${c}"/>
+      <text class="zh" x="${x}" y="${y + 2}" style="fill:${c};font-size:16px">${TY[t].zh}</text>
+      <text class="en" x="${x}" y="${y + 19}">${t}</text></g>`;
+  });
+  s += `<text class="ty-legend" x="6" y="424">實線圓：純量（單一的值）</text><text class="ty-legend" x="534" y="424" text-anchor="end">虛線外圈：集合（可裝其他值）</text>`;
+  const svg = $('#types-svg'); svg.innerHTML = s;
+  svg.addEventListener('click', e => { const g = e.target.closest('.ty-node'); if (g) selectType(g.dataset.t); });
+}
+function lightType(t) { $$('.ty-node').forEach(g => g.classList.toggle('active', g.dataset.t === t)); $$('.ty-spoke').forEach(p => p.classList.toggle('on', p.dataset.t === t)); }
+function selectType(t) {
+  lightType(t); const T = TYPES[t];
+  const chip = (v, bad) => `<button class="chip${bad ? ' bad' : ''}" data-val="${esc(v)}">${esc(v)}</button>`;
+  $('#type-detail').innerHTML = `
+    <div class="detail-title"><span class="ty-badge ty-${TY[t].c}">${t}</span><h3>${TY[t].zh}</h3></div>
+    <p style="margin:0">${T.desc}</p>
+    <div class="ex-row"><span class="lab">✅ 範例（點一下丟進偵測器）</span><div class="chips">${T.good.map(v => chip(v)).join('')}</div></div>
+    <div class="ex-row"><span class="lab">⚠️ 小心：${T.badNote}</span><div class="chips">${T.bad.map(v => chip(v, true)).join('')}</div></div>
+    <div class="tipbox">💡 ${T.tip}</div>`;
+}
+function typeOfValue(v) { if (v instanceof Date) return 'timestamp'; const t = typeOf(v); return t === 'string' ? 'str' : t === 'boolean' ? 'bool' : t === 'object' ? 'map' : t === 'array' ? 'seq' : t === 'number' ? (Number.isInteger(v) ? 'int' : 'float') : 'null'; }
+function showVal(v) { if (v instanceof Date) return normalize(v); if (typeof v === 'number') return showNum(v); return JSON.stringify(normalize(v)); }
+function detect() {
+  const raw = $('#det-input').value, s = raw.trim(); let a, c, note = '';
+  if (!Y) return;
+  if (s.startsWith('#')) { $('#det-out').innerHTML = `<div class="msg warn" style="margin-top:12px">「#」開頭整段都變成<b>註解</b>，等於什麼都沒寫，值是 null。要當文字請加引號 "${esc(s)}"</div>`; lightType('null'); return; }
+  const plain = !/^["'\[{\-|>&*!]/.test(s) && !/:\s|:$/.test(s) && !/\s#/.test(s);
+  if (plain) { a = classify12(s); c = classify11(s); }
+  else {
+    const r = validateYAML('v: ' + s);
+    if (!r.ok) { $('#det-out').innerHTML = `<div class="msg err" style="margin-top:12px">❌ 這不是合法的 YAML 值：${esc(r.error.msg)}</div>`; lightType(null); return; }
+    let v; try { v = Y.load('v: ' + s).v; } catch (e) { v = r.value.v; }
+    const t = typeOfValue(v); a = c = { type: t, value: v };
+    if (/:\s/.test(s) && !/^["'\[{]/.test(s)) note = '因為裡面有「: 」，YAML 把它當成另一組「鍵: 值」。要當文字請加引號。';
+  }
+  lightType(a.type);
+  const diff = !sameC(a, c);
+  const fv = r => plain ? fmtC(r) : showVal(r.value);
+  $('#det-out').innerHTML = `<div class="cmp2">
+      <div class="col"><div class="k">🌐 YAML 1.2（本頁解析器／目前規格）</div><div class="v"><span class="ty-badge ty-${TY[a.type].c}">${TY[a.type].zh} ${a.type}</span></div><div class="v">${esc(fv(a))}</div></div>
+      <div class="col ${diff ? 'diff' : ''}"><div class="k">🐍 Python PyYAML（YAML 1.1）</div><div class="v"><span class="ty-badge ty-${TY[c.type].c}">${TY[c.type].zh} ${c.type}</span></div><div class="v">${esc(fv(c))}</div></div></div>
+    <div class="msg ${diff ? 'warn' : 'ok'}" style="margin-top:10px">${diff ? `⚠️ 兩邊讀出來不一樣！如果要確保是文字，請寫成 <code>"${esc(s)}"</code>。` : '✅ 兩種解析器的結果一致。'}${note ? '<br>' + note : ''}${plain && a.type === 'float' && /\.\d*0$/.test(s) ? '<br>注意：小數尾端的 0 會消失。' : ''}${plain && a.type === 'int' && /^0\d/.test(s) ? '<br>注意：開頭的 0 會不見。' : ''}</div>`;
+}
+function buildDetector() {
+  const ex = ['NO', 'yes', 'on', '3.10', '007', '0912345678', '1:30', '6.02e23', '2026-11-14', '~', '"yes"', '[1, 2]', 'a: b'];
+  $('#det-chips').innerHTML = ex.map(v => `<button class="chip" data-val="${esc(v)}">${esc(v)}</button>`).join('');
+  $('#det-input').addEventListener('input', detect);
+  document.addEventListener('click', e => { const c = e.target.closest('#type-detail .chip, #det-chips .chip'); if (c) { $('#det-input').value = c.dataset.val; detect(); } });
+}
+
+/* ===== 4. 對應 ===== */
+function buildAnatomy() {
+  const T = (x, y, t, col) => `<text class="code" x="${x}" y="${y}" style="fill:${col}">${esc(t)}</text>`;
+  const lab = (x, y, t, a = 'middle') => `<text x="${x}" y="${y}" text-anchor="${a}">${t}</text>`;
+  $('#anat-svg').innerHTML =
+    T(40, 60, 'student:', 'var(--t-key)') +
+    `<line class="guide" x1="46" y1="72" x2="46" y2="150"/>` +
+    `<rect x="40" y="76" width="24" height="26" rx="4" fill="color-mix(in srgb, var(--accent-primary) 18%, transparent)"/>` +
+    T(64, 96, 'name', 'var(--t-key)') + T(112, 96, ':', 'var(--text-muted)') +
+    `<rect x="124" y="80" width="10" height="20" rx="3" fill="var(--accent-primary)" class="blink"/>` +
+    T(140, 96, '王小明', 'var(--t-string)') +
+    T(64, 132, 'age', 'var(--t-key)') + T(100, 132, ':', 'var(--text-muted)') + T(124, 132, '19', 'var(--t-number)') +
+    `<path class="bracket" d="M40 30 L40 22 L140 22 L140 30" stroke="var(--t-key)"/>` + lab(90, 14, '上層的鍵，值在下一層') +
+    lab(52, 176, '縮排 2 格') + lab(52, 194, '＝屬於 student') +
+    `<path d="M129 104 L129 150 L230 150" fill="none" stroke="var(--accent-primary)" stroke-width="1.5" class="flow"/>` + lab(236, 155, '冒號後面一定要有空白！', 'start') +
+    `<path class="bracket" d="M140 108 L140 114 L212 114 L212 108" stroke="var(--t-string)"/>` + lab(250, 96, '← 值：字串不用引號', 'start') +
+    lab(170, 136, '← 數字', 'start') +
+    `<line x1="440" y1="20" x2="440" y2="190" stroke="var(--border-color)" stroke-dasharray="4 4"/>` +
+    lab(600, 40, '同一份資料，其他寫法') +
+    `<text class="code" x="460" y="84" style="font-size:14px;fill:var(--text-main)">student: {name: 王小明, age: 19}</text>` +
+    lab(600, 106, '↑ YAML 流式風格（一行）') +
+    `<text class="code" x="460" y="140" style="font-size:12px;fill:var(--text-main)">{"student":</text><text class="code" x="476" y="160" style="font-size:12px;fill:var(--text-main)">{"name": "王小明", "age": 19}}</text>` +
+    lab(600, 186, '↑ JSON（也是合法的 YAML！）');
+}
+const OB_DEFAULT = [['name', '王小明'], ['age', '19'], ['isStudent', 'true'], ['hobbies', '[籃球, 繪畫]'], ['address', '{city: 台中市}'], ['phone', '"0912345678"']];
+let obRows = [], obSel = 0;
+function obReset() { obRows = OB_DEFAULT.map(([k, v]) => ({ k, v })); obSel = 0; renderObRows(); }
+function renderObRows() {
+  $('#ob-rows').innerHTML = obRows.map((r, i) => `
+    <div class="ob-row" data-i="${i}">
+      <input class="txt k" value="${esc(r.k)}" placeholder="鍵" aria-label="鍵">
+      <span class="colon">:</span>
+      <input class="txt v" value="${esc(r.v)}" placeholder="值（留空 = null）" aria-label="值">
+      <button class="x" title="刪除" aria-label="刪除這一筆">✕</button>
+      <div class="ob-row-msg" hidden></div>
+    </div>`).join('');
+  obUpdate();
+}
+function obAnalyze() {
+  const seen = {};
+  return obRows.map(r => {
+    const out = { k: r.k, v: r.v, ok: true, msg: '', warn: '' };
+    if (!r.k.trim()) { out.ok = false; out.msg = '鍵不能是空的'; return out; }
+    const s = r.v.trim();
+    const res = validateYAML('v: ' + r.v);
+    if (!res.ok) { out.ok = false; out.msg = res.error.msg; return out; }
+    let raw; try { raw = Y.load('v: ' + r.v).v; } catch (e) { raw = res.value.v; }
+    out.val = normalize(raw === undefined ? null : raw);
+    out.type = !/^["'\[{&*!|>]/.test(s) && !/:\s/.test(s) ? classify12(s).type : typeOfValue(raw === undefined ? null : raw);
+    if (res.warnings.length) out.warn = res.warnings[0].msg;
+    if (seen[r.k]) out.warn = '這個鍵重複了！真正的 YAML 檔會直接報錯。';
+    seen[r.k] = true;
+    return out;
+  });
+}
+function obUpdate() {
+  const A = obAnalyze();
+  $$('#ob-rows .ob-row').forEach((row, i) => {
+    const a = A[i]; const m = $('.ob-row-msg', row);
+    row.classList.toggle('bad', !a.ok);
+    if (!a.ok || a.warn) { m.hidden = false; m.textContent = a.ok ? '⚠ ' + a.warn : '✗ ' + a.msg; m.classList.toggle('warn', a.ok); } else m.hidden = true;
+  });
+  const obj = {}; A.forEach(a => { if (a.ok) obj[a.k] = a.val; });
+  $('#ob-yaml').innerHTML = yhl(Y.dump({ student: obj }, { indent: 2, lineWidth: -1 }).trimEnd());
+  $('#ob-json').innerHTML = hl(JSON.stringify({ student: obj }, null, 2));
+  if (obSel >= A.length) obSel = A.length - 1;
+  drawOb(A);
+}
+function drawOb(A) {
+  const top = 46, rh = 40, gap = 10, H = top + A.length * (rh + gap) + 10;
+  let s = `<text x="8" y="28" style="font-size:16px;font-weight:700;fill:var(--t-key)">student:</text><line x1="22" y1="38" x2="22" y2="${H - 12}" stroke="var(--accent-primary)" stroke-width="2" stroke-dasharray="3 4" opacity=".6"/>`;
+  A.forEach((a, i) => {
+    const y = top + i * (rh + gap); const col = a.ok ? `var(--t-${TY[a.type].c})` : 'var(--danger)';
+    const vtxt = a.ok ? (a.type === 'str' ? trunc(a.val, 24) : a.type === 'map' ? `對應 · ${Object.keys(a.val).length} 個鍵` : a.type === 'seq' ? `序列 · ${a.val.length} 項` : a.type === 'null' ? 'null' : a.type === 'float' || a.type === 'int' ? showNum(a.val) : String(a.val)) : '⚠ 值不合法';
+    s += `<g class="row" data-i="${i}">
+      ${i === obSel ? `<rect class="sel breathe" x="36" y="${y - 5}" width="516" height="${rh + 10}" rx="14"/>` : ''}
+      <rect class="kbox" x="42" y="${y}" width="170" height="${rh}" rx="10"/>
+      <text x="54" y="${y + 25}" style="fill:var(--t-key);font-weight:700">${esc(trunc(a.k, 18))}</text>
+      <text class="colon" x="222" y="${y + 26}">:</text>
+      <rect class="vbox ${a.ok ? '' : 'blink'}" x="240" y="${y}" width="306" height="${rh}" rx="10" style="fill:color-mix(in srgb, ${col} 10%, var(--bg-card));stroke:${col}${a.warn ? ';stroke-dasharray:6 4' : ''}"/>
+      <text x="252" y="${y + 25}">${esc(vtxt)}</text>
+      <text class="tag" x="536" y="${y + 25}" text-anchor="end" style="fill:${col}">${a.ok ? (a.warn ? '⚠ ' : '') + TY[a.type].zh : '錯誤'}</text></g>`;
+  });
+  const svg = $('#ob-svg'); svg.setAttribute('viewBox', `0 0 560 ${Math.max(H, 100)}`); svg.innerHTML = s;
+  const a = A[obSel]; if (!a) { $('#ob-pick').innerHTML = ''; return; }
+  const ident = /^[A-Za-z_$\u4e00-\u9fff][\w$\u4e00-\u9fff-]*$/.test(a.k);
+  $('#ob-pick').innerHTML = a.ok
+    ? `<div class="msg ok">取值路徑：<code>student${ident ? '.' + esc(a.k) : '[' + esc(JSON.stringify(a.k)) + ']'}</code> → <span class="ty-badge ty-${TY[a.type].c}">${TY[a.type].zh}</span> <code>${esc(trunc(JSON.stringify(a.val), 40))}</code><br><span class="small muted">Python：<code>data["student"][${esc(JSON.stringify(a.k))}]</code></span></div>`
+    : `<div class="msg err">這一列的值還不合法，修正後才能取值。</div>`;
+}
+function buildMapping() {
+  $('#ob-rows').addEventListener('input', e => {
+    const row = e.target.closest('.ob-row'); if (!row) return; const i = +row.dataset.i;
+    if (e.target.classList.contains('k')) obRows[i].k = e.target.value; else obRows[i].v = e.target.value;
+    obSel = i; obUpdate();
+  });
+  $('#ob-rows').addEventListener('click', e => { const x = e.target.closest('.x'); if (!x) return; obRows.splice(+x.closest('.ob-row').dataset.i, 1); obSel = Math.max(0, Math.min(obSel, obRows.length - 1)); renderObRows(); });
+  $('#ob-rows').addEventListener('focusin', e => { const row = e.target.closest('.ob-row'); if (row && +row.dataset.i !== obSel) { obSel = +row.dataset.i; drawOb(obAnalyze()); } });
+  $('#ob-add').addEventListener('click', () => { obRows.push({ k: 'key' + (obRows.length + 1), v: '' }); obSel = obRows.length - 1; renderObRows(); const ins = $$('#ob-rows input.k'); ins[ins.length - 1]?.focus(); ins[ins.length - 1]?.select(); });
+  $('#ob-reset').addEventListener('click', obReset);
+  $('#ob-svg').addEventListener('click', e => { const g = e.target.closest('.row'); if (g) { obSel = +g.dataset.i; drawOb(obAnalyze()); } });
+  obReset();
+}
+
+/* ===== 5. 序列 ===== */
+const SEQ_DEFAULT = { scores: [88, 92, 75, 60], students: [{ name: '王小明', age: 19 }, { name: '林小美', age: 18 }, { name: '陳大文', age: 20 }] };
+const POOL = ['張家豪', '李安琪', '黃志明', '吳佳穎', '劉子瑜', '蔡宗翰'];
+let seqMode = 'scores', seqData = JSON.parse(JSON.stringify(SEQ_DEFAULT)), seqSel = 0;
+function drawSeq() {
+  const a = seqData[seqMode], n = a.length, objs = seqMode === 'students', rh = objs ? 62 : 44, gap = 10;
+  const H = Math.max(120, 30 + n * (rh + gap) + 20);
+  let s = `<text x="10" y="20" style="font-size:15px;font-weight:700;fill:var(--t-key)">${seqMode}:</text>`;
+  a.forEach((v, i) => {
+    const y = 34 + i * (rh + gap), on = i === seqSel, col = objs ? 'var(--t-object)' : 'var(--t-number)';
+    s += `<g class="it" data-i="${i}">
+      <text class="idx ${on ? 'on' : ''}" x="62" y="${y + rh / 2 + 5}">[${i}]</text>
+      ${on ? `<path class="bob" d="M4 ${y + rh / 2 - 8} L16 ${y + rh / 2} L4 ${y + rh / 2 + 8} Z" fill="var(--accent-primary)"/>` : ''}
+      <text class="dash" x="84" y="${y + (objs ? 28 : rh / 2 + 8)}">-</text>
+      ${on ? `<rect class="breathe" x="102" y="${y - 4}" width="408" height="${rh + 8}" rx="14" fill="none" stroke="var(--accent-primary)" stroke-width="3" opacity=".6"/>` : ''}
+      <rect class="cell" x="108" y="${y}" width="396" height="${rh}" rx="10" style="fill:${on ? `color-mix(in srgb, ${col} 18%, var(--bg-card))` : 'var(--bg-soft)'};stroke:${on ? 'var(--accent-primary)' : col}"/>
+      ${objs
+        ? `<text class="val" x="122" y="${y + 25}"><tspan class="vk">name</tspan>: ${esc(v.name)}</text><text class="val" x="122" y="${y + 48}"><tspan class="vk">age</tspan>: <tspan style="fill:var(--t-number)">${v.age}</tspan></text>
+           <line x1="121" y1="${y + 8}" x2="121" y2="${y + 54}" stroke="var(--accent-primary)" stroke-dasharray="2 3" opacity=".7"/>`
+        : `<text class="val" x="122" y="${y + rh / 2 + 6}" style="fill:var(--t-number);font-weight:700">${v}</text>`}
+    </g>`;
+  });
+  if (!n) s += `<text x="40" y="70" style="font-family:var(--font-sans);fill:var(--text-muted)">${seqMode}: [] 是空的序列，按「加到最後」新增</text>`;
+  s += `<text x="510" y="${H - 6}" text-anchor="end" style="font-size:12px;fill:var(--text-muted)">length = ${n}</text>`;
+  const svg = $('#seq-svg'); svg.setAttribute('viewBox', `0 0 520 ${H}`); svg.innerHTML = s;
+  const rng = $('#seq-idx'); rng.max = Math.max(0, n - 1); rng.value = seqSel; rng.disabled = !n; $('#seq-idx-val').textContent = n ? seqSel : '–';
+  let path, val;
+  if (!n) { path = `${seqMode}[0]`; val = '取不到（是空的）'; }
+  else if (!objs) { path = `${seqMode}[${seqSel}]`; val = String(a[seqSel]); }
+  else { path = `${seqMode}[${seqSel}].name`; val = a[seqSel].name; }
+  $('#seq-info').innerHTML = `<div class="box"><div class="k">取值路徑</div><div class="v" style="color:var(--primary-text)">${esc(path)}</div></div>
+    <div class="box"><div class="k">取到的值</div><div class="v">${esc(val)}</div></div>
+    <div class="box"><div class="k">長度</div><div class="v">${n}</div></div>`;
+  $('#seq-block').innerHTML = yhl(Y.dump({ [seqMode]: a }, { indent: 2 }).trimEnd());
+  $('#seq-flow').innerHTML = yhl(Y.dump({ [seqMode]: a }, { flowLevel: 1, lineWidth: -1 }).trimEnd());
+}
+function buildSeq() {
+  $('#seq-mode').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; seqMode = b.dataset.mode; seqSel = 0; $$('#seq-mode button').forEach(x => x.classList.toggle('active', x === b)); drawSeq(); });
+  $('#seq-push').addEventListener('click', () => {
+    const a = seqData[seqMode]; if (a.length >= 8) return flash($('#seq-push'));
+    if (seqMode === 'scores') a.push(50 + Math.floor(Math.random() * 51)); else a.push({ name: POOL[(a.length + 3) % POOL.length], age: 18 + Math.floor(Math.random() * 4) });
+    seqSel = a.length - 1; drawSeq();
+  });
+  $('#seq-pop').addEventListener('click', () => { const a = seqData[seqMode]; if (!a.length) return flash($('#seq-pop')); a.pop(); seqSel = Math.max(0, Math.min(seqSel, a.length - 1)); drawSeq(); });
+  $('#seq-reset').addEventListener('click', () => { seqData[seqMode] = JSON.parse(JSON.stringify(SEQ_DEFAULT[seqMode])); seqSel = 0; drawSeq(); });
+  $('#seq-idx').addEventListener('input', e => { seqSel = +e.target.value; drawSeq(); });
+  $('#seq-svg').addEventListener('click', e => { const g = e.target.closest('.it'); if (g) { seqSel = +g.dataset.i; drawSeq(); } });
+  drawSeq();
+}
+function flash(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+/* ===== 6. 符號 ===== */
+const SYMS = [
+  {k:'colon', g:':', name:'冒號', d:'分隔<b>鍵和值</b>，後面一定要接空白：<code>name: 王小明</code>。'},
+  {k:'dash', g:'-', name:'減號', d:'<b>序列（清單）的項目</b>，後面一定要接空白：<code>- 籃球</code>。'},
+  {k:'comment', g:'#', name:'井字號', d:'<b>註解</b>，從 # 到行尾都會被忽略。放在值後面時，# 前面要有空白。'},
+  {k:'doc', g:'---', name:'三個減號', d:'<b>文件開始</b>。一個檔案可以用 --- 分隔多份文件（例如 Kubernetes 設定）。'},
+  {k:'block', g:'| >', name:'直線／大於', d:'<b>多行文字</b>：<code>|</code> 保留換行；<code>&gt;</code> 把換行摺成空白。下方有模擬器可以試。'},
+  {k:'anchor', g:'&', name:'錨點', d:'<b>幫一段資料取名字</b>：<code>&amp;t</code>，之後可以用別名重複使用。'},
+  {k:'alias', g:'*', name:'別名', d:'<b>引用錨點</b>：<code>*t</code> 等於把 &amp;t 那段資料複製過來。'},
+  {k:'quote', g:'" \'', name:'引號', d:'<b>強制當成字串</b>。雙引號可用跳脫字元 \\n；單引號原樣保留。'}
+];
+const SYM_SAMPLE = ['--- # 課程設定檔', 'course: 程式設計', 'teacher: &t 王老師', 'students:', '  - name: 王小明', '    score: 88', '  - name: "林小美"', '    score: 95', 'assistant: *t   # 和 teacher 一樣', 'note: |', '  第一行', '  第二行', 'summary: >', '  這兩行會', '  接成一行'];
+function buildSymbols() {
+  const P = (k, t) => `<span class="p" data-k="${k}">${esc(t)}</span>`;
+  let blk = false; const out = [];
+  SYM_SAMPLE.forEach(line => {
+    if (blk && /^\s{2}/.test(line)) { out.push(`<span class="y-str">${esc(line)}</span>`); return; }
+    blk = false;
+    let rest = line, h = '';
+    if (rest.startsWith('---')) { h += P('doc', '---'); rest = rest.slice(3); }
+    const lead = rest.match(/^\s*/)[0]; h += lead; rest = rest.slice(lead.length);
+    if (rest.startsWith('- ')) { h += P('dash', '-') + ' '; rest = rest.slice(2); }
+    let com = ''; const ci = rest.search(/(^|\s)#/); if (ci >= 0) { const at = rest.indexOf('#', ci); com = rest.slice(at); rest = rest.slice(0, at); }
+    const km = rest.match(/^([^:]+):(\s*)(.*)$/);
+    if (km) {
+      h += `<span class="y-key">${esc(km[1])}</span>${P('colon', ':')}${km[2]}`;
+      let v = km[3];
+      if (/^&/.test(v)) { const m = v.match(/^&(\S+)(\s*)(.*)$/); h += P('anchor', '&') + `<span class="y-anchor">${esc(m[1])}</span>${m[2]}<span class="y-str">${esc(m[3])}</span>`; }
+      else if (/^\*/.test(v)) { const m = v.match(/^\*(\S+)(.*)$/); h += P('alias', '*') + `<span class="y-alias">${esc(m[1])}</span>${esc(m[2])}`; }
+      else if (/^[|>]/.test(v)) { h += P('block', v.trim()); blk = true; }
+      else if (/^"/.test(v)) h += P('quote', '"') + `<span class="y-str">${esc(v.slice(1, -1))}</span>` + P('quote', '"');
+      else h += yScalarHL(v);
+    } else h += esc(rest);
+    if (com) h += P('comment', '#') + `<span class="y-com">${esc(com.slice(1))}</span>`;
+    out.push(h);
+  });
+  $('#sym-code').innerHTML = out.join('\n');
+  let s = '';
+  SYMS.forEach((p, i) => {
+    const x = 55 + i * 110;
+    s += `<g class="sym-glyph" data-k="${p.k}" tabindex="0" role="button" aria-label="${p.name}">
+      <circle class="halo" cx="${x}" cy="48" r="44"/><circle class="c" cx="${x}" cy="48" r="36"/>
+      <text class="g" x="${x}" y="56">${esc(p.g)}</text><text class="l" x="${x}" y="112">${p.name}</text></g>`;
+  });
+  $('#sym-svg').innerHTML = s;
+  $('#sym-svg').addEventListener('click', e => { const g = e.target.closest('.sym-glyph'); if (g) selectSym(g.dataset.k); });
+  $('#sym-code').addEventListener('click', e => { const p = e.target.closest('.p'); if (p) selectSym(p.dataset.k); });
+  selectSym('colon');
+}
+function selectSym(k) {
+  const p = SYMS.find(x => x.k === k);
+  $$('.sym-glyph').forEach(g => g.classList.toggle('active', g.dataset.k === k));
+  $$('#sym-code .p').forEach(sp => sp.classList.toggle('hl', sp.dataset.k === k));
+  const cnt = $$(`#sym-code .p[data-k="${k}"]`).length;
+  $('#sym-detail').innerHTML = `<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px"><span style="font-family:var(--font-mono);font-size:2rem;font-weight:700;color:var(--primary-text)">${esc(p.g)}</span><b style="font-size:1.1rem">${p.name}</b><span class="small muted">範例中出現 ${cnt} 次</span></div><div>${p.d}</div>`;
+}
+const BLK = [
+  ['|', '保留每一個換行，結尾留一個換行（預設 clip）'],
+  ['|-', '保留換行，但刪掉結尾所有換行（strip）'],
+  ['|+', '保留換行，結尾的空行也全部保留（keep）'],
+  ['>', '把單一換行「摺」成空白；空一行才是真正換行'],
+  ['>-', '摺疊換行，並刪掉結尾換行'],
+  ['>+', '摺疊換行，保留結尾所有空行']
+];
+let blkStyle = '|';
+function renderBlk() {
+  const content = $('#blk-input').value.replace(/\r/g, '');
+  const body = content.split('\n').map(l => l ? '  ' + l : '').join('\n');
+  const src = `text: ${blkStyle}\n${body}\n\n\nnext: 結束`;
+  $('#blk-src').innerHTML = yhl(src);
+  $$('#blk-style button').forEach(b => b.classList.toggle('active', b.dataset.s === blkStyle));
+  $('#blk-desc').textContent = BLK.find(b => b[0] === blkStyle)[1];
+  try {
+    const v = Y.load(src).text ?? '';
+    $('#blk-out').innerHTML = esc(v).replace(/\n/g, '<span class="nl">↵</span>\n') || '<span class="muted">（空字串）</span>';
+    $('#blk-json').textContent = JSON.stringify(v);
+  } catch (e) { $('#blk-out').textContent = '解析錯誤：' + zhReason(e.reason, src, (e.mark || {}).line + 1); $('#blk-json').textContent = ''; }
+}
+function buildBlk() {
+  $('#blk-style').innerHTML = BLK.map(b => `<button data-s="${b[0]}" style="font-family:var(--font-mono)">${b[0]}</button>`).join('');
+  $('#blk-style').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { blkStyle = b.dataset.s; renderBlk(); } });
+  $('#blk-input').addEventListener('input', renderBlk);
+  renderBlk();
+}
+const ANC = L('# YOLO 訓練設定：共用的預設值', 'defaults: &defaults', '  epochs: 100', '  imgsz: 640', '  batch: 16', '', 'small_gpu:', '  <<: *defaults   # 合併全部預設值', '  batch: 8        # 再覆寫 batch', '', 'long_train:', '  <<: *defaults', '  epochs: 300');
+function renderAnc() {
+  const r = validateYAML($('#anc-input').value);
+  if (!r.ok) { $('#anc-msg').innerHTML = `<div class="msg err">❌ 第 ${r.error.line} 行：${esc(r.error.msg)}</div>`; $('#anc-out').innerHTML = ''; return; }
+  $('#anc-msg').innerHTML = `<div class="msg ok small">✅ 解析成功：<code>&lt;&lt;: *defaults</code> 把 defaults 的內容全部合併進來，後面寫的鍵會覆蓋掉預設值。</div>`;
+  $('#anc-out').innerHTML = hl(JSON.stringify(r.value, null, 2));
+}
+function buildAnc() { $('#anc-input').value = ANC; $('#anc-input').addEventListener('input', renderAnc); renderAnc(); }
+
+/* ===== 7. Playground ===== */
+const SAMPLES = [
+  {name:'🎓 學生資料（含註解）', text:L('# 學生資料', 'student:', '  name: 王小明', '  age: 19', '  isGraduated: false', '  email: ~             # 還沒有 email', '  scores: [88, 92, 75]', '  address:', '    city: 台中市', '    zip: "404"', '  courses:', '    - title: 程式設計', '      credit: 3', '      tags: [Python, 必修]', '    - title: 數位藝術', '      credit: 2', '      tags:', '        - Scratch', 'classmates:', '  - name: 林小美', '    age: 18', '  - name: 陳大文', '    age: 20'),
+    paths:['student.name', 'student.scores[1]', 'student.scores.2', 'student.address.city', 'student.courses[0].title', 'student.courses[1].tags[0]', 'classmates[*].name', 'student.scores.length', 'student.name.age']},
+  {name:'🎯 YOLO data.yaml', text:L('# 安全帽偵測資料集', 'path: ../datasets/helmet   # 資料集根目錄', 'train: images/train', 'val: images/val', 'test:                      # 留空 = null', '', 'nc: 2', 'names:', '  0: helmet', '  1: head'),
+    paths:['path', 'train', 'nc', 'names', 'names.0', 'names[1]', 'test']},
+  {name:'⚙️ GitHub Actions 工作流程', text:L('name: Python 測試', 'on:', '  push:', '    branches: [main]', '  pull_request:', '', 'jobs:', '  test:', '    runs-on: ubuntu-latest', '    steps:', '      - uses: actions/checkout@v4', '      - name: 安裝 Python', '        uses: actions/setup-python@v5', '        with:', '          python-version: "3.10"   # 一定要加引號！', '      - run: pip install -r requirements.txt', '      - run: pytest'),
+    paths:['on.push.branches[0]', 'jobs.test.runs-on', 'jobs.test.steps[1].with.python-version', 'jobs.test.steps[-1].run', 'jobs.test.steps.length']},
+  {name:'🐳 Docker Compose', text:L('services:', '  web:', '    image: nginx:latest', '    ports:', '      - "8080:80"     # 連接埠對應建議加引號', '    depends_on:', '      - db', '  db:', '    image: postgres:16', '    environment:', '      POSTGRES_PASSWORD: example'),
+    paths:['services.web.image', 'services.web.ports[0]', 'services.web.depends_on[0]', 'services.db.environment.POSTGRES_PASSWORD']},
+  {name:'⚓ 錨點與合併', text:ANC, paths:['defaults.epochs', 'small_gpu.batch', 'small_gpu.epochs', 'long_train.epochs', 'long_train.imgsz']},
+  {name:'📄 多份文件（---）', text:L('# 一個檔案放兩份文件', '---', 'kind: Service', 'name: web', '---', 'kind: Deployment', 'name: web', 'replicas: 3'), paths:['[0].kind', '[1].replicas', '[*].kind']},
+  {name:'🐞 有錯誤的 YAML', text:L('student:', '  name: 王小明', '  age:19', '  hobbies:', '    - 籃球', '    - Scratch'), paths:['student.name']},
+  {name:'🔁 貼上 JSON（按格式化變 YAML）', text:'{"title": "JSON 也是合法的 YAML", "tags": ["json", "yaml"], "author": {"name": "王小明"}, "draft": false}', paths:['title', 'tags[1]', 'author.name']}
+];
+const pg = { ok: false, value: undefined, res: null, view: 'yaml', undo: null };
+const IDENT = /^[A-Za-z_$\u4e00-\u9fff][\w$\u4e00-\u9fff-]*$/;
+const JSIDENT = /^[A-Za-z_$\u4e00-\u9fff][\w$\u4e00-\u9fff]*$/;
+function joinPath(base, k, isIdx) {
+  if (isIdx) return `${base}[${k}]`;
+  if (IDENT.test(k)) return base ? `${base}.${k}` : k;
+  return `${base}[${JSON.stringify(k)}]`;
+}
+function sortDeep(v) {
+  if (Array.isArray(v)) return v.map(sortDeep);
+  if (v && typeof v === 'object') { const o = {}; Object.keys(v).sort((a, b) => a.localeCompare(b)).forEach(k => { o[k] = sortDeep(v[k]); }); return o; }
+  return v;
+}
+function dumpText(flow) {
+  const v = $('#pg-sort').checked ? sortDeep(pg.value) : pg.value;
+  try { return Y.dump(v, { indent: +$('#pg-indent').value, lineWidth: -1, noRefs: true, flowLevel: flow ? 0 : -1 }).replace(/\n$/, ''); }
+  catch (e) { return '# 無法輸出：' + e.message; }
+}
+function updateGutter(errLine, warnLines = []) {
+  const n = $('#pg-input').value.split('\n').length; let h = '';
+  for (let k = 1; k <= n; k++) h += `<div${k === errLine ? ' class="e"' : warnLines.includes(k) ? ' style="color:var(--accent-warn);opacity:1;font-weight:700"' : ''}>${k}</div>`;
+  const g = $('#pg-gutter'); g.innerHTML = h; g.scrollTop = $('#pg-input').scrollTop;
+}
+function pgRender() {
+  const text = $('#pg-input').value; const r = validateYAML(text); pg.res = r; pg.ok = r.ok; pg.value = r.ok ? r.value : undefined;
+  const badge = $('#pg-badge');
+  if (r.ok) { badge.className = 'badge ok'; badge.innerHTML = `<span class="d"></span>合法的 YAML${r.warnings.length ? `（${r.warnings.length} 個提醒）` : ''}`; }
+  else { badge.className = 'badge err'; badge.innerHTML = '<span class="d"></span>格式錯誤'; }
+  updateGutter(r.ok ? 0 : r.error.line, r.warnings.map(w => w.line));
+  const st = $('#pg-status');
+  const warnHTML = r.warnings.length ? `<div class="warn-list">${r.warnings.map(x => `<div class="msg warn small">⚠️ ${x.line ? `<b>第 ${x.line} 行</b>：` : ''}${esc(x.msg)}</div>`).join('')}</div>` : '';
+  if (r.ok) st.innerHTML = `<div class="msg ok">✅ 驗證通過！${pg.undo !== null ? '<span class="small muted">（格式化會移除註解，可以按「↶ 復原」）</span>' : ''}</div>${warnHTML}`;
+  else st.innerHTML = `<div class="msg err">❌ <b class="where">第 ${r.error.line} 行，第 ${r.error.col} 個字</b>：${esc(r.error.msg)}
+      ${text.trim() ? `<div class="snip">${errorLineHTML(text, Math.min(r.error.pos, text.length))}</div><div class="actions"><button class="btn" id="pg-jump">📍 跳到錯誤位置</button></div>` : ''}</div>${warnHTML}`;
+  if (r.ok) {
+    $('#pg-yaml').innerHTML = yhl(dumpText(false));
+    $('#pg-json').innerHTML = hl(JSON.stringify(r.value, (k, v) => typeof v === 'number' && !Number.isFinite(v) ? String(v) : v, 2));
+    buildTree();
+    let maps = 0, seqs = 0, keys = 0, depth = 0;
+    (function walk(v, d) { depth = Math.max(depth, d); if (Array.isArray(v)) { seqs++; v.forEach(x => walk(x, d + 1)); } else if (v && typeof v === 'object') { maps++; const ks = Object.keys(v); keys += ks.length; ks.forEach(k => walk(v[k], d + 1)); } })(r.value, 0);
+    const comments = text.split('\n').filter(l => /(^|\s)#/.test(splitComment(l)[1] ? ' ' + splitComment(l)[1] : '')).length;
+    $('#pg-stats').innerHTML = `<div><b>${keys}</b><span>鍵的總數</span></div><div><b>${maps} / ${seqs}</b><span>對應 / 序列</span></div><div><b>${depth}</b><span>最大深度</span></div><div><b>${comments}</b><span>註解行數</span></div>`;
+  } else {
+    $('#pg-yaml').innerHTML = $('#pg-json').innerHTML = `<span class="muted">（YAML 有錯誤，修正後這裡會顯示結果）</span>`;
+    $('#pg-tree').innerHTML = `<span class="muted" style="font-family:var(--font-sans)">（YAML 有錯誤，修正後這裡會顯示樹狀結構）</span>`;
+    $('#pg-stats').innerHTML = '';
+  }
+  runQuery();
+}
+function buildTree() { const box = $('#pg-tree'); box.innerHTML = ''; box.appendChild(treeNode(pg.value, null, '', 0, false)); }
+function treeNode(v, key, path, depth, isIdx) {
+  const t = typeOf(v);
+  const label = key === null ? 'data（根）' : isIdx ? `[${key}]` : key;
+  if (t === 'object' || t === 'array') {
+    const d = document.createElement('details'); if (depth < 3) d.open = true;
+    const sm = document.createElement('summary'); sm.className = 'tr-row'; sm.dataset.path = path;
+    const cnt = t === 'object' ? Object.keys(v).length : v.length;
+    sm.innerHTML = `<span class="tr-tog">▸</span><span class="tr-key ${isIdx ? 'idx' : ''}">${esc(label)}</span><span class="tr-type ty-${t}">${t === 'object' ? '對應 ' + cnt + ' 個鍵' : '序列 ' + cnt + ' 項'}</span>`;
+    d.appendChild(sm);
+    const kids = document.createElement('div'); kids.className = 'tr-children';
+    if (t === 'array') v.forEach((x, i) => kids.appendChild(treeNode(x, i, joinPath(path, i, true), depth + 1, true)));
+    else Object.keys(v).forEach(k => kids.appendChild(treeNode(v[k], k, joinPath(path, k, false), depth + 1, false)));
+    d.appendChild(kids); return d;
+  }
+  const row = document.createElement('div'); row.className = 'tr-row leaf'; row.dataset.path = path;
+  row.innerHTML = `<span class="tr-key ${isIdx ? 'idx' : ''}">${esc(label)}</span><span class="t-punc">:</span><span class="tr-val t-${t}">${esc(t === 'string' ? JSON.stringify(v) : t === 'number' ? showNum(v) : String(v))}</span>`;
+  return row;
+}
+$('#pg-tree').addEventListener('click', e => {
+  const row = e.target.closest('.tr-row'); if (!row) return;
+  if (row.tagName === 'SUMMARY' && !e.target.closest('.tr-tog')) e.preventDefault();
+  if (e.target.closest('.tr-tog')) return;
+  $('#pg-path').value = row.dataset.path; runQuery();
+});
+function parsePath(str) {
+  const s = str.trim(); const toks = []; let i = 0;
+  if (s[0] === '$') i = 1;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === ' ') { i++; continue; }
+    if (c === '.') { i++; if (i >= s.length) break; if (s[i] === '.') throw new Error('路徑中出現連續的「..」，兩個點中間要有鍵名'); continue; }
+    if (c === '[') {
+      i++; while (s[i] === ' ') i++;
+      if (s[i] === '"' || s[i] === "'") {
+        const q = s[i++]; let k = '';
+        while (i < s.length && s[i] !== q) { if (s[i] === '\\' && i + 1 < s.length) { k += s[i + 1]; i += 2; continue; } k += s[i++]; }
+        if (s[i] !== q) throw new Error('中括號裡的鍵缺少結尾的引號');
+        i++; while (s[i] === ' ') i++;
+        if (s[i] !== ']') throw new Error('缺少右中括號 ]');
+        i++; toks.push({ t: 'key', v: k, raw: `[${JSON.stringify(k)}]` }); continue;
+      }
+      const j = s.indexOf(']', i);
+      if (j < 0) throw new Error('缺少右中括號 ]，例如 scores[0]');
+      const inner = s.slice(i, j).trim(); i = j + 1;
+      if (inner === '*') { toks.push({ t: 'wild', raw: '[*]' }); continue; }
+      if (/^-?\d+$/.test(inner)) { toks.push({ t: 'index', v: parseInt(inner, 10), raw: `[${inner}]` }); continue; }
+      if (inner === '') throw new Error('中括號 [ ] 裡面要放索引數字，例如 [0]');
+      toks.push({ t: 'key', v: inner, raw: `[${inner}]` }); continue;
+    }
+    if (c === ']') throw new Error('多了一個右中括號 ]');
+    let k = ''; while (i < s.length && s[i] !== '.' && s[i] !== '[' && s[i] !== ']') k += s[i++];
+    k = k.trim();
+    if (k === '*') toks.push({ t: 'wild', raw: '.*' }); else toks.push({ t: 'key', v: k, raw: '.' + k });
+  }
+  return toks;
+}
+function stepInto(v, tk) {
+  const t = typeOf(v);
+  if (t === 'array') {
+    let idx;
+    if (tk.t === 'index') idx = tk.v;
+    else if (/^-?\d+$/.test(tk.v)) idx = parseInt(tk.v, 10);
+    else if (tk.v === 'length') return { ok: true, val: v.length, res: { k: 'len' } };
+    else return { ok: false, msg: `這一層是序列（清單），要用數字索引取值，例如 [0]；「${tk.v}」不是索引。` };
+    if (!v.length) return { ok: false, msg: '這個序列是空的，沒有任何項目可以取。' };
+    const real = idx < 0 ? v.length + idx : idx;
+    if (real < 0 || real >= v.length) return { ok: false, msg: `索引 ${idx} 超出範圍：這個序列只有 ${v.length} 項，索引是 0 ~ ${v.length - 1}${idx < 0 ? `（或 -1 ~ -${v.length}）` : ''}。` };
+    return { ok: true, val: v[real], res: { k: 'index', v: real, neg: idx < 0 ? idx : null } };
+  }
+  if (t === 'object') {
+    const key = tk.t === 'index' ? String(tk.v) : tk.v;
+    if (Object.prototype.hasOwnProperty.call(v, key)) return { ok: true, val: v[key], res: { k: 'key', v: key } };
+    if (tk.t === 'index') return { ok: false, msg: `這一層是對應（不是序列），不能用索引 [${tk.v}] 取值，要用鍵名。` };
+    const keys = Object.keys(v);
+    const near = keys.find(k => k.toLowerCase() === key.toLowerCase()) || (key && keys.find(k => k.startsWith(key) || key.startsWith(k)));
+    return { ok: false, msg: `這一層的對應裡找不到鍵「${key}」。${near ? `你是不是要找「${near}」？鍵名的大小寫、拼字必須完全一樣。` : ''}` };
+  }
+  return { ok: false, msg: `這一層的值是${TYPE_ZH[t]} ${preview(v)}，不是對應或序列，所以不能再往下取「${tk.raw}」。` };
+}
+function evalPath(root, toks) {
+  const steps = [{ label: 'data', type: typeOf(root), value: root }];
+  let cur = [root], multi = false, canon = ''; const resolved = [];
+  const canonAdd = r => r.k === 'key' ? joinPath(canon, r.v, false) : r.k === 'index' ? joinPath(canon, r.v, true) : r.k === 'len' ? (canon ? canon + '.length' : 'length') : canon + '[*]';
+  for (const tk of toks) {
+    const next = [];
+    if (tk.t === 'wild') {
+      for (const v of cur) {
+        const t = typeOf(v);
+        if (t === 'array') next.push(...v); else if (t === 'object') next.push(...Object.values(v));
+        else { steps.push({ label: tk.raw, error: true }); return { ok: false, steps, msg: `「[*]」只能用在序列或對應上，這一層的值是${TYPE_ZH[t]}。`, at: v, canon }; }
+      }
+      multi = true; const r = { k: 'wild' }; canon = canonAdd(r); resolved.push(r);
+    } else {
+      let res = null;
+      for (const v of cur) {
+        const r = stepInto(v, tk);
+        if (!r.ok) { steps.push({ label: tk.raw, error: true }); return { ok: false, steps, msg: (multi ? '（[*] 取出的其中一項）' : '') + r.msg, at: v, canon }; }
+        next.push(r.val); res = r.res;
+      }
+      if (!res) res = { k: 'key', v: tk.v };
+      canon = canonAdd(res); resolved.push(res);
+    }
+    cur = next;
+    steps.push({ label: tk.raw, type: multi ? 'list' : typeOf(cur[0]), value: multi ? cur : cur[0], multi });
+  }
+  return { ok: true, steps, value: multi ? cur : cur[0], multi, canon, resolved };
+}
+function drawTrace(steps, ok) {
+  const rh = 46, gap = 18, H = 8 + steps.length * (rh + gap) - gap + 10;
+  let s = '';
+  steps.forEach((st, i) => {
+    const y = 8 + i * (rh + gap), last = i === steps.length - 1;
+    const col = st.error ? 'var(--danger)' : `var(--t-${st.type === 'list' ? 'key' : st.type})`;
+    if (i < steps.length - 1) s += `<path class="tr-link" d="M20 ${y + rh / 2 + 12} L20 ${y + rh + gap + rh / 2 - 12}" ${steps[i + 1].error ? 'style="stroke:var(--danger)"' : ''}/>`;
+    if (last && ok) s += `<rect class="breathe" x="38" y="${y - 4}" width="298" height="${rh + 8}" rx="14" fill="none" stroke="var(--accent-primary)" stroke-width="2.5" opacity=".7"/>`;
+    if (st.error) s += `<circle class="pulse-ring" cx="20" cy="${y + rh / 2}" r="12" fill="var(--danger)"/>`;
+    const pv = st.error ? '✗ 這一步取不到值' : st.multi ? `${st.value.length} 筆結果` : (st.type === 'object' || st.type === 'array' ? preview(st.value, 22) : `${TYPE_ZH[st.type]} · ${preview(st.value, 22)}`);
+    s += `<g class="tr-step"><circle cx="20" cy="${y + rh / 2}" r="12" style="fill:${col}" ${st.error ? 'class="blink"' : ''}/>
+      <text class="num" x="20" y="${y + rh / 2 + 4}">${st.error ? '✗' : i}</text>
+      <rect class="box ${st.error ? 'blink' : ''}" x="42" y="${y}" width="290" height="${rh}" rx="11" style="stroke:${col};fill:color-mix(in srgb, ${col} 9%, var(--bg-card))"/>
+      <text class="lab" x="54" y="${y + 19}">${esc(trunc(i === 0 ? 'data（根）' : st.label, 34))}</text>
+      <text class="pv" x="54" y="${y + 36}">${esc(pv)}</text></g>`;
+  });
+  const svg = $('#pg-trace'); svg.setAttribute('viewBox', `0 0 340 ${H}`); svg.innerHTML = s;
+}
+function codeFor(resolved) {
+  if (resolved.some(r => r.k === 'wild')) return null;
+  let js = 'data', py = 'data';
+  resolved.forEach(r => {
+    if (r.k === 'key') { js += JSIDENT.test(r.v) ? '.' + r.v : `[${JSON.stringify(r.v)}]`; py += `[${JSON.stringify(r.v)}]`; }
+    else if (r.k === 'index') { js += r.neg != null ? `.at(${r.neg})` : `[${r.v}]`; py += `[${r.neg != null ? r.neg : r.v}]`; }
+    else if (r.k === 'len') { js += '.length'; py = `len(${py})`; }
+  });
+  return { js, py };
+}
+function suggestChips(container, base) {
+  const t = typeOf(container); let chips = [];
+  if (t === 'object') chips = Object.keys(container).slice(0, 14).map(k => joinPath(base, k, false));
+  else if (t === 'array') { chips = container.slice(0, 8).map((_, i) => joinPath(base, i, true)); if (container.length > 8) chips.push(joinPath(base, -1, true)); chips.push(base + '[*]', base ? base + '.length' : 'length'); }
+  return chips.map(p => `<button class="chip" data-path="${esc(p)}">${esc(p)}</button>`).join('');
+}
+function runQuery() {
+  const out = $('#pg-result');
+  if (!pg.ok) { $('#pg-trace').innerHTML = ''; $('#pg-trace').setAttribute('viewBox', '0 0 340 1'); out.innerHTML = `<div class="msg warn">⚠️ 請先修正左邊的 YAML 錯誤，才能用路徑取值喔！</div>`; return; }
+  const raw = $('#pg-path').value;
+  let toks;
+  try { toks = parsePath(raw); } catch (e) { $('#pg-trace').innerHTML = ''; out.innerHTML = `<div class="msg err">❌ 路徑寫法有誤：${esc(e.message)}</div>`; return; }
+  const r = evalPath(pg.value, toks);
+  drawTrace(r.steps, r.ok);
+  $$('#pg-tree .tr-row.sel').forEach(x => x.classList.remove('sel'));
+  if (!r.ok) {
+    const sc = suggestChips(r.at, r.canon);
+    out.innerHTML = `<div class="msg err">❌ ${esc(r.msg)}</div>${sc ? `<div class="sub-label" style="margin-top:10px">這一層可以取的：</div><div class="chips">${sc}</div>` : ''}`;
+    return;
+  }
+  const v = r.value, t = r.multi ? 'list' : typeOf(v);
+  const extra = r.multi ? `[*] 取出 ${v.length} 筆結果` : t === 'array' ? `共 ${v.length} 項` : t === 'object' ? `共 ${Object.keys(v).length} 個鍵` : '';
+  const code = r.steps.length > 1 ? codeFor(r.resolved) : null;
+  const isCont = v && typeof v === 'object';
+  const yamlOut = isCont ? Y.dump(v, { indent: 2, lineWidth: -1, noRefs: true }).trimEnd() : '';
+  const nextFrom = r.multi ? v.find(x => x && typeof x === 'object') : v;
+  const sug = nextFrom && typeof nextFrom === 'object' ? suggestChips(nextFrom, r.canon) : '';
+  const scalarShow = t === 'string' ? JSON.stringify(v) : t === 'number' ? showNum(v) : String(v);
+  out.innerHTML = `
+    <div class="q-head"><b>${raw.trim() ? '取到的值' : '整份資料（根）'}</b><span class="ty-badge ty-${t}">${TYPE_ZH[t]}${t === 'list' ? '' : ' ' + TYPE_EN[t]}</span><span class="small muted">${extra}</span>
+      <span style="flex:1"></span><button class="btn copy-btn" style="padding:3px 10px;font-size:.8rem" data-copy="#q-val">📋 複製值</button></div>
+    <pre class="code q-val" id="q-val">${isCont ? yhl(yamlOut) : `<span class="t-${t}">${esc(scalarShow)}</span>`}</pre>
+    ${code ? `<div class="q-code"><div class="sub-label" style="margin:0">在程式裡這樣寫（假設已讀進變數 data）：</div>
+      <div class="line"><span class="tag">Python</span><code>${esc(code.py)}</code><button class="btn" data-copy-text="${esc(code.py)}">📋</button></div>
+      <div class="line"><span class="tag">JavaScript</span><code>${esc(code.js)}</code><button class="btn" data-copy-text="${esc(code.js)}">📋</button></div>
+      <div class="small muted">Python 讀檔：<code>data = yaml.safe_load(open("config.yaml", encoding="utf-8"))</code></div></div>`
+      : r.multi ? `<div class="tipbox">[*] 是「萬用字元」，會把序列中每一項都取出來。Python 中通常用串列推導式，例如 <code>[x["name"] for x in data["classmates"]]</code></div>` : ''}
+    ${sug ? `<div class="sub-label" style="margin-top:12px">下一層可以取的：</div><div class="chips">${sug}</div>` : ''}`;
+  if (!r.multi) {
+    const row = $$('#pg-tree .tr-row').find(x => x.dataset.path === r.canon);
+    if (row) {
+      row.classList.add('sel');
+      let p = row.parentElement; while (p && p.id !== 'pg-tree') { if (p.tagName === 'DETAILS') p.open = true; p = p.parentElement; }
+      if (pg.view === 'tree') { const box = $('#pg-tree'); const top = row.offsetTop - box.offsetTop - box.clientHeight / 2; box.scrollTo({ top: Math.max(0, top), behavior: 'smooth' }); }
+    }
+  }
+}
+function setExamples(k) { $('#pg-examples').innerHTML = SAMPLES[k].paths.map(p => `<button class="chip" data-path="${esc(p)}">${esc(p)}</button>`).join(''); }
+function loadSample(k) { $('#pg-input').value = SAMPLES[k].text; setExamples(k); $('#pg-path').value = SAMPLES[k].paths[0]; $('#pg-input').scrollTop = 0; setUndo(null); pgRender(); }
+function setUndo(t) { pg.undo = t; $('#pg-undo').disabled = t === null; }
+function buildPlayground() {
+  $('#pg-sample').innerHTML = SAMPLES.map((s, k) => `<option value="${k}">${s.name}</option>`).join('');
+  $('#pg-sample').addEventListener('change', e => loadSample(+e.target.value));
+  const ta = $('#pg-input'); let t;
+  ta.addEventListener('input', () => { updateGutter(0); clearTimeout(t); t = setTimeout(pgRender, 220); });
+  ta.addEventListener('scroll', () => { $('#pg-gutter').scrollTop = ta.scrollTop; });
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); ta.setRangeText('  ', ta.selectionStart, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); }
+  });
+  const reformat = flow => {
+    pgRender();
+    if (!pg.ok) { flash($('#pg-status')); return jumpToError(); }
+    const before = ta.value, after = dumpText(flow);
+    if (after !== before) { setUndo(before); ta.value = after; }
+    pgRender();
+  };
+  $('#pg-format').addEventListener('click', () => reformat(false));
+  $('#pg-flow').addEventListener('click', () => reformat(true));
+  $('#pg-undo').addEventListener('click', () => { if (pg.undo === null) return; ta.value = pg.undo; setUndo(null); pgRender(); });
+  $('#pg-copy').addEventListener('click', e => copyText(ta.value, e.currentTarget));
+  $('#pg-copy-out').addEventListener('click', e => { const el = pg.view === 'json' ? $('#pg-json') : pg.view === 'yaml' ? $('#pg-yaml') : $('#pg-json'); copyText(el.textContent, e.currentTarget); });
+  $('#pg-clear').addEventListener('click', () => { setUndo(ta.value || null); ta.value = ''; pgRender(); ta.focus(); });
+  $('#pg-indent').addEventListener('change', pgRender);
+  $('#pg-sort').addEventListener('change', pgRender);
+  $('#pg-status').addEventListener('click', e => { if (e.target.closest('#pg-jump')) jumpToError(); });
+  $('#pg-view').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; pg.view = b.dataset.view;
+    $$('#pg-view button').forEach(x => x.classList.toggle('active', x === b));
+    $('#pg-yaml').hidden = pg.view !== 'yaml'; $('#pg-json').hidden = pg.view !== 'json'; $('#pg-tree').hidden = pg.view !== 'tree'; runQuery();
+  });
+  $('#pg-path').addEventListener('input', runQuery);
+  document.addEventListener('click', e => { const c = e.target.closest('#ch-playground .chip[data-path]'); if (c) { $('#pg-path').value = c.dataset.path; runQuery(); } });
+  loadSample(0);
+}
+function jumpToError() {
+  if (!pg.res || pg.ok) return;
+  const ta = $('#pg-input'), p = Math.min(pg.res.error.pos, ta.value.length);
+  ta.focus(); ta.setSelectionRange(p, Math.min(p + 1, ta.value.length));
+  ta.scrollTop = Math.max(0, (pg.res.error.line - 4) * 21);
+}
+
+/* ===== 初始化 ===== */
+buildNav(); buildRoadmap(); buildChapterNav();
+$('#name-toggle').addEventListener('click', () => { nameEra = 1 - nameEra; drawName(); });
+drawName(); buildTimeline(); updateYJ();
+if (!Y) { document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="msg err" style="margin-top:16px">⚠️ YAML 解析器載入失敗，互動功能無法使用。</div>'); }
+else {
+  buildInd(); buildLab(); buildTypes(); selectType('bool'); buildDetector(); detect();
+  buildAnatomy(); buildMapping(); buildSeq(); buildSymbols(); buildBlk(); buildAnc(); buildPlayground();
+}
+goTo((location.hash || '#history').slice(1), { scroll: false });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="day">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON 互動教室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font-sans:'Noto Sans TC',system-ui,-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;
+  --font-serif:'Noto Serif TC','Noto Sans TC',serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Consolas,'Noto Sans TC',monospace;
+  --radius:16px;
+}
+/* ☀️ 白天：Claude 品牌色（象牙白 + 陶土橘） */
+:root[data-theme="day"]{
+  --bg-main:#FAF9F5; --bg-card:#FFFFFF; --bg-soft:#F0EEE6; --code-bg:#F6F4EE; --topbar-bg:rgba(250,249,245,.88);
+  --text-main:#141413; --text-muted:#5E5D59; --border-color:#E3DFD3; --border-strong:#CFCABB;
+  --accent-primary:#D97757; --primary-text:#B5532F; --on-primary:#FFFFFF;
+  --accent-secondary:#6A9BCC; --accent-green:#788C5D; --accent-warn:#C98A2B;
+  --danger:#BF4D43; --ok:#5E8C4A;
+  --t-key:#B5532F; --t-string:#5F7D3C; --t-number:#3F75AE; --t-boolean:#B9771F; --t-null:#87857C; --t-object:#B5577A; --t-array:#7462B0;
+  --card-shadow:0 1px 2px rgba(20,20,19,.04),0 6px 24px -8px rgba(20,20,19,.10);
+  --card-border-width:1px; --glow:rgba(217,119,87,.35);
+}
+/* 🌙 黑夜：Claude 深色 */
+:root[data-theme="night"]{
+  --bg-main:#1F1E1D; --bg-card:#2A2927; --bg-soft:#33322F; --code-bg:#232220; --topbar-bg:rgba(31,30,29,.88);
+  --text-main:#FAF9F5; --text-muted:#B4B1A7; --border-color:#3D3C38; --border-strong:#55534D;
+  --accent-primary:#E08A6D; --primary-text:#F0A388; --on-primary:#1F1E1D;
+  --accent-secondary:#8DB4DD; --accent-green:#A3B886; --accent-warn:#E5B062;
+  --danger:#F07468; --ok:#9CC27F;
+  --t-key:#F0A388; --t-string:#B5CF8E; --t-number:#8DB8E6; --t-boolean:#E8B866; --t-null:#ACA99F; --t-object:#E795B4; --t-array:#B3A6EE;
+  --card-shadow:0 10px 30px rgba(0,0,0,.35);
+  --card-border-width:1px; --glow:rgba(224,138,109,.55);
+}
+/* 🍬 糖果：陶土橘延伸的甜美風 */
+:root[data-theme="candy"]{
+  --bg-main:#FFF3EC; --bg-card:#FFFFFF; --bg-soft:#FFE6D9; --code-bg:#FFF8F3; --topbar-bg:rgba(255,243,236,.92);
+  --text-main:#3A1A0E; --text-muted:#7A3B22; --border-color:#EF7A55; --border-strong:#F2A07F;
+  --accent-primary:#EF6C45; --primary-text:#C2410C; --on-primary:#FFFFFF;
+  --accent-secondary:#16A3C4; --accent-green:#2FA866; --accent-warn:#F5B82E;
+  --danger:#E0245E; --ok:#22A35A;
+  --t-key:#D9480F; --t-string:#23955A; --t-number:#1A86C2; --t-boolean:#D98A00; --t-null:#9A8C86; --t-object:#E0458B; --t-array:#8B5CF6;
+  --card-shadow:4px 4px 0 #3A1A0E;
+  --card-border-width:2px; --glow:rgba(239,108,69,.45);
+}
+
+@keyframes svg-breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.08);opacity:1}}
+@keyframes svg-pulse-ring{0%{transform:scale(.95);opacity:.75}100%{transform:scale(1.7);opacity:0}}
+@keyframes svg-dash-flow{to{stroke-dashoffset:-24}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.breathe{animation:svg-breathe 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.pulse-ring{animation:svg-pulse-ring 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.flow{stroke-dasharray:6 6;animation:svg-dash-flow 1s linear infinite}
+.blink{animation:blink 1s ease-in-out infinite}
+.spin{animation:spin 14s linear infinite;transform-box:fill-box;transform-origin:center}
+.bob{animation:bob 1.4s ease-in-out infinite}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg-main);color:var(--text-main);font-family:var(--font-sans);line-height:1.7;font-size:16px;transition:background .3s,color .3s}
+:root[data-theme="candy"] body{background-image:radial-gradient(rgba(239,108,69,.13) 1.5px,transparent 1.6px);background-size:22px 22px}
+a{color:var(--primary-text)}
+code,kbd{font-family:var(--font-mono);font-size:.92em;background:var(--bg-soft);padding:.1em .4em;border-radius:6px}
+h1,h2,h3{font-family:var(--font-serif);line-height:1.35;margin:0}
+h3{font-size:1.15rem}
+svg text{font-family:var(--font-sans)}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent-primary);outline-offset:2px}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:50;background:var(--topbar-bg);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:var(--card-border-width) solid var(--border-color)}
+.topbar-inner{max-width:1280px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-serif);font-weight:700;font-size:1.1rem;white-space:nowrap;cursor:pointer}
+.brand svg{width:34px;height:34px}
+.nav{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none;padding:2px}
+.nav::-webkit-scrollbar{display:none}
+.nav-sep{width:1px;background:var(--border-color);margin:6px 6px;flex:none}
+.nav-btn{border:var(--card-border-width) solid transparent;background:transparent;padding:6px 12px;border-radius:999px;white-space:nowrap;color:var(--text-muted);font-weight:500;font-size:.92rem;transition:.2s}
+.nav-btn .num{font-family:var(--font-mono);font-size:.8em;opacity:.7;margin-right:4px}
+.nav-btn:hover{background:var(--bg-soft);color:var(--text-main)}
+.nav-btn.active{background:var(--accent-primary);color:var(--on-primary);font-weight:700}
+.nav-btn.pg{border-color:var(--accent-primary);color:var(--primary-text)}
+.nav-btn.pg.active{color:var(--on-primary)}
+.themes{display:flex;gap:4px;background:var(--bg-soft);padding:4px;border-radius:999px;flex:none}
+.theme-btn{border:0;background:transparent;border-radius:999px;padding:4px 10px;font-size:.85rem;color:var(--text-muted)}
+.theme-btn.active{background:var(--bg-card);color:var(--text-main);box-shadow:0 1px 4px rgba(0,0,0,.15);font-weight:700}
+
+/* ---------- hero ---------- */
+.hero{max-width:1280px;margin:0 auto;padding:30px 20px 6px}
+.hero-top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.hero h1{font-size:clamp(1.8rem,3.6vw,2.6rem)}
+.hero h1 .accent{color:var(--primary-text)}
+.hero p{color:var(--text-muted);margin:6px 0 0}
+.now{display:inline-flex;align-items:center;gap:8px;background:var(--bg-card);border:var(--card-border-width) solid var(--border-color);padding:6px 14px;border-radius:999px;font-size:.92rem;box-shadow:var(--card-shadow)}
+.now .dot{width:9px;height:9px;border-radius:50%;background:var(--accent-primary);box-shadow:0 0 0 0 var(--glow);animation:dotpulse 1.8s infinite}
+@keyframes dotpulse{0%{box-shadow:0 0 0 0 var(--glow)}100%{box-shadow:0 0 0 10px transparent}}
+.roadmap-wrap{overflow-x:auto;margin-top:14px}
+#roadmap{display:block;width:100%;min-width:720px;height:auto}
+.rm-node{cursor:pointer;outline:none}
+.rm-dot{fill:var(--bg-card);stroke:var(--border-strong);stroke-width:2.5;transition:.25s;transform-box:fill-box;transform-origin:center}
+.rm-node:hover .rm-dot,.rm-node:focus-visible .rm-dot{stroke:var(--accent-primary)}
+.rm-node.done .rm-dot{stroke:var(--accent-primary)}
+.rm-node.done .rm-num{fill:var(--primary-text)}
+.rm-node.active .rm-dot{fill:var(--accent-primary);stroke:var(--accent-primary);transform:scale(1.14)}
+.rm-num{text-anchor:middle;font-size:15px;font-weight:700;fill:var(--text-muted);font-family:var(--font-mono);pointer-events:none}
+.rm-node.active .rm-num{fill:var(--on-primary)}
+.rm-halo{fill:none;stroke:var(--accent-primary);stroke-width:2;opacity:0}
+.rm-node.active .rm-halo{opacity:.55;animation:svg-breathe 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.rm-pulse{fill:var(--accent-primary);opacity:0}
+.rm-node.active .rm-pulse{animation:svg-pulse-ring 2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.rm-label{font-size:14px;fill:var(--text-muted);text-anchor:middle;font-weight:500}
+.rm-node.active .rm-label{fill:var(--primary-text);font-weight:700}
+.rm-link{stroke:var(--border-strong);stroke-width:2.5;stroke-dasharray:3 7;fill:none;stroke-linecap:round}
+.rm-link.done{stroke:var(--accent-primary);stroke-dasharray:none}
+.rm-link.flow{stroke:var(--accent-primary);stroke-dasharray:7 6;animation:svg-dash-flow 1s linear infinite}
+.rm-divider{stroke:var(--border-strong);stroke-dasharray:2 5}
+.rm-part{font-size:11px;letter-spacing:.12em;fill:var(--text-muted);text-anchor:middle;font-family:var(--font-mono)}
+
+/* ---------- layout ---------- */
+main{max-width:1280px;margin:0 auto;padding:10px 20px 60px}
+.chapter{display:none}
+.chapter.active{display:block;animation:fade-up .45s ease}
+.ch-head{margin:18px 0 18px;max-width:820px}
+.eyebrow{display:inline-block;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.12em;color:var(--primary-text);background:color-mix(in srgb,var(--accent-primary) 12%,transparent);padding:2px 10px;border-radius:999px;margin-bottom:8px}
+.ch-head h2{font-size:clamp(1.5rem,2.8vw,2rem)}
+.lead{color:var(--text-muted);font-size:1.05rem;margin:8px 0 0}
+.card{background:var(--bg-card);border:var(--card-border-width) solid var(--border-color);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:22px;margin-bottom:20px;transition:background .3s,border-color .3s}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.card-head p{margin:2px 0 0;color:var(--text-muted);font-size:.93rem}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.grid-2>.card{margin-bottom:0}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.stack{display:flex;flex-direction:column;gap:20px}
+.mt{margin-top:20px}
+.muted{color:var(--text-muted)}
+.small{font-size:.88rem}
+svg.fluid{display:block;width:100%;height:auto}
+.hint{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--primary-text)}
+.hint::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent-primary);animation:blink 1.2s infinite}
+
+.btn{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);padding:7px 14px;border-radius:10px;font-weight:500;font-size:.92rem;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--accent-primary);color:var(--primary-text)}
+.btn.primary{background:var(--accent-primary);border-color:var(--accent-primary);color:var(--on-primary);font-weight:700}
+.btn.primary:hover{filter:brightness(1.06);color:var(--on-primary)}
+.btn.ghost{background:transparent}
+.btn.active{background:var(--accent-primary);border-color:var(--accent-primary);color:var(--on-primary)}
+:root[data-theme="candy"] .btn{box-shadow:2px 2px 0 #3A1A0E}
+:root[data-theme="candy"] .btn:active{transform:translate(2px,2px);box-shadow:none}
+.copy-btn.copied{background:var(--ok);border-color:var(--ok);color:#fff}
+
+.seg{display:inline-flex;background:var(--bg-soft);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:8px;font-size:.88rem;color:var(--text-muted)}
+.seg button.active{background:var(--bg-card);color:var(--text-main);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:var(--card-border-width) solid var(--border-color);background:var(--bg-soft);border-radius:999px;padding:4px 12px;font-size:.86rem;font-family:var(--font-mono);transition:.15s;color:var(--text-main)}
+.chip:hover{border-color:var(--accent-primary);color:var(--primary-text)}
+.chip.bad{text-decoration:line-through;text-decoration-color:var(--danger);text-decoration-thickness:2px}
+.chip.zh{font-family:var(--font-sans)}
+
+.code{font-family:var(--font-mono);background:var(--code-bg);border:1px solid var(--border-color);border-radius:12px;padding:14px 16px;overflow:auto;font-size:13.5px;line-height:1.7;white-space:pre;margin:0;tab-size:2}
+.t-key{color:var(--t-key);font-weight:600}
+.t-string{color:var(--t-string)}
+.t-number{color:var(--t-number)}
+.t-boolean{color:var(--t-boolean);font-weight:600}
+.t-null{color:var(--t-null);font-style:italic;font-weight:600}
+.t-punc{color:var(--text-muted)}
+.ty-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:.82rem;font-weight:700}
+.ty-string{color:var(--t-string);background:color-mix(in srgb,var(--t-string) 14%,transparent)}
+.ty-number{color:var(--t-number);background:color-mix(in srgb,var(--t-number) 14%,transparent)}
+.ty-boolean{color:var(--t-boolean);background:color-mix(in srgb,var(--t-boolean) 14%,transparent)}
+.ty-null{color:var(--t-null);background:color-mix(in srgb,var(--t-null) 16%,transparent)}
+.ty-object{color:var(--t-object);background:color-mix(in srgb,var(--t-object) 14%,transparent)}
+.ty-array{color:var(--t-array);background:color-mix(in srgb,var(--t-array) 14%,transparent)}
+.ty-list{color:var(--primary-text);background:color-mix(in srgb,var(--accent-primary) 14%,transparent)}
+
+.msg{border-radius:12px;padding:12px 14px;font-size:.95rem;border:1px solid}
+.msg.ok{background:color-mix(in srgb,var(--ok) 10%,transparent);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.msg.err{background:color-mix(in srgb,var(--danger) 9%,transparent);border-color:color-mix(in srgb,var(--danger) 45%,transparent)}
+.msg.warn{background:color-mix(in srgb,var(--accent-warn) 12%,transparent);border-color:color-mix(in srgb,var(--accent-warn) 50%,transparent)}
+.msg b.where{font-family:var(--font-mono)}
+mark.err-char{background:var(--danger);color:#fff;border-radius:3px;padding:0 2px;animation:blink 1s infinite}
+mark.err-char.eol{padding:0 4px}
+
+table.cmp{width:100%;border-collapse:collapse;font-size:.94rem}
+table.cmp th,table.cmp td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border-color);vertical-align:top}
+table.cmp th{color:var(--text-muted);font-weight:500;font-size:.85rem}
+
+/* chapter nav */
+.ch-nav{display:flex;justify-content:space-between;gap:12px;margin-top:28px}
+.ch-nav .btn{padding:10px 18px}
+
+/* ---------- history ---------- */
+.name-tile rect{fill:var(--bg-soft);stroke:var(--border-strong);stroke-width:2}
+.name-tile text.big{font-family:var(--font-mono);font-size:44px;font-weight:700;fill:var(--text-main);text-anchor:middle}
+.name-tile text.sub{font-size:13px;fill:var(--text-muted);text-anchor:middle}
+.name-tile.lit rect{stroke:var(--accent-primary);fill:color-mix(in srgb,var(--accent-primary) 14%,var(--bg-card))}
+.name-tile.lit text.big{fill:var(--primary-text)}
+.use-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.use-list li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--bg-soft)}
+.use-list .ico{font-size:1.3rem;line-height:1.4}
+.use-list b{display:block}
+.use-list span.d{font-size:.88rem;color:var(--text-muted)}
+.tl-axis{stroke:var(--border-strong);stroke-width:3;stroke-linecap:round}
+.tl-progress{stroke:var(--accent-primary);stroke-width:4;stroke-linecap:round;fill:none;transition:d .5s}
+.tl-stem{stroke:var(--border-strong);stroke-width:1.5;stroke-dasharray:3 4}
+.tl-ev{cursor:pointer;outline:none}
+.tl-dot{fill:var(--bg-card);stroke:var(--border-strong);stroke-width:3;transition:.2s}
+.tl-ring{fill:var(--accent-primary);opacity:0}
+.tl-year{font-family:var(--font-mono);font-size:15px;font-weight:700;text-anchor:middle;fill:var(--text-muted)}
+.tl-name{font-size:13px;text-anchor:middle;fill:var(--text-muted)}
+.tl-ev:hover .tl-dot{stroke:var(--accent-primary)}
+.tl-ev.past .tl-dot{stroke:var(--accent-primary);fill:color-mix(in srgb,var(--accent-primary) 30%,var(--bg-card))}
+.tl-ev.active .tl-dot{fill:var(--accent-primary);stroke:var(--accent-primary)}
+.tl-ev.active .tl-ring{animation:svg-pulse-ring 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.tl-ev.active .tl-year,.tl-ev.active .tl-name{fill:var(--primary-text);font-weight:700}
+.tl-detail{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:start;padding:16px;border-radius:14px;background:var(--bg-soft);margin-top:8px;min-height:110px}
+.tl-detail .yr{font-family:var(--font-mono);font-size:2.2rem;font-weight:700;color:var(--primary-text);line-height:1.1}
+.tl-detail h4{margin:0 0 4px;font-size:1.08rem}
+.tl-detail p{margin:0;color:var(--text-muted)}
+.xj-bars rect.track{fill:var(--bg-soft)}
+.xj-bars text{font-size:13px;fill:var(--text-main)}
+.xj-bars .lbl{font-weight:700}
+.xj-code{max-height:300px;font-size:12.5px}
+.xml-tag{color:var(--t-object)}
+input[type=range]{accent-color:var(--accent-primary);width:100%}
+
+/* ---------- rules ---------- */
+.rule{display:flex;gap:14px;align-items:flex-start}
+.rule .n{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;background:color-mix(in srgb,var(--accent-primary) 14%,transparent);color:var(--primary-text)}
+.rule h4{margin:0 0 4px;font-size:1rem}
+.rule p{margin:0;font-size:.9rem;color:var(--text-muted)}
+.rule .ex{margin-top:6px;font-family:var(--font-mono);font-size:.82rem}
+.lab{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px}
+.lab-list{display:flex;flex-direction:column;gap:6px}
+.lab-list button{text-align:left;border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);border-radius:10px;padding:8px 12px;font-size:.9rem;display:flex;gap:8px;align-items:center}
+.lab-list button .i{width:18px;text-align:center}
+.lab-list button:hover{border-color:var(--accent-primary)}
+.lab-list button.active{background:var(--accent-primary);border-color:var(--accent-primary);color:var(--on-primary);font-weight:700}
+.codeview{font-family:var(--font-mono);background:var(--code-bg);border:1px solid var(--border-color);border-radius:12px;padding:10px 0;font-size:14px;overflow:auto}
+.codeview .cl{display:flex;white-space:pre;padding:0 14px 0 0;line-height:1.85}
+.codeview .ln{width:44px;flex:none;text-align:right;padding-right:14px;color:var(--text-muted);opacity:.6;user-select:none}
+.codeview .cl.err{background:color-mix(in srgb,var(--danger) 13%,transparent)}
+.codeview .cl.err .ln{color:var(--danger);opacity:1;font-weight:700}
+.pipe .box{fill:var(--bg-soft);stroke:var(--border-strong);stroke-width:2}
+.pipe text{font-size:14px;fill:var(--text-main);text-anchor:middle;font-weight:500}
+.pipe text.mono{font-family:var(--font-mono);font-size:13px}
+.pipe .link{stroke:var(--accent-primary);stroke-width:3;fill:none}
+.pipe .link.bad{stroke:var(--danger)}
+.pipe .link.off{stroke:var(--border-strong);stroke-dasharray:3 6;animation:none}
+.pipe .res.ok .box{stroke:var(--ok);fill:color-mix(in srgb,var(--ok) 12%,var(--bg-card))}
+.pipe .res.bad .box{stroke:var(--danger);fill:color-mix(in srgb,var(--danger) 12%,var(--bg-card))}
+.pipe .parser .box{stroke:var(--accent-primary)}
+
+/* ---------- types ---------- */
+.ty-node{cursor:pointer;outline:none}
+.ty-node .c{fill:var(--bg-card);stroke-width:3;transition:.2s;transform-box:fill-box;transform-origin:center}
+.ty-node .ring{fill:none;stroke-width:1.5;stroke-dasharray:4 5;opacity:.7}
+.ty-node .halo{fill:none;stroke-width:3;opacity:0}
+.ty-node .zh{font-size:17px;font-weight:700;text-anchor:middle;fill:var(--text-main)}
+.ty-node .en{font-size:11.5px;text-anchor:middle;fill:var(--text-muted);font-family:var(--font-mono)}
+.ty-node:hover .c{transform:scale(1.06)}
+.ty-node.active .c{transform:scale(1.1)}
+.ty-node.active .halo{opacity:.6;animation:svg-breathe 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.ty-spoke{stroke-width:2;fill:none;opacity:.35}
+.ty-spoke.on{opacity:1;stroke-dasharray:6 6;animation:svg-dash-flow 1s linear infinite}
+.ty-hub{fill:var(--accent-primary)}
+.ty-hub-t{fill:var(--on-primary);font-weight:700;text-anchor:middle;font-size:15px}
+.ty-legend{font-size:12px;fill:var(--text-muted)}
+.detail-title{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.detail-title h3{font-size:1.35rem}
+.ex-row{margin-top:12px}
+.ex-row .lab{display:block;font-size:.82rem;color:var(--text-muted);margin-bottom:6px}
+.tipbox{margin-top:14px;padding:10px 14px;border-left:4px solid var(--accent-primary);background:var(--bg-soft);border-radius:0 10px 10px 0;font-size:.92rem}
+.detector{display:flex;gap:10px;margin-top:10px}
+.detector input{flex:1;min-width:0}
+input.txt,select.txt{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);border-radius:10px;padding:8px 12px;font-family:var(--font-mono);font-size:.95rem}
+input.txt:focus,select.txt:focus{outline:none;border-color:var(--accent-primary);box-shadow:0 0 0 3px var(--glow)}
+
+/* ---------- object ---------- */
+.ob-rows{display:flex;flex-direction:column;gap:8px}
+.ob-row{display:grid;grid-template-columns:minmax(0,.8fr) auto minmax(0,1.2fr) auto;gap:6px;align-items:center}
+.ob-row .colon{font-family:var(--font-mono);font-weight:700;color:var(--text-muted)}
+.ob-row input{width:100%}
+.ob-row .x{border:0;background:transparent;color:var(--text-muted);font-size:1.1rem;padding:4px 6px;border-radius:8px}
+.ob-row .x:hover{color:var(--danger);background:var(--bg-soft)}
+.ob-row.bad input.v{border-color:var(--danger)}
+.ob-row-msg{grid-column:1/-1;font-size:.82rem;color:var(--danger);margin-top:-2px}
+.ob-row-msg.warn{color:var(--accent-warn)}
+.ob-svg .row{cursor:pointer}
+.ob-svg .kbox{fill:color-mix(in srgb,var(--t-key) 10%,var(--bg-card));stroke:var(--t-key);stroke-width:2}
+.ob-svg .vbox{stroke-width:2}
+.ob-svg text{font-family:var(--font-mono);font-size:13px;fill:var(--text-main)}
+.ob-svg .tag{font-family:var(--font-sans);font-size:11px;font-weight:700}
+.ob-svg .brace{font-size:34px;font-weight:700;fill:var(--accent-primary)}
+.ob-svg .colon{font-size:18px;font-weight:700;fill:var(--text-muted)}
+.ob-svg .sel{fill:none;stroke:var(--accent-primary);stroke-width:2.5;opacity:.7}
+.anat text{font-size:13px;fill:var(--text-muted);text-anchor:middle}
+.anat .codeT{font-family:var(--font-mono);font-size:24px;font-weight:700;text-anchor:start}
+.anat .bracket{fill:none;stroke-width:2}
+
+/* ---------- array ---------- */
+.arr-svg .cell{stroke-width:2.5;transition:.25s;cursor:pointer}
+.arr-svg text{font-family:var(--font-mono)}
+.arr-svg .val{font-size:16px;font-weight:700;text-anchor:middle;fill:var(--text-main);pointer-events:none}
+.arr-svg .val.small{font-size:13px}
+.arr-svg .sub{font-size:11px;text-anchor:middle;fill:var(--text-muted);pointer-events:none}
+.arr-svg .idx{font-size:13px;text-anchor:middle;fill:var(--text-muted)}
+.arr-svg .idx.on{fill:var(--primary-text);font-weight:700}
+.arr-svg .bracket{font-size:46px;font-weight:700;fill:var(--t-array)}
+.arr-svg .comma{font-size:20px;fill:var(--text-muted);text-anchor:middle}
+.arr-svg .pointer{fill:var(--accent-primary)}
+.arr-ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.arr-info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.arr-info .box{background:var(--bg-soft);border-radius:12px;padding:10px 14px}
+.arr-info .k{font-size:.8rem;color:var(--text-muted)}
+.arr-info .v{font-family:var(--font-mono);font-weight:700;font-size:1.05rem;word-break:break-all}
+
+/* ---------- punctuation ---------- */
+.pg-glyph{cursor:pointer;outline:none}
+.pg-glyph .c{fill:var(--bg-soft);stroke:var(--border-strong);stroke-width:2.5;transition:.2s}
+.pg-glyph .g{font-family:var(--font-mono);font-size:30px;font-weight:700;text-anchor:middle;fill:var(--text-main);pointer-events:none}
+.pg-glyph .l{font-size:13px;text-anchor:middle;fill:var(--text-muted)}
+.pg-glyph .cnt{font-size:11px;text-anchor:middle;fill:var(--text-muted);font-family:var(--font-mono)}
+.pg-glyph .halo{fill:none;stroke:var(--accent-primary);stroke-width:3;opacity:0}
+.pg-glyph:hover .c{stroke:var(--accent-primary)}
+.pg-glyph.active .c{fill:var(--accent-primary);stroke:var(--accent-primary)}
+.pg-glyph.active .g{fill:var(--on-primary)}
+.pg-glyph.active .l{fill:var(--primary-text);font-weight:700}
+.pg-glyph.active .halo{opacity:.6;animation:svg-breathe 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.punc-code .p{border-radius:4px;padding:0 1px;cursor:pointer;transition:.15s;font-weight:700;color:var(--text-muted)}
+.punc-code .p:hover{background:var(--bg-soft)}
+.punc-code .p.hl{background:var(--accent-primary);color:var(--on-primary);box-shadow:0 0 0 3px var(--glow);animation:blink 1.6s infinite}
+.fw-table td.fw{color:var(--danger);font-family:var(--font-mono);font-size:1.15rem}
+.fw-table td.hw{color:var(--ok);font-family:var(--font-mono);font-size:1.15rem;font-weight:700}
+
+/* ---------- playground ---------- */
+.pg-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 16px}
+.pg-toolbar label{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;color:var(--text-muted)}
+.pg-toolbar .grow{flex:1}
+.pg-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,.95fr);gap:20px;align-items:start}
+.pg-grid>.card{margin-bottom:0;display:flex;flex-direction:column;gap:12px;min-height:560px}
+.pg-col-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700;padding:3px 12px;border-radius:999px}
+.badge .d{width:9px;height:9px;border-radius:50%}
+.badge.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,transparent)}
+.badge.ok .d{background:var(--ok);animation:svg-breathe 2s infinite}
+.badge.err{color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent)}
+.badge.err .d{background:var(--danger);animation:blink .9s infinite}
+.editor{position:relative;display:flex;border:var(--card-border-width) solid var(--border-color);border-radius:12px;background:var(--code-bg);overflow:hidden;height:420px}
+.editor:focus-within{border-color:var(--accent-primary);box-shadow:0 0 0 3px var(--glow)}
+.gutter{flex:none;width:46px;padding:12px 8px 12px 0;text-align:right;font-family:var(--font-mono);font-size:13px;line-height:21px;color:var(--text-muted);opacity:.7;overflow:hidden;user-select:none;border-right:1px solid var(--border-color)}
+.gutter div{height:21px}
+.gutter .e{color:var(--danger);opacity:1;font-weight:700;background:color-mix(in srgb,var(--danger) 18%,transparent)}
+#pg-input{flex:1;border:0;outline:0;resize:none;background:transparent;font-family:var(--font-mono);font-size:13px;line-height:21px;padding:12px;white-space:pre;overflow:auto;tab-size:2}
+.pg-status{font-size:.92rem}
+.pg-status .snip{margin-top:8px;font-family:var(--font-mono);font-size:12.5px;background:var(--code-bg);border-radius:8px;padding:8px 10px;white-space:pre;overflow-x:auto}
+.pg-status .actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.shake{animation:shake .4s}
+.pg-out{height:420px;overflow:auto}
+pre.pg-out{white-space:pre}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stats div{background:var(--bg-soft);border-radius:10px;padding:6px 8px;text-align:center}
+.stats b{display:block;font-family:var(--font-mono);font-size:1rem}
+.stats span{font-size:.75rem;color:var(--text-muted)}
+.tree{font-family:var(--font-mono);font-size:13px;background:var(--code-bg);border:1px solid var(--border-color);border-radius:12px;padding:10px 8px}
+.tree details>summary{list-style:none}
+.tree details>summary::-webkit-details-marker{display:none}
+.tr-row{display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.tr-row:hover{background:var(--bg-soft)}
+.tr-row.sel{background:color-mix(in srgb,var(--accent-primary) 20%,transparent);box-shadow:inset 3px 0 0 var(--accent-primary)}
+.tr-tog{display:inline-block;width:14px;color:var(--text-muted);transition:transform .15s;text-align:center}
+details[open]>summary .tr-tog{transform:rotate(90deg)}
+.tr-row.leaf{padding-left:26px}
+.tr-key{color:var(--t-key);font-weight:600}
+.tr-key.idx{color:var(--t-array)}
+.tr-type{font-size:11px;padding:0 6px;border-radius:6px}
+.tr-children{margin-left:14px;border-left:1px dashed var(--border-strong);padding-left:4px}
+.tr-val{overflow:hidden;text-overflow:ellipsis}
+.path-box{display:flex;gap:8px}
+.path-box input{flex:1;min-width:0;font-size:1rem}
+#pg-trace{display:block;width:100%;height:auto}
+.tr-step .box{fill:var(--bg-soft);stroke-width:2}
+.tr-step .lab{font-family:var(--font-mono);font-size:13.5px;font-weight:700;fill:var(--text-main)}
+.tr-step .pv{font-size:11.5px;fill:var(--text-muted)}
+.tr-step .num{font-family:var(--font-mono);font-size:11px;font-weight:700;text-anchor:middle;fill:var(--on-primary)}
+.tr-link{stroke:var(--accent-primary);stroke-width:2.5;fill:none;stroke-dasharray:5 5;animation:svg-dash-flow 1s linear infinite}
+.q-val{max-height:220px;font-size:12.5px}
+.q-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.q-code{display:grid;gap:6px;margin-top:10px}
+.q-code .line{display:flex;align-items:center;gap:8px;font-size:.85rem}
+.q-code .line .tag{flex:none;width:58px;color:var(--text-muted)}
+.q-code .line code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;padding:4px 8px}
+.q-code .btn{padding:3px 8px;font-size:.8rem}
+.help{font-size:.88rem;color:var(--text-muted)}
+.help summary{cursor:pointer;color:var(--primary-text);font-weight:500}
+.help table{margin-top:8px}
+.help td{padding:4px 6px;border-bottom:1px dashed var(--border-color)}
+.help td:first-child{font-family:var(--font-mono);white-space:nowrap;color:var(--text-main)}
+.sub-label{font-size:.82rem;color:var(--text-muted);margin:4px 0 6px}
+
+footer{max-width:1280px;margin:0 auto;padding:20px;color:var(--text-muted);font-size:.85rem;text-align:center;border-top:1px solid var(--border-color)}
+
+@media (max-width:1180px){
+  .pg-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pg-grid .pg-query{grid-column:1/-1;min-height:0}
+}
+@media (max-width:900px){
+  .grid-2,.grid-3,.lab{grid-template-columns:1fr}
+  .pg-grid{grid-template-columns:1fr}
+  .pg-grid>.card{min-height:0}
+  .brand span{display:none}
+  .tl-detail{grid-template-columns:1fr}
+  .arr-info{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  .topbar-inner{flex-wrap:wrap;gap:8px}
+  .nav{order:3;flex-basis:100%}
+  .themes{margin-left:auto}
+  .card{padding:16px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand" data-go="history" title="回到第一章">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="11" fill="var(--accent-primary)"/>
+        <text x="20" y="27" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="17" fill="var(--on-primary)">{ }</text>
+      </svg>
+      <span>JSON 互動教室</span>
+    </div>
+    <nav class="nav" id="nav" aria-label="章節"></nav>
+    <div class="themes" role="group" aria-label="主題">
+      <button class="theme-btn" data-theme="day">☀️ 白天</button>
+      <button class="theme-btn" data-theme="night">🌙 黑夜</button>
+      <button class="theme-btn" data-theme="candy">🍬 糖果</button>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-top">
+    <div>
+      <h1>一次搞懂 <span class="accent">JSON</span></h1>
+      <p>JavaScript Object Notation · 從歷史、規則、型態到親手驗證與取值</p>
+    </div>
+    <div class="now"><span class="dot"></span><span id="now-reading">目前瀏覽：第 1 章</span></div>
+  </div>
+  <div class="roadmap-wrap"><svg id="roadmap" viewBox="0 0 1000 112" role="navigation" aria-label="章節導覽圖"></svg></div>
+</section>
+
+<main id="content">
+
+<!-- ================= 1. 歷史 ================= -->
+<section class="chapter" id="ch-history" data-ch="history">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 1 章</span>
+    <h2>JSON 從哪裡來？</h2>
+    <p class="lead">JSON 是一種「用純文字記錄資料」的格式。它小巧、人看得懂、程式也好讀寫，所以成為今天網路上交換資料最常用的格式。</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h3>名字拆解</h3><span class="hint">滑過字母看看</span></div>
+      <svg class="fluid" id="name-svg" viewBox="0 0 460 200" aria-label="JSON 名稱拆解"></svg>
+      <p class="small muted" style="margin:8px 0 0">發音和英文名字 <b>Jason</b> 一樣。名字裡雖然有 JavaScript，但 Python、Java、C#、PHP… 幾乎所有程式語言都能讀寫 JSON，它是<b>跨語言</b>的資料格式。</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>今天在哪裡會遇到 JSON？</h3></div>
+      <ul class="use-list">
+        <li><span class="ico">🌐</span><div><b>Web API</b><span class="d">天氣、地圖、YouTube 等服務回傳的資料，幾乎都是 JSON。</span></div></li>
+        <li><span class="ico">⚙️</span><div><b>設定檔</b><span class="d">VS Code 的 settings.json、Node.js 專案的 package.json。</span></div></li>
+        <li><span class="ico">📓</span><div><b>Colab／Jupyter 筆記本</b><span class="d">.ipynb 檔案打開來看，其實就是一份 JSON。</span></div></li>
+        <li><span class="ico">🖼️</span><div><b>影像標註</b><span class="d">COCO 格式的物件偵測標註檔，用 JSON 記錄框的位置與類別。</span></div></li>
+        <li><span class="ico">🤖</span><div><b>AI 應用</b><span class="d">呼叫大型語言模型 API 時，送出的請求和收到的回應都是 JSON。</span></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="card-head">
+      <div><h3>🕰️ 時間軸</h3><p>點擊年份查看重要事件，或按「自動播放」。</p></div>
+      <button class="btn" id="tl-play">▶ 自動播放</button>
+    </div>
+    <svg class="fluid" id="timeline" viewBox="0 0 1000 190" style="min-width:0"></svg>
+    <div class="tl-detail" id="tl-detail"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3>🧪 模擬器：JSON vs XML，誰比較精簡？</h3><p>在 JSON 流行之前，網路上常用 XML 交換資料。拉動滑桿增加學生人數，比較兩種格式要用多少字元。</p></div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:6px">
+      <span class="small muted" style="white-space:nowrap">學生人數</span>
+      <input type="range" id="xj-n" min="1" max="6" value="2">
+      <b id="xj-n-val" style="font-family:var(--font-mono);min-width:2ch">2</b>
+    </div>
+    <svg class="fluid xj-bars" id="xj-bars" viewBox="0 0 560 110" style="max-width:720px"></svg>
+    <div class="grid-2 mt">
+      <div><div class="sub-label">XML</div><pre class="code xj-code" id="xj-xml"></pre></div>
+      <div><div class="sub-label">JSON</div><pre class="code xj-code" id="xj-json"></pre></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. 規則 ================= -->
+<section class="chapter" id="ch-rules" data-ch="rules">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 2 章</span>
+    <h2>語法規則：只要記住這幾條</h2>
+    <p class="lead">JSON 的規則非常少，但也非常嚴格，多一個逗號、少一個引號，整份資料就無法讀取。</p>
+  </div>
+  <div class="grid-3">
+    <div class="card rule"><div class="n">1</div><div><h4>資料以「鍵: 值」配對</h4><p>每一筆資料都有名字（鍵）和內容（值），中間用冒號隔開。</p><div class="ex"><span class="t-key">"name"</span>: <span class="t-string">"王小明"</span></div></div></div>
+    <div class="card rule"><div class="n">2</div><div><h4>鍵一定要加雙引號</h4><p>鍵必須是字串，而且只能用半形雙引號 <code>"</code>，不能用單引號。</p><div class="ex"><span class="t-key">"age"</span> ✅ &nbsp; age ❌ &nbsp; 'age' ❌</div></div></div>
+    <div class="card rule"><div class="n">3</div><div><h4>用逗號分隔，最後一個不加</h4><p>成員之間用 <code>,</code> 分隔，最後一個成員後面不能有逗號。</p><div class="ex">[1, 2, 3] ✅ &nbsp; [1, 2, 3,] ❌</div></div></div>
+    <div class="card rule"><div class="n">4</div><div><h4>物件 { }、陣列 [ ]</h4><p>大括號包「鍵值對」，中括號包「有順序的值」，括號一定要成對。</p><div class="ex">{ "a": [1, 2] }</div></div></div>
+    <div class="card rule"><div class="n">5</div><div><h4>只有 6 種型態</h4><p>字串、數字、布林、null、物件、陣列。沒有日期、沒有函式、沒有 undefined。</p><div class="ex"><span class="t-boolean">true</span> / <span class="t-null">null</span> 全小寫</div></div></div>
+    <div class="card rule"><div class="n">6</div><div><h4>不能寫註解</h4><p>JSON 刻意不支援 <code>//</code> 或 <code>/* */</code> 註解。檔案用 UTF-8 編碼、副檔名 .json。</p><div class="ex">MIME：application/json</div></div></div>
+  </div>
+
+  <div class="card mt">
+    <div class="card-head">
+      <div><h3>🔬 錯誤實驗室</h3><p>點左邊的「常見錯誤」，看看解析器（parser）會在哪一行、哪個字卡住。</p></div>
+      <span class="hint">點選左側按鈕</span>
+    </div>
+    <div class="lab">
+      <div class="lab-list" id="lab-list"></div>
+      <div class="stack" style="gap:14px">
+        <svg class="fluid pipe" id="lab-pipe" viewBox="0 0 640 110"></svg>
+        <div class="codeview" id="lab-code"></div>
+        <div id="lab-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>JSON ≠ JavaScript 物件</h3><p>長得很像，但 JSON 規則更嚴格。</p></div>
+    <div style="overflow-x:auto">
+    <table class="cmp">
+      <tr><th>比較項目</th><th>JavaScript 物件</th><th>JSON</th></tr>
+      <tr><td>鍵的寫法</td><td><code>{ name: "小明" }</code> 可不加引號</td><td><code>{ "name": "小明" }</code> 一定要雙引號</td></tr>
+      <tr><td>字串引號</td><td>單引號、雙引號、反引號都可以</td><td>只能用雙引號</td></tr>
+      <tr><td>結尾逗號</td><td>允許</td><td>不允許</td></tr>
+      <tr><td>註解</td><td>可以</td><td>不行</td></tr>
+      <tr><td>可放的值</td><td>函式、undefined、Date、NaN…</td><td>只有 6 種型態</td></tr>
+      <tr><td>本質</td><td>程式中的資料結構</td><td>一段<b>文字</b>（字串），需要 parse 才會變成物件</td></tr>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. 型態 ================= -->
+<section class="chapter" id="ch-types" data-ch="types">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 3 章</span>
+    <h2>六種資料型態</h2>
+    <p class="lead">JSON 的值只能是下面六種之一：四種「基本型態」，加上兩種可以裝東西的「結構型態」。</p>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h3>型態地圖</h3><span class="hint">點擊任一型態</span></div>
+      <svg class="fluid" id="types-svg" viewBox="0 0 520 400"></svg>
+    </div>
+    <div class="card" id="type-detail"></div>
+  </div>
+  <div class="card mt">
+    <div class="card-head"><div><h3>🔍 型態偵測器</h3><p>輸入任何一個值，看看它是哪一種型態（或為什麼不合法）。左圖會同步亮起。</p></div></div>
+    <div class="detector">
+      <input class="txt" id="det-input" value='"42"' aria-label="輸入一個 JSON 值">
+    </div>
+    <div class="chips mt" id="det-chips" style="margin-top:10px"></div>
+    <div id="det-out" class="mt" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<!-- ================= 4. 物件 ================= -->
+<section class="chapter" id="ch-object" data-ch="object">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 4 章</span>
+    <h2>物件 Object：描述「一個東西」</h2>
+    <p class="lead">物件用大括號 <code>{ }</code> 包起來，裡面放一組組「鍵: 值」。鍵像是欄位名稱，值就是內容。</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>物件的構造</h3></div>
+    <svg class="fluid anat" id="anat-svg" viewBox="0 0 760 150"></svg>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h3>🛠️ 物件組裝器</h3><p>左邊輸入鍵，右邊輸入值（要符合 JSON 寫法，文字記得加雙引號）。</p></div></div>
+      <div class="ob-rows" id="ob-rows"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="ob-add">＋ 新增一筆</button>
+        <button class="btn ghost" id="ob-reset">⟲ 重設</button>
+      </div>
+      <div class="tipbox">值也可以是另一個物件，例如 <code>{"city": "台中市"}</code>，這就是「巢狀物件」，取值時寫成 <code>student.address.city</code>。</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>視覺化結果</h3><span class="hint">點一列看取值方式</span></div>
+      <svg class="fluid ob-svg" id="ob-svg" viewBox="0 0 560 300"></svg>
+      <div id="ob-pick" class="mt" style="margin-top:10px"></div>
+      <div class="card-head mt" style="margin:14px 0 6px"><span class="sub-label" style="margin:0">產生的 JSON</span><button class="btn copy-btn" data-copy="#ob-json">📋 複製</button></div>
+      <pre class="code" id="ob-json"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5. 陣列 ================= -->
+<section class="chapter" id="ch-array" data-ch="array">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 5 章</span>
+    <h2>陣列 Array：一排有順序的值</h2>
+    <p class="lead">陣列用中括號 <code>[ ]</code> 包起來，值之間用逗號分隔。每個位置有一個<b>索引</b>（index），而且是從 <b>0</b> 開始數！</p>
+  </div>
+  <div class="card">
+    <div class="arr-ctrl">
+      <div class="seg" id="arr-mode">
+        <button data-mode="scores" class="active">數字陣列 scores</button>
+        <button data-mode="students">物件陣列 students</button>
+      </div>
+      <span style="flex:1"></span>
+      <button class="btn" id="arr-push">＋ push 加到最後</button>
+      <button class="btn" id="arr-pop">－ pop 移除最後</button>
+      <button class="btn ghost" id="arr-reset">⟲ 重設</button>
+    </div>
+    <svg class="fluid arr-svg" id="arr-svg" viewBox="0 0 640 180" style="max-width:820px;margin:0 auto"></svg>
+    <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
+      <span class="small muted" style="white-space:nowrap">選擇索引</span>
+      <input type="range" id="arr-idx" min="0" max="3" value="0">
+      <b id="arr-idx-val" style="font-family:var(--font-mono);min-width:3ch">0</b>
+    </div>
+    <div class="arr-info" id="arr-info"></div>
+    <div class="mt" style="margin-top:12px"><div class="sub-label">目前的 JSON</div><pre class="code" id="arr-json"></pre></div>
+  </div>
+  <div class="grid-3">
+    <div class="card rule"><div class="n">0</div><div><h4>索引從 0 開始</h4><p>第 1 個元素是 <code>[0]</code>，最後一個是 <code>[長度 - 1]</code>。超過範圍就取不到值。</p></div></div>
+    <div class="card rule"><div class="n">⧉</div><div><h4>可以放任何型態</h4><p><code>[1, "二", true, null]</code> 合法，但實務上建議同一個陣列放同一種東西。</p></div></div>
+    <div class="card rule"><div class="n">▦</div><div><h4>陣列裡可以再放陣列</h4><p>二維陣列 <code>[[1, 2], [3, 4]]</code>，取 3 要寫 <code>matrix[1][0]</code>。</p></div></div>
+  </div>
+</section>
+
+<!-- ================= 6. 標點符號 ================= -->
+<section class="chapter" id="ch-punct" data-ch="punct">
+  <div class="ch-head">
+    <span class="eyebrow">PART 1 · 第 6 章</span>
+    <h2>標點符號：JSON 的骨架</h2>
+    <p class="lead">整個 JSON 只靠 <b>8 個符號</b>撐起結構：<code>{ } [ ] : , "</code>（加上跳脫用的 <code>\</code>）。看懂它們，就能讀懂任何 JSON。</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>符號圖鑑</h3><span class="hint">點符號，右側範例會同步亮起</span></div>
+    <svg class="fluid" id="punc-svg" viewBox="0 0 640 150"></svg>
+    <div class="grid-2 mt">
+      <div id="punc-detail" class="tipbox" style="margin:0"></div>
+      <pre class="code punc-code" id="punc-code"></pre>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h3>⚠️ 全形符號陷阱</h3><p>用中文輸入法打字時，最容易不小心打出全形符號。它們看起來很像，但 JSON 完全不認得！</p></div></div>
+    <div style="overflow-x:auto">
+    <table class="cmp fw-table">
+      <tr><th>用途</th><th>✅ 半形（正確）</th><th>❌ 全形（錯誤）</th><th>小提醒</th></tr>
+      <tr><td>冒號</td><td class="hw">:</td><td class="fw">：</td><td>全形冒號比較寬，後面像多了空白</td></tr>
+      <tr><td>逗號</td><td class="hw">,</td><td class="fw">，</td><td>最常見的錯誤之一</td></tr>
+      <tr><td>引號</td><td class="hw">" "</td><td class="fw">“ ” 「 」</td><td>Word、簡報會自動把 " 變成彎引號</td></tr>
+      <tr><td>括號</td><td class="hw">{ } [ ]</td><td class="fw">｛ ｝ ［ ］</td><td>打括號前先切換成英文輸入</td></tr>
+    </table>
+    </div>
+    <p class="small muted" style="margin:10px 0 0">小技巧：到 <a href="#playground" data-go="playground">Playground</a> 貼上你的 JSON，驗證器會直接指出是哪個全形符號出錯。</p>
+  </div>
+</section>
+
+<!-- ================= 7. Playground ================= -->
+<section class="chapter" id="ch-playground" data-ch="playground">
+  <div class="ch-head">
+    <span class="eyebrow">PART 2 · Playground</span>
+    <h2>JSON Playground：排版、驗證、取值</h2>
+    <p class="lead">在左邊貼上 JSON，會即時驗證；按「格式化」自動排版；在右邊輸入路徑（例如 <code>student.name</code> 或 <code>student.scores[1]</code>）立刻看到值。</p>
+  </div>
+  <div class="card pg-toolbar">
+    <label>範例 <select class="txt" id="pg-sample" style="font-family:var(--font-sans);font-size:.9rem"></select></label>
+    <span class="grow"></span>
+    <label>縮排 <select class="txt" id="pg-indent" style="font-size:.88rem"><option value="2">2 空格</option><option value="4">4 空格</option><option value="tab">Tab</option></select></label>
+    <label><input type="checkbox" id="pg-sort"> 鍵依字母排序</label>
+    <button class="btn primary" id="pg-format">✨ 格式化排版</button>
+    <button class="btn" id="pg-minify">🗜️ 壓縮成一行</button>
+    <button class="btn" id="pg-validate">✓ 驗證</button>
+    <button class="btn copy-btn" id="pg-copy">📋 複製</button>
+    <button class="btn ghost" id="pg-clear">🗑️ 清除</button>
+  </div>
+  <div class="pg-grid mt">
+    <div class="card">
+      <div class="pg-col-head"><h3>① 輸入 JSON</h3><span class="badge" id="pg-badge"></span></div>
+      <div class="editor"><div class="gutter" id="pg-gutter"></div><textarea id="pg-input" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="JSON 輸入區"></textarea></div>
+      <div class="pg-status" id="pg-status"></div>
+    </div>
+    <div class="card">
+      <div class="pg-col-head"><h3>② 結果</h3><div class="seg" id="pg-view"><button data-view="pretty" class="active">排版結果</button><button data-view="tree">樹狀檢視</button></div></div>
+      <pre class="code pg-out" id="pg-pretty"></pre>
+      <div class="tree pg-out" id="pg-tree" hidden></div>
+      <div class="stats" id="pg-stats"></div>
+    </div>
+    <div class="card pg-query">
+      <div class="pg-col-head"><h3>③ 路徑取值</h3><span class="hint">樹狀檢視也可以點</span></div>
+      <div class="path-box"><input class="txt" id="pg-path" placeholder="例如 student.name" aria-label="取值路徑" autocomplete="off" spellcheck="false"></div>
+      <div><div class="sub-label">試試看：</div><div class="chips" id="pg-examples"></div></div>
+      <svg id="pg-trace" viewBox="0 0 340 80"></svg>
+      <div id="pg-result"></div>
+      <details class="help">
+        <summary>路徑寫法說明</summary>
+        <table>
+          <tr><td>student.name</td><td>用「.」一層一層往下取物件的鍵</td></tr>
+          <tr><td>student.scores[1]</td><td>陣列用 [索引]，從 0 開始</td></tr>
+          <tr><td>student.scores.1</td><td>也可以用「.數字」取陣列元素</td></tr>
+          <tr><td>scores[-1]</td><td>負數索引：從後面數，-1 是最後一個</td></tr>
+          <tr><td>classmates[*].name</td><td>[*] 取出陣列中每一個元素的 name</td></tr>
+          <tr><td>scores.length</td><td>陣列的長度（元素個數）</td></tr>
+          <tr><td>["first name"]</td><td>鍵含空白或特殊字元時，用 ["…"] 包起來</td></tr>
+          <tr><td>[0].name</td><td>最外層是陣列時，從 [0] 開始</td></tr>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer>JSON 互動教室 · 規格依據 ECMA-404 與 RFC 8259 · 所有驗證都在你的瀏覽器中進行，不會上傳資料 · 姊妹篇：<a href="https://claude.ai/artifact/DDzVfRS2H7jvamw4fRMZA7">YAML 互動教室</a></footer>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TYPE_ZH = {string:'字串', number:'數字', boolean:'布林', null:'空值', object:'物件', array:'陣列', list:'多筆結果'};
+const typeOf = v => v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
+const tw = (s, size = 13) => { let w = 0; for (const c of String(s)) w += /[\u2E80-\uFFFF]/.test(c) ? size * 1.02 : size * 0.62; return w; };
+const trunc = (s, n) => { s = String(s); let out = '', w = 0; for (const c of s) { w += /[\u2E80-\uFFFF]/.test(c) ? 2 : 1; if (w > n) return out + '…'; out += c; } return out; };
+function preview(v, n = 26) {
+  const t = typeOf(v);
+  if (t === 'array') return `[ ] ${v.length} 個元素`;
+  if (t === 'object') return `{ } ${Object.keys(v).length} 個鍵`;
+  return trunc(t === 'string' ? JSON.stringify(v) : String(v), n);
+}
+
+/* ===== JSON 語法高亮 ===== */
+function hl(src) {
+  const re = /("(?:\\.|[^\\"\n])*")(\s*:)?|\b(true|false)\b|\b(null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|([{}\[\],])/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))) {
+    out += esc(src.slice(last, m.index));
+    if (m[1]) {
+      if (m[2]) out += `<span class="t-key">${esc(m[1])}</span>${esc(m[2].slice(0, -1))}<span class="t-punc">:</span>`;
+      else out += `<span class="t-string">${esc(m[1])}</span>`;
+    } else if (m[3]) out += `<span class="t-boolean">${m[3]}</span>`;
+    else if (m[4]) out += `<span class="t-null">null</span>`;
+    else if (m[5]) out += `<span class="t-number">${m[5]}</span>`;
+    else out += `<span class="t-punc">${esc(m[6])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+
+/* ===== 中文錯誤訊息的 JSON 驗證器 ===== */
+function posToLC(text, pos) {
+  pos = Math.max(0, Math.min(pos, text.length));
+  let line = 1, ls = 0;
+  for (let k = 0; k < pos; k++) if (text[k] === '\n') { line++; ls = k + 1; }
+  return { line, col: pos - ls + 1 };
+}
+function validateJSON(text) {
+  let i = 0; const n = text.length; const warnings = [];
+  const err = (msg, pos = i) => { const e = new Error(msg); e.pos = pos; throw e; };
+  const ch = () => text[i];
+  const descr = c => c === undefined ? '結尾' : `「${c}」`;
+  const FW = {'：':':', '，':',', '“':'"', '”':'"', '「':'"', '」':'"', '『':'"', '』':'"', '｛':'{', '｝':'}', '［':'[', '］':']', '‘':"'", '’':"'", '　':' ', '＂':'"'};
+  const fwCheck = () => { const c = ch(); if (FW[c] !== undefined) err(`偵測到全形符號${descr(c)}。JSON 只認得半形符號，請改成「${FW[c]}」（先切換到英文輸入法）`); };
+  const isDigit = c => c !== undefined && c >= '0' && c <= '9';
+  const lineOf = p => posToLC(text, p).line;
+  function ws() {
+    while (i < n) {
+      const c = text[i];
+      if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
+      if (c === '\uFEFF' && i === 0) { i++; continue; }
+      if (c === '/' && (text[i + 1] === '/' || text[i + 1] === '*')) err('JSON 不支援註解（// 或 /* */），請把註解刪掉');
+      if (c === '#') err('JSON 不支援註解（# 也不行），請把註解刪掉');
+      if (c === '　') err('偵測到全形空白「　」，請改成半形空白');
+      break;
+    }
+  }
+  function value() {
+    ws();
+    if (i >= n) err('內容不完整：這裡應該要有一個值');
+    const c = ch();
+    if (c === '{') return obj();
+    if (c === '[') return arr();
+    if (c === '"') return str();
+    if (c === '-' || isDigit(c)) return num();
+    if (c === '+') err('數字前面不能加「+」號');
+    if (c === '.') err('小數必須以數字開頭，例如 0.5，不能寫 .5');
+    if (c === "'") err("字串必須用雙引號 \" 包起來，不能用單引號 '");
+    fwCheck();
+    if (c === ']' || c === '}') err(`這裡應該要有一個值，卻遇到${descr(c)}（是不是多打了一個逗號？）`);
+    if (c === ',' || c === ':') err(`這裡應該要有一個值，卻遇到${descr(c)}`);
+    const m = /^[A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*/.exec(text.slice(i, i + 40));
+    const w = m ? m[0] : c;
+    if (w === 'true' || w === 'false' || w === 'null') { i += w.length; return; }
+    if (/^(True|TRUE|False|FALSE)$/.test(w)) err(`布林值必須全部小寫：請寫 ${w.toLowerCase()}，不能寫 ${w}`);
+    if (/^(Null|NULL|None|nil)$/.test(w)) err(`JSON 的空值寫法是小寫的 null，不能寫 ${w}`);
+    if (w === 'undefined') err('JSON 沒有 undefined；要表示「沒有值」請用 null');
+    if (w === 'NaN' || w === 'Infinity') err(`JSON 不支援 ${w}，數字必須是一般的有限數值`);
+    err(`無法辨識的值「${trunc(w, 16)}」。如果它是文字，必須用雙引號包起來："${trunc(w, 16)}"`);
+  }
+  function obj() {
+    const start = i; i++; const keys = new Set(); ws();
+    if (ch() === '}') { i++; return; }
+    let lastComma = -1;
+    for (;;) {
+      ws();
+      if (i >= n) err(`物件沒有結束：缺少右大括號 }（對應第 ${lineOf(start)} 行的 {）`, n);
+      const c = ch();
+      if (c === '}' && lastComma >= 0) err('物件最後一個成員後面不能有逗號（多了一個逗號）', lastComma);
+      if (c === "'") err("物件的鍵必須用雙引號 \" 包起來，不能用單引號 '");
+      if (c !== '"') {
+        fwCheck();
+        if (/[A-Za-z_$\u4e00-\u9fff]/.test(c)) { const mm = /^[\w$\u4e00-\u9fff]+/.exec(text.slice(i)); err(`物件的鍵必須用雙引號包起來：請寫成 "${mm[0]}"`); }
+        if (c === ',') err('出現連續的逗號，中間少了一個「鍵: 值」');
+        err(`這裡應該是用雙引號包住的鍵（key），卻遇到${descr(c)}`);
+      }
+      const kpos = i; const k = str();
+      if (keys.has(k)) warnings.push({ msg: `鍵 "${k}" 重複出現，大部分程式只會保留最後一個`, pos: kpos });
+      keys.add(k);
+      ws();
+      if (ch() !== ':') { fwCheck(); err(`鍵 "${trunc(k, 20)}" 後面缺少冒號「:」`); }
+      i++;
+      value();
+      ws();
+      const d = ch();
+      if (d === ',') { lastComma = i; i++; continue; }
+      if (d === '}') { i++; return; }
+      if (i >= n) err(`物件沒有結束：缺少右大括號 }（對應第 ${lineOf(start)} 行的 {）`, n);
+      fwCheck();
+      if (d === '"') err('缺少逗號：物件的成員之間要用「,」分隔（在這個鍵的前面補上逗號）');
+      if (d === ']') err(`括號不成對：這個物件從第 ${lineOf(start)} 行的 { 開始，應該用 } 結束，不是 ]`);
+      err(`物件的成員後面應該接「,」或「}」，卻遇到${descr(d)}`);
+    }
+  }
+  function arr() {
+    const start = i; i++; ws();
+    if (ch() === ']') { i++; return; }
+    let lastComma = -1;
+    for (;;) {
+      ws();
+      if (i >= n) err(`陣列沒有結束：缺少右中括號 ]（對應第 ${lineOf(start)} 行的 [）`, n);
+      if (ch() === ']' && lastComma >= 0) err('陣列最後一個元素後面不能有逗號（多了一個逗號）', lastComma);
+      if (ch() === ',') err('出現連續的逗號，中間少了一個值');
+      value();
+      ws();
+      const d = ch();
+      if (d === ',') { lastComma = i; i++; continue; }
+      if (d === ']') { i++; return; }
+      if (i >= n) err(`陣列沒有結束：缺少右中括號 ]（對應第 ${lineOf(start)} 行的 [）`, n);
+      fwCheck();
+      if (d === '}') err(`括號不成對：這個陣列從第 ${lineOf(start)} 行的 [ 開始，應該用 ] 結束，不是 }`);
+      if (d === ':') err('陣列裡不能放「鍵: 值」；需要鍵值對的話請改用物件 { }');
+      err(`缺少逗號：陣列的元素之間要用「,」分隔（遇到${descr(d)}）`);
+    }
+  }
+  function str() {
+    const start = i; i++; let out = '';
+    const map = {'"':'"', '\\':'\\', '/':'/', b:'\b', f:'\f', n:'\n', r:'\r', t:'\t'};
+    for (;;) {
+      if (i >= n) err('字串沒有結束：缺少結尾的雙引號 "', start);
+      const c = text[i];
+      if (c === '"') { i++; return out; }
+      if (c === '\n' || c === '\r') err('字串不能直接換行。可能是少了結尾的雙引號 "，或要換行請寫成 \\n', start);
+      if (c < ' ') err('字串中不能直接放控制字元（例如 Tab），請改用跳脫字元 \\t');
+      if (c === '\\') {
+        const e = text[i + 1];
+        if (e !== undefined && map[e] !== undefined) { out += map[e]; i += 2; continue; }
+        if (e === 'u') {
+          const hex = text.substr(i + 2, 4);
+          if (!/^[0-9a-fA-F]{4}$/.test(hex)) err('\\u 後面必須接 4 個十六進位數字，例如 \\u4F60');
+          out += String.fromCharCode(parseInt(hex, 16)); i += 6; continue;
+        }
+        err(`無效的跳脫字元「\\${e === undefined ? '' : e}」。可用的有 \\" \\\\ \\/ \\b \\f \\n \\r \\t \\uXXXX（Windows 路徑要寫成 C:\\\\Users）`);
+      }
+      out += c; i++;
+    }
+  }
+  function num() {
+    const start = i;
+    if (ch() === '-') i++;
+    if (ch() === '0') {
+      i++;
+      if (isDigit(ch())) err('數字不能有前導零（例如 007 要寫成 7；如果是編號請用字串 "007"）', start);
+      if (ch() === 'x' || ch() === 'X') err('JSON 不支援十六進位數字（0x…），請改用十進位', start);
+    } else if (isDigit(ch())) { while (isDigit(ch())) i++; }
+    else { if (text.startsWith('Infinity', i)) err('JSON 不支援 Infinity', start); err('負號「-」後面必須接數字', start); }
+    if (ch() === '.') { i++; if (!isDigit(ch())) err('小數點後面必須有數字，例如 3.0'); while (isDigit(ch())) i++; }
+    if (ch() === 'e' || ch() === 'E') { i++; if (ch() === '+' || ch() === '-') i++; if (!isDigit(ch())) err('科學記號 e 後面必須有數字，例如 1e3'); while (isDigit(ch())) i++; }
+    const nx = ch();
+    if (nx !== undefined && /[A-Za-z_\u4e00-\u9fff%$]/.test(nx)) err(`數字後面不能直接接「${nx}」；如果這是文字，請整個用雙引號包起來`);
+  }
+  try {
+    ws();
+    if (i >= n) err('內容是空的，請輸入 JSON');
+    value(); ws();
+    if (i < n) {
+      const c = ch();
+      if (c === '}' || c === ']') err(`多了一個${descr(c)}，括號數量不成對`);
+      if (c === ',') err('最外層只能有一個值；如果有多筆資料，請用陣列 [ ] 把它們包起來');
+      fwCheck();
+      err(`最外層只能有一個值，後面卻還有${descr(c)}。多筆資料請用陣列 [ ] 包起來`);
+    }
+    const parsed = JSON.parse(text.replace(/^\uFEFF/, ''));
+    return { ok: true, value: parsed, warnings };
+  } catch (e) {
+    const pos = e.pos === undefined ? 0 : e.pos;
+    return { ok: false, error: { msg: e.message, pos, ...posToLC(text, pos) }, warnings };
+  }
+}
+function errorLineHTML(text, pos) {
+  const ls = text.lastIndexOf('\n', pos - 1) + 1;
+  let le = text.indexOf('\n', pos); if (le < 0) le = text.length;
+  const line = text.slice(ls, le);
+  const col = pos - ls;
+  const c = line[col];
+  if (c === undefined) return esc(line) + '<mark class="err-char eol"> </mark>';
+  return esc(line.slice(0, col)) + `<mark class="err-char">${esc(c)}</mark>` + esc(line.slice(col + 1));
+}
+
+/* ===== 複製 ===== */
+async function copyText(text, btn) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    try { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) {}
+  }
+  if (!btn) return;
+  const old = btn.dataset.label || btn.innerHTML; btn.dataset.label = old;
+  btn.innerHTML = ok ? '✅ 已複製！' : '⚠️ 無法複製';
+  btn.classList.toggle('copied', ok);
+  clearTimeout(btn._t); btn._t = setTimeout(() => { btn.innerHTML = old; btn.classList.remove('copied'); }, 1600);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-copy]');
+  if (b) { const t = $(b.dataset.copy); if (t) copyText(t.textContent, b); }
+  const bt = e.target.closest('[data-copy-text]');
+  if (bt) copyText(bt.dataset.copyText, bt);
+});
+
+/* ===== 主題 ===== */
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  $$('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+  try { localStorage.setItem('json-class-theme', t); } catch (e) {}
+}
+$$('.theme-btn').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.theme)));
+let savedTheme = 'day';
+try { savedTheme = localStorage.getItem('json-class-theme') || 'day'; } catch (e) {}
+setTheme(['day', 'night', 'candy'].includes(savedTheme) ? savedTheme : 'day');
+
+/* ===== 章節導覽 ===== */
+const CHAPTERS = [
+  {id:'history', n:1, short:'歷史', title:'JSON 從哪裡來'},
+  {id:'rules', n:2, short:'語法規則', title:'語法規則'},
+  {id:'types', n:3, short:'資料型態', title:'六種資料型態'},
+  {id:'object', n:4, short:'物件', title:'物件 Object'},
+  {id:'array', n:5, short:'陣列', title:'陣列 Array'},
+  {id:'punct', n:6, short:'標點符號', title:'標點符號'},
+  {id:'playground', n:7, short:'Playground', title:'排版、驗證、取值'}
+];
+let current = null;
+function buildNav() {
+  let h = '';
+  CHAPTERS.forEach(c => {
+    if (c.id === 'playground') h += '<span class="nav-sep"></span>';
+    h += c.id === 'playground'
+      ? `<button class="nav-btn pg" data-go="${c.id}">▶ Playground</button>`
+      : `<button class="nav-btn" data-go="${c.id}"><span class="num">${c.n}</span>${c.short}</button>`;
+  });
+  $('#nav').innerHTML = h;
+}
+function buildRoadmap() {
+  const xs = CHAPTERS.map((c, i) => 70 + i * (860 / 6)); const y = 54;
+  let s = '';
+  for (let i = 0; i < xs.length - 1; i++) s += `<path class="rm-link" d="M${xs[i] + 26} ${y} L${xs[i + 1] - 26} ${y}"/>`;
+  const dx = (xs[5] + xs[6]) / 2;
+  s += `<line class="rm-divider" x1="${dx}" y1="6" x2="${dx}" y2="108"/>`;
+  s += `<text class="rm-part" x="${(xs[0] + xs[5]) / 2}" y="13">PART 1 · 認識 JSON</text><text class="rm-part" x="${xs[6]}" y="13">PART 2</text>`;
+  CHAPTERS.forEach((c, i) => {
+    s += `<g class="rm-node" data-go="${c.id}" tabindex="0" role="button" aria-label="第 ${c.n} 章 ${c.short}">
+      <circle class="rm-pulse" cx="${xs[i]}" cy="${y}" r="21"/>
+      <circle class="rm-halo" cx="${xs[i]}" cy="${y}" r="28"/>
+      <circle class="rm-dot" cx="${xs[i]}" cy="${y}" r="21"/>
+      <text class="rm-num" x="${xs[i]}" y="${y + 5}">${c.id === 'playground' ? '▶' : c.n}</text>
+      <text class="rm-label" x="${xs[i]}" y="${y + 48}">${c.short}</text></g>`;
+  });
+  $('#roadmap').innerHTML = s;
+}
+function buildChapterNav() {
+  CHAPTERS.forEach((c, i) => {
+    const sec = $(`#ch-${c.id}`); const nav = document.createElement('div'); nav.className = 'ch-nav';
+    const prev = CHAPTERS[i - 1], next = CHAPTERS[i + 1];
+    nav.innerHTML = (prev ? `<button class="btn" data-go="${prev.id}">← ${prev.id === 'playground' ? 'Playground' : '第 ' + prev.n + ' 章 ' + prev.short}</button>` : '<span></span>') +
+      (next ? `<button class="btn primary" data-go="${next.id}">${next.id === 'playground' ? '前往 Playground ▶' : '下一章：' + next.short + ' →'}</button>` : '<span></span>');
+    sec.appendChild(nav);
+  });
+}
+function goTo(id, opts = {}) {
+  let i = CHAPTERS.findIndex(c => c.id === id);
+  if (i < 0) { i = 0; id = 'history'; }
+  const changed = current !== id; current = id;
+  $$('.chapter').forEach(s => s.classList.toggle('active', s.dataset.ch === id));
+  $$('.nav-btn').forEach(b => { const on = b.dataset.go === id; b.classList.toggle('active', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  $$('.rm-node').forEach((g, k) => { g.classList.toggle('active', k === i); g.classList.toggle('done', k < i); });
+  $$('.rm-link').forEach((p, k) => { p.classList.toggle('done', k < i - 1); p.classList.toggle('flow', k === i - 1); });
+  const c = CHAPTERS[i];
+  $('#now-reading').innerHTML = `目前瀏覽：<b>${c.id === 'playground' ? 'Part 2' : '第 ' + c.n + ' 章'}</b> · ${c.title}`;
+  const nb = $(`.nav-btn[data-go="${id}"]`); if (nb && nb.scrollIntoView) nb.scrollIntoView({ block: 'nearest', inline: 'center' });
+  if (location.hash.slice(1) !== id) { try { location.hash = id; } catch (e) {} }
+  if (changed && opts.scroll !== false) {
+    const top = $('#content').getBoundingClientRect().top + window.scrollY - 70;
+    if (window.scrollY > top) window.scrollTo({ top, behavior: 'smooth' });
+  }
+  if (id !== 'history') stopTimeline();
+  if (id === 'playground') pgRender();
+}
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-go]');
+  if (g) { e.preventDefault(); goTo(g.dataset.go); }
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.rm-node,.tl-ev,.ty-node,.pg-glyph')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+});
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h && h !== current) goTo(h, { scroll: false }); });
+
+/* ===== 1. 歷史 ===== */
+function buildName() {
+  const letters = [['J', 'Java'], ['S', 'Script'], ['O', 'Object'], ['N', 'Notation']];
+  const zh = ['JavaScript 的', '', '物件', '表示法'];
+  let s = '';
+  letters.forEach(([L, w], k) => {
+    const x = 14 + k * 110;
+    s += `<g class="name-tile" data-k="${k}"><rect x="${x}" y="10" width="96" height="92" rx="16"/>
+      <text class="big" x="${x + 48}" y="70">${L}</text>
+      <text class="sub" x="${x + 48}" y="94">${w}</text></g>`;
+  });
+  s += `<path d="M24 118 Q24 128 34 128 L 214 128 Q 224 128 224 118" fill="none" stroke="var(--accent-primary)" stroke-width="2"/>`;
+  s += `<text x="124" y="150" text-anchor="middle" font-size="14" fill="var(--text-main)" font-weight="700">JavaScript 的</text>`;
+  s += `<path d="M244 118 L244 128 L330 128 L330 118" fill="none" stroke="var(--t-object)" stroke-width="2"/>`;
+  s += `<text x="287" y="150" text-anchor="middle" font-size="14" fill="var(--text-main)" font-weight="700">物件</text>`;
+  s += `<path d="M354 118 L354 128 L440 128 L440 118" fill="none" stroke="var(--t-array)" stroke-width="2"/>`;
+  s += `<text x="397" y="150" text-anchor="middle" font-size="14" fill="var(--text-main)" font-weight="700">表示法</text>`;
+  s += `<text x="230" y="186" text-anchor="middle" font-size="13" fill="var(--text-muted)">= 借用 JavaScript 寫物件的方式來「表示資料」</text>`;
+  const svg = $('#name-svg'); svg.innerHTML = s;
+  const tiles = $$('.name-tile', svg); let k = 0;
+  const light = idx => tiles.forEach((t, j) => t.classList.toggle('lit', j === idx));
+  let auto = setInterval(() => { light(k % 4); k++; }, 900);
+  tiles.forEach((t, j) => t.addEventListener('mouseenter', () => { clearInterval(auto); light(j); }));
+  svg.addEventListener('mouseleave', () => { clearInterval(auto); auto = setInterval(() => { light(k % 4); k++; }, 900); });
+}
+const EVENTS = [
+  {y:1999, s:'ES3 物件語法', t:'JavaScript 物件字面值標準化', d:'ECMAScript 第 3 版把 JavaScript 寫物件、陣列的語法定成標準。日後的 JSON，就是取這套語法的一個「子集合」。'},
+  {y:2001, s:'第一則訊息', t:'第一則 JSON 訊息', d:'Douglas Crockford 和 Chip Morningstar 在 State Software 公司開發即時網頁應用，為了讓瀏覽器和伺服器交換資料，送出了第一則 JSON 格式的訊息。Crockford 常說 JSON 是「被發現」而不是被發明的。'},
+  {y:2002, s:'json.org', t:'json.org 網站上線', d:'Crockford 架設 json.org，用幾張簡單的「鐵路圖」就把整套語法說明完畢，並正式取名為 JavaScript Object Notation。'},
+  {y:2005, s:'AJAX 熱潮', t:'AJAX 讓網頁動起來', d:'Gmail、Google Maps 等網站帶動 AJAX 技術：網頁不用重新整理就能在背景向伺服器要資料。JSON 比 XML 精簡、又能直接被 JavaScript 使用，開始快速普及。'},
+  {y:2006, s:'RFC 4627', t:'RFC 4627 發布', d:'網路標準組織 IETF 發布 RFC 4627，說明 JSON 格式並登記 application/json 這個媒體類型（MIME type）。'},
+  {y:2009, s:'瀏覽器內建', t:'JSON.parse 成為標準', d:'ECMAScript 5 把 JSON.parse() 與 JSON.stringify() 納入語言標準，瀏覽器內建安全的解析方法，不必再用危險的 eval()。'},
+  {y:2013, s:'ECMA-404', t:'ECMA-404 國際標準', d:'Ecma International 發布 ECMA-404，用很短的篇幅定義 JSON 的語法，讓它成為正式的國際標準。'},
+  {y:2017, s:'RFC 8259', t:'RFC 8259：目前的標準', d:'IETF 發布 RFC 8259，規定在系統之間交換的 JSON 必須使用 UTF-8 編碼。今天 Web API、設定檔、NoSQL 資料庫、AI 服務都大量使用 JSON。'}
+];
+let tlIdx = 0, tlTimer = null;
+const tlX = y => 60 + (y - 1999) / (2017 - 1999) * 880;
+function buildTimeline() {
+  const Y = 95; let s = `<line class="tl-axis" x1="30" y1="${Y}" x2="970" y2="${Y}"/><path class="tl-progress" id="tl-prog" d="M30 ${Y} L30 ${Y}"/>`;
+  EVENTS.forEach((ev, i) => {
+    const cx = tlX(ev.y), up = i % 2 === 0;
+    s += `<g class="tl-ev" data-i="${i}" tabindex="0" role="button" aria-label="${ev.y} ${ev.t}">
+      <line class="tl-stem" x1="${cx}" y1="${Y}" x2="${cx}" y2="${up ? Y - 26 : Y + 26}"/>
+      <circle class="tl-ring" cx="${cx}" cy="${Y}" r="12"/>
+      <circle class="tl-dot" cx="${cx}" cy="${Y}" r="9"/>
+      <rect x="${cx - 46}" y="${up ? Y - 80 : Y + 26}" width="92" height="56" fill="transparent"/>
+      <text class="tl-year" x="${cx}" y="${up ? Y - 34 : Y + 46}">${ev.y}</text>
+      <text class="tl-name" x="${cx}" y="${up ? Y - 54 : Y + 66}">${ev.s}</text></g>`;
+  });
+  const svg = $('#timeline'); svg.innerHTML = s;
+  svg.addEventListener('click', e => { const g = e.target.closest('.tl-ev'); if (g) { stopTimeline(); selectEvent(+g.dataset.i); } });
+  selectEvent(0);
+}
+function selectEvent(i) {
+  tlIdx = i; const ev = EVENTS[i];
+  $$('.tl-ev').forEach((g, k) => { g.classList.toggle('active', k === i); g.classList.toggle('past', k < i); });
+  $('#tl-prog').setAttribute('d', `M30 95 L${tlX(ev.y)} 95`);
+  $('#tl-detail').innerHTML = `<div class="yr">${ev.y}</div><div><h4>${ev.t}</h4><p>${ev.d}</p></div>`;
+}
+function stopTimeline() { if (tlTimer) { clearInterval(tlTimer); tlTimer = null; $('#tl-play').textContent = '▶ 自動播放'; } }
+$('#tl-play').addEventListener('click', () => {
+  if (tlTimer) return stopTimeline();
+  $('#tl-play').textContent = '⏸ 暫停';
+  if (tlIdx >= EVENTS.length - 1) selectEvent(0); else selectEvent(tlIdx + 1);
+  tlTimer = setInterval(() => { if (tlIdx >= EVENTS.length - 1) return stopTimeline(); selectEvent(tlIdx + 1); }, 2600);
+});
+const XJ_NAMES = ['王小明', '林小美', '陳大文', '張家豪', '李安琪', '黃志明'];
+function updateXJ() {
+  const n = +$('#xj-n').value; $('#xj-n-val').textContent = n;
+  const list = XJ_NAMES.slice(0, n).map((name, k) => ({ name, age: 18 + (k % 3) }));
+  const json = JSON.stringify({ students: list }, null, 2);
+  let xml = '<students>\n';
+  list.forEach(s => { xml += `  <student>\n    <name>${s.name}</name>\n    <age>${s.age}</age>\n  </student>\n`; });
+  xml += '</students>';
+  $('#xj-json').innerHTML = hl(json);
+  $('#xj-xml').innerHTML = esc(xml).replace(/(&lt;\/?[a-z]+&gt;)/g, '<span class="xml-tag">$1</span>');
+  const a = xml.length, b = json.length, mx = Math.max(a, b), W = 380;
+  const save = Math.round((1 - b / a) * 100);
+  $('#xj-bars').innerHTML = `
+    <text class="lbl" x="0" y="30">XML</text><rect class="track" x="70" y="14" width="${W}" height="24" rx="8"/>
+    <rect x="70" y="14" width="${W * a / mx}" height="24" rx="8" fill="var(--t-object)" style="transition:width .4s"/>
+    <text x="${70 + W * a / mx + 8}" y="31">${a} 字元</text>
+    <text class="lbl" x="0" y="74">JSON</text><rect class="track" x="70" y="58" width="${W}" height="24" rx="8"/>
+    <rect x="70" y="58" width="${W * b / mx}" height="24" rx="8" fill="var(--accent-primary)" style="transition:width .4s"/>
+    <text x="${70 + W * b / mx + 8}" y="75">${b} 字元</text>
+    <text x="70" y="104" fill="var(--primary-text)" font-weight="700">JSON 少用了約 ${save}% 的字元：XML 每個欄位都要寫開始與結束標籤。</text>`;
+}
+$('#xj-n').addEventListener('input', updateXJ);
+
+/* ===== 2. 錯誤實驗室 ===== */
+const L = (...a) => a.join('\n');
+const MISTAKES = [
+  {i:'✅', name:'正確版本', text:L('{', '  "name": "王小明",', '  "age": 19,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:'所有規則都符合，解析器順利把文字轉成物件。'},
+  {i:'❶', name:'用了單引號', text:L('{', "  'name': '王小明',", '  "age": 19,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:"把 ' 全部換成 \"。Python 印出 dict 時用的是單引號，那不是 JSON！"},
+  {i:'❷', name:'鍵沒加引號', text:L('{', '  name: "王小明",', '  "age": 19,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:'鍵一定要用雙引號包起來："name"。'},
+  {i:'❸', name:'結尾多了逗號', text:L('{', '  "name": "王小明",', '  "age": 19,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"],', '}'), fix:'刪掉最後一個成員後面的逗號。'},
+  {i:'❹', name:'忘了逗號', text:L('{', '  "name": "王小明",', '  "age": 19', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:'在 19 後面補上逗號。注意：解析器常常在「下一行」才發現錯誤。'},
+  {i:'❺', name:'加了註解', text:L('{', '  // 學生基本資料', '  "name": "王小明",', '  "age": 19,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:'刪掉註解。若真的需要說明，可以加一個欄位，例如 "_note": "學生基本資料"。'},
+  {i:'❻', name:'True 大寫', text:L('{', '  "name": "王小明",', '  "age": 19,', '  "isStudent": True,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:'改成小寫 true。（Python 寫 True，JSON 寫 true）'},
+  {i:'❼', name:'全形符號', text:L('{', '  "name"："王小明"，', '  "age": 19,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:'把全形冒號「：」、逗號「，」改成半形 : 和 ,'},
+  {i:'❽', name:'用了 undefined', text:L('{', '  "name": "王小明",', '  "age": undefined,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:'JSON 沒有 undefined，改用 null。'},
+  {i:'❾', name:'括號不成對', text:L('{', '  "name": "王小明",', '  "age": 19,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"}', '}'), fix:'用 [ 開始的陣列，要用 ] 結束。'},
+  {i:'❿', name:'文字忘了加引號', text:L('{', '  "name": 王小明,', '  "age": 19,', '  "isStudent": true,', '  "hobbies": ["籃球", "Scratch"]', '}'), fix:'字串值也要加雙引號："王小明"。'}
+];
+function buildLab() {
+  $('#lab-list').innerHTML = MISTAKES.map((m, k) => `<button data-k="${k}"><span class="i">${m.i}</span>${m.name}</button>`).join('');
+  $('#lab-list').addEventListener('click', e => { const b = e.target.closest('button'); if (b) selectMistake(+b.dataset.k); });
+  selectMistake(1);
+}
+function selectMistake(k) {
+  $$('#lab-list button').forEach((b, j) => b.classList.toggle('active', j === k));
+  const m = MISTAKES[k]; const r = validateJSON(m.text);
+  const lines = m.text.split('\n');
+  $('#lab-code').innerHTML = lines.map((ln, j) => {
+    const isErr = !r.ok && r.error.line === j + 1;
+    const body = isErr ? errorLineHTML(m.text, r.error.pos) : hl(ln);
+    return `<div class="cl${isErr ? ' err' : ''}"><span class="ln">${j + 1}</span><span>${body || ' '}</span></div>`;
+  }).join('');
+  drawPipe(r.ok);
+  if (r.ok) $('#lab-msg').innerHTML = `<div class="msg ok">✅ <b>解析成功！</b>得到一個有 ${Object.keys(r.value).length} 個鍵的物件。<br><span class="small muted">${m.fix}</span></div>`;
+  else $('#lab-msg').innerHTML = `<div class="msg err">❌ <b class="where">第 ${r.error.line} 行，第 ${r.error.col} 個字</b>：${esc(r.error.msg)}<br><span class="small"><b>🔧 修正方式：</b>${esc(m.fix)}</span></div>`;
+}
+function drawPipe(ok) {
+  $('#lab-pipe').innerHTML = `
+    <g><rect class="box" x="10" y="30" width="150" height="54" rx="12"/><text x="85" y="55">JSON 文字</text><text class="mono" x="85" y="73" fill="var(--text-muted)" style="fill:var(--text-muted)">'{"name":…}'</text></g>
+    <path class="link flow" d="M162 57 L240 57"/>
+    <g class="parser"><circle class="pulse-ring" cx="320" cy="57" r="30" fill="${ok ? 'var(--accent-primary)' : 'var(--danger)'}" opacity=".4"/><rect class="box" x="242" y="30" width="156" height="54" rx="12"/><text class="mono" x="320" y="55">JSON.parse()</text><text x="320" y="74" style="fill:var(--text-muted);font-size:12px">解析器</text></g>
+    <path class="link ${ok ? 'flow' : 'bad blink'}" d="M400 57 L478 57"/>
+    <g class="res ${ok ? 'ok' : 'bad'}"><rect class="box ${ok ? 'breathe' : 'blink'}" x="480" y="30" width="150" height="54" rx="12"/>
+      <text x="555" y="55" style="font-weight:700;fill:${ok ? 'var(--ok)' : 'var(--danger)'}">${ok ? '✓ 物件 Object' : '✗ SyntaxError'}</text>
+      <text x="555" y="74" style="fill:var(--text-muted);font-size:12px">${ok ? '可以開始取值了' : '整份資料都讀不到'}</text></g>`;
+}
+
+/* ===== 3. 型態 ===== */
+const TYPES = {
+  string:{desc:'用「雙引號」包起來的文字。中文、英文、emoji 都可以；特殊字元要用反斜線跳脫，例如 \\n 代表換行、\\" 代表雙引號。', good:['"你好"', '"Hello, JSON!"', '""', '"第一行\\n第二行"', '"\\u4F60\\u597D"'], bad:["'你好'", '你好', '“你好”'], tip:'JSON 只認得半形雙引號 "，單引號和中文引號都不行。'},
+  number:{desc:'整數、小數、負數、科學記號都是數字，JSON 不區分整數或浮點數。數字<b>不加引號</b>！', good:['42', '-7', '3.14', '6.02e23', '0'], bad:['007', '.5', '+1', 'NaN', '0x1F'], tip:'加上引號的 "42" 會變成字串，不能直接拿來計算。'},
+  boolean:{desc:'只有兩個值：<code>true</code>（真）和 <code>false</code>（假），全部小寫、不加引號，常用來表示「是／否」。', good:['true', 'false'], bad:['True', 'FALSE', 'yes'], tip:'Python 的 True / False 首字大寫，轉成 JSON 會變成小寫。注意 "true" 加了引號就變成字串了。'},
+  null:{desc:'表示「沒有值」或「未知」。全部小寫、不加引號。', good:['null'], bad:['NULL', 'None', 'undefined'], tip:'Python 的 None 轉成 JSON 會變成 null。空字串 "" 不等於 null。'},
+  object:{desc:'用大括號 <code>{ }</code> 包起來的一組「鍵: 值」，鍵一定是字串。適合描述「一個東西的各種屬性」。', good:['{}', '{"name": "王小明"}', '{"a": 1, "b": [1, 2]}'], bad:['{name: "王小明"}', '{"a": 1,}', "{'a': 1}"], tip:'Python 讀進來會變成 dict（字典）。'},
+  array:{desc:'用中括號 <code>[ ]</code> 包起來、<b>有順序</b>的一串值，用索引（從 0 開始）取值。', good:['[]', '[1, 2, 3]', '["a", true, null]', '[[1, 2], [3, 4]]'], bad:['[1, 2, 3,]', '(1, 2, 3)', '[1 2 3]'], tip:'Python 讀進來會變成 list（串列）。'}
+};
+const TYPE_ORDER = ['string', 'number', 'boolean', 'null', 'array', 'object'];
+let typeSel = 'string';
+function buildTypes() {
+  const cx = 260, cy = 200, R = 140; let s = '', spokes = '';
+  const pos = {};
+  TYPE_ORDER.forEach((t, k) => { const a = (-90 + k * 60) * Math.PI / 180; pos[t] = [cx + R * Math.cos(a), cy + R * Math.sin(a)]; });
+  TYPE_ORDER.forEach(t => { const [x, y] = pos[t]; spokes += `<path class="ty-spoke" data-t="${t}" d="M${cx} ${cy} L${x} ${y}" stroke="var(--t-${t})"/>`; });
+  s += spokes;
+  s += `<circle class="pulse-ring" cx="${cx}" cy="${cy}" r="44" fill="var(--accent-primary)" opacity=".35"/><circle class="ty-hub" cx="${cx}" cy="${cy}" r="44"/>
+    <text class="ty-hub-t" x="${cx}" y="${cy - 2}">JSON</text><text class="ty-hub-t" x="${cx}" y="${cy + 17}" style="font-size:12px;font-weight:500">的值 value</text>`;
+  TYPE_ORDER.forEach(t => {
+    const [x, y] = pos[t]; const structural = t === 'object' || t === 'array';
+    s += `<g class="ty-node" data-t="${t}" tabindex="0" role="button" aria-label="${TYPE_ZH[t]} ${t}">
+      <circle class="halo" cx="${x}" cy="${y}" r="56" stroke="var(--t-${t})"/>
+      ${structural ? `<circle class="ring spin" cx="${x}" cy="${y}" r="52" stroke="var(--t-${t})"/>` : ''}
+      <circle class="c" cx="${x}" cy="${y}" r="44" stroke="var(--t-${t})"/>
+      <text class="zh" x="${x}" y="${y + 2}" style="fill:var(--t-${t})">${TYPE_ZH[t]}</text>
+      <text class="en" x="${x}" y="${y + 20}">${t}</text></g>`;
+  });
+  s += `<text class="ty-legend" x="8" y="392">實線圓：基本型態</text><text class="ty-legend" x="512" y="392" text-anchor="end">虛線外圈：結構型態（可裝其他值）</text>`;
+  const svg = $('#types-svg'); svg.innerHTML = s;
+  svg.addEventListener('click', e => { const g = e.target.closest('.ty-node'); if (g) selectType(g.dataset.t); });
+  selectType('string');
+}
+function selectType(t) {
+  typeSel = t; const T = TYPES[t];
+  $$('.ty-node').forEach(g => g.classList.toggle('active', g.dataset.t === t));
+  $$('.ty-spoke').forEach(p => p.classList.toggle('on', p.dataset.t === t));
+  const chip = (v, bad) => `<button class="chip${bad ? ' bad' : ''}" data-val="${esc(v)}">${esc(v)}</button>`;
+  $('#type-detail').innerHTML = `
+    <div class="detail-title"><span class="ty-badge ty-${t}">${t}</span><h3>${TYPE_ZH[t]}</h3></div>
+    <p style="margin:0">${T.desc}</p>
+    <div class="ex-row"><span class="lab">✅ 合法的寫法（點一下丟進偵測器）</span><div class="chips">${T.good.map(v => chip(v)).join('')}</div></div>
+    <div class="ex-row"><span class="lab">❌ 常見的錯誤寫法</span><div class="chips">${T.bad.map(v => chip(v, true)).join('')}</div></div>
+    <div class="tipbox">💡 ${T.tip}</div>`;
+}
+function detect() {
+  const v = $('#det-input').value; const r = validateJSON(v);
+  if (r.ok) {
+    const t = typeOf(r.value); selectType(t);
+    $('#det-out').innerHTML = `<div class="msg ok">✅ 合法的 JSON 值，型態是 <span class="ty-badge ty-${t}">${TYPE_ZH[t]} ${t}</span></div>`;
+  } else {
+    $$('.ty-node').forEach(g => g.classList.remove('active')); $$('.ty-spoke').forEach(p => p.classList.remove('on'));
+    $('#det-out').innerHTML = `<div class="msg err">❌ 不是合法的 JSON 值：${esc(r.error.msg)}</div>`;
+  }
+}
+function buildDetector() {
+  const ex = ['"42"', '42', 'true', '"true"', 'null', 'None', '[1, 2, 3]', '{"a": 1}', "'hi'", '3.14e2', '007'];
+  $('#det-chips').innerHTML = ex.map(v => `<button class="chip" data-val="${esc(v)}">${esc(v)}</button>`).join('');
+  $('#det-input').addEventListener('input', detect);
+  document.addEventListener('click', e => {
+    const c = e.target.closest('#type-detail .chip, #det-chips .chip');
+    if (c) { $('#det-input').value = c.dataset.val; detect(); }
+  });
+}
+
+/* ===== 4. 物件 ===== */
+function buildAnatomy() {
+  const T = (x, t, col) => `<text class="codeT" x="${x}" y="80" style="fill:${col}">${esc(t)}</text>`;
+  const lab = (x, y, t) => `<text x="${x}" y="${y}">${t}</text>`;
+  const arrow = (x) => `<path d="M${x} 40 L${x} 56" stroke="var(--text-muted)" stroke-width="1.5" class="flow"/>`;
+  $('#anat-svg').innerHTML =
+    T(40, '{', 'var(--accent-primary)') + T(70, '"name"', 'var(--t-key)') + T(164, ':', 'var(--text-muted)') +
+    T(190, '"王小明"', 'var(--t-string)') + T(298, ',', 'var(--text-muted)') + T(326, '"age"', 'var(--t-key)') +
+    T(406, ':', 'var(--text-muted)') + T(432, '19', 'var(--t-number)') + T(484, '}', 'var(--accent-primary)') +
+    `<path class="bracket" d="M70 98 L70 108 L156 108 L156 98" stroke="var(--t-key)"/>` + lab(113, 130, '鍵 key（一定是字串）') +
+    `<path class="bracket" d="M190 98 L190 108 L292 108 L292 98" stroke="var(--t-string)"/>` + lab(241, 130, '值 value') +
+    `<path class="bracket" d="M326 98 L326 108 L462 108 L462 98" stroke="var(--t-number)"/>` + lab(394, 130, '第二組 鍵: 值') +
+    lab(48, 30, '物件開始') + arrow(48) + lab(171, 30, '冒號') + arrow(171) +
+    lab(304, 30, '逗號分隔') + arrow(304) + lab(492, 30, '物件結束') + arrow(492) +
+    `<circle class="pulse-ring" cx="304" cy="72" r="9" fill="var(--accent-primary)" opacity=".5"/>` +
+    `<rect x="560" y="44" width="180" height="58" rx="12" fill="var(--bg-soft)" stroke="var(--border-strong)" stroke-dasharray="4 4"/>` +
+    `<text x="650" y="68" style="font-size:13px">最後一組（19）後面</text><text x="650" y="88" style="font-size:13px;fill:var(--danger);font-weight:700">不能加逗號！</text>`;
+}
+const OB_DEFAULT = [['name', '"王小明"'], ['age', '19'], ['isStudent', 'true'], ['hobbies', '["籃球", "繪畫"]'], ['address', '{"city": "台中市"}']];
+let obRows = [], obSel = 0;
+function obReset() { obRows = OB_DEFAULT.map(([k, v]) => ({ k, v })); obSel = 0; renderObRows(); }
+function renderObRows() {
+  $('#ob-rows').innerHTML = obRows.map((r, i) => `
+    <div class="ob-row" data-i="${i}">
+      <input class="txt k" value="${esc(r.k)}" placeholder="鍵" aria-label="鍵">
+      <span class="colon">:</span>
+      <input class="txt v" value="${esc(r.v)}" placeholder="值，例如 &quot;文字&quot; 或 123" aria-label="值">
+      <button class="x" title="刪除" aria-label="刪除這一筆">✕</button>
+      <div class="ob-row-msg" hidden></div>
+    </div>`).join('');
+  obUpdate();
+}
+function obAnalyze() {
+  const seen = {};
+  return obRows.map(r => {
+    const out = { k: r.k, v: r.v, ok: true, msg: '', warn: '' };
+    if (!r.k.trim()) { out.ok = false; out.msg = '鍵不能是空的'; return out; }
+    const res = validateJSON(r.v);
+    if (!res.ok) {
+      out.ok = false; out.msg = res.error.msg;
+      if (!/^[\s"'\[{\d-]/.test(r.v) && r.v.trim()) out.msg += `　💡 提示：如果是文字，請寫成 "${r.v.trim()}"`;
+    } else { out.val = res.value; out.type = typeOf(res.value); }
+    if (seen[r.k]) out.warn = '這個鍵重複了，後面的會蓋掉前面的';
+    seen[r.k] = true;
+    return out;
+  });
+}
+function obUpdate() {
+  const A = obAnalyze();
+  $$('#ob-rows .ob-row').forEach((row, i) => {
+    const a = A[i]; const m = $('.ob-row-msg', row);
+    row.classList.toggle('bad', !a.ok);
+    if (!a.ok || a.warn) { m.hidden = false; m.textContent = a.ok ? '⚠ ' + a.warn : '✗ ' + a.msg; m.classList.toggle('warn', a.ok); } else m.hidden = true;
+  });
+  const obj = {}; A.forEach(a => { if (a.ok) obj[a.k] = a.val; });
+  $('#ob-json').innerHTML = hl(JSON.stringify(obj, null, 2));
+  if (obSel >= A.length) obSel = A.length - 1;
+  drawOb(A);
+}
+function drawOb(A) {
+  const top = 50, rh = 42, gap = 12, H = top + A.length * (rh + gap) + 34;
+  let s = `<text class="brace" x="8" y="38">{</text>`;
+  A.forEach((a, i) => {
+    const y = top + i * (rh + gap), col = a.ok ? `var(--t-${a.type})` : 'var(--danger)';
+    const vtxt = a.ok ? preview(a.val, 26) : '⚠ 值不合法';
+    s += `<g class="row" data-i="${i}">
+      ${i === obSel ? `<rect class="sel breathe" x="34" y="${y - 5}" width="510" height="${rh + 10}" rx="14"/>` : ''}
+      <rect class="kbox" x="40" y="${y}" width="170" height="${rh}" rx="10"/>
+      <text x="52" y="${y + 26}" style="fill:var(--t-key);font-weight:700">${esc(trunc(JSON.stringify(a.k), 18))}</text>
+      <text class="colon" x="225" y="${y + 27}" text-anchor="middle">:</text>
+      <rect class="vbox ${a.ok ? '' : 'blink'}" x="240" y="${y}" width="${A.length - 1 > i ? 288 : 298}" height="${rh}" rx="10" style="fill:color-mix(in srgb, ${col} 10%, var(--bg-card));stroke:${col}"/>
+      <text x="252" y="${y + 26}">${esc(vtxt)}</text>
+      <text class="tag" x="${A.length - 1 > i ? 520 : 530}" y="${y + 26}" text-anchor="end" style="fill:${col}">${a.ok ? TYPE_ZH[a.type] : '錯誤'}</text>
+      ${i < A.length - 1 ? `<text class="colon" x="533" y="${y + 30}">,</text>` : ''}
+    </g>`;
+  });
+  s += `<text class="brace" x="8" y="${H - 6}">}</text>`;
+  if (!A.length) s += `<text x="60" y="80" style="fill:var(--text-muted);font-family:var(--font-sans)">空物件 {} 也是合法的 JSON</text>`;
+  const svg = $('#ob-svg'); svg.setAttribute('viewBox', `0 0 560 ${Math.max(H, 120)}`); svg.innerHTML = s;
+  const a = A[obSel];
+  if (!a) { $('#ob-pick').innerHTML = ''; return; }
+  const ident = /^[A-Za-z_$\u4e00-\u9fff][\w$\u4e00-\u9fff]*$/.test(a.k);
+  $('#ob-pick').innerHTML = a.ok
+    ? `<div class="msg ok">取值：<code>student${ident ? '.' + esc(a.k) : '[' + esc(JSON.stringify(a.k)) + ']'}</code>${ident ? ` 或 <code>student[${esc(JSON.stringify(a.k))}]</code>` : ''} → <span class="ty-badge ty-${a.type}">${TYPE_ZH[a.type]}</span> <code>${esc(trunc(JSON.stringify(a.val), 40))}</code></div>`
+    : `<div class="msg err">這一列的值還不合法，修正後才能取值。</div>`;
+}
+function buildObject() {
+  $('#ob-rows').addEventListener('input', e => {
+    const row = e.target.closest('.ob-row'); if (!row) return; const i = +row.dataset.i;
+    if (e.target.classList.contains('k')) obRows[i].k = e.target.value; else obRows[i].v = e.target.value;
+    obSel = i; obUpdate();
+  });
+  $('#ob-rows').addEventListener('click', e => {
+    const x = e.target.closest('.x'); if (!x) return;
+    obRows.splice(+x.closest('.ob-row').dataset.i, 1); obSel = Math.max(0, Math.min(obSel, obRows.length - 1)); renderObRows();
+  });
+  $('#ob-rows').addEventListener('focusin', e => { const row = e.target.closest('.ob-row'); if (row && +row.dataset.i !== obSel) { obSel = +row.dataset.i; drawOb(obAnalyze()); } });
+  $('#ob-add').addEventListener('click', () => { obRows.push({ k: 'key' + (obRows.length + 1), v: '""' }); obSel = obRows.length - 1; renderObRows(); const ins = $$('#ob-rows .ob-row input.k'); ins[ins.length - 1]?.focus(); ins[ins.length - 1]?.select(); });
+  $('#ob-reset').addEventListener('click', obReset);
+  $('#ob-svg').addEventListener('click', e => { const g = e.target.closest('.row'); if (g) { obSel = +g.dataset.i; drawOb(obAnalyze()); } });
+  obReset();
+}
+
+/* ===== 5. 陣列 ===== */
+const ARR_DEFAULT = { scores: [88, 92, 75, 60], students: [{ name: '王小明', age: 19 }, { name: '林小美', age: 18 }, { name: '陳大文', age: 20 }] };
+const ARR_POOL = ['張家豪', '李安琪', '黃志明', '吳佳穎', '劉子瑜', '蔡宗翰'];
+let arrMode = 'scores', arrData = JSON.parse(JSON.stringify(ARR_DEFAULT)), arrSel = 0;
+function drawArr() {
+  const a = arrData[arrMode], n = a.length, bw = arrMode === 'scores' ? 76 : 96, gap = 22, x0 = 46;
+  const W = Math.max(640, x0 + n * (bw + gap) + 40);
+  const svg = $('#arr-svg'); svg.setAttribute('viewBox', `0 0 ${W} 180`);
+  let s = `<text class="bracket" x="12" y="104">[</text>`;
+  a.forEach((v, i) => {
+    const x = x0 + i * (bw + gap), on = i === arrSel;
+    const col = arrMode === 'scores' ? 'var(--t-number)' : 'var(--t-object)';
+    s += `<g class="it" data-i="${i}">
+      ${on ? `<rect class="breathe" x="${x - 6}" y="44" width="${bw + 12}" height="78" rx="16" fill="none" stroke="var(--accent-primary)" stroke-width="3" opacity=".6"/>` : ''}
+      <rect class="cell" x="${x}" y="50" width="${bw}" height="66" rx="12" style="fill:${on ? `color-mix(in srgb, ${col} 22%, var(--bg-card))` : 'var(--bg-soft)'};stroke:${on ? 'var(--accent-primary)' : col}"/>
+      ${arrMode === 'scores'
+        ? `<text class="val" x="${x + bw / 2}" y="89">${v}</text>`
+        : `<text class="val small" x="${x + bw / 2}" y="80">{ }</text><text class="sub" x="${x + bw / 2}" y="100">${esc(v.name)}</text>`}
+      <text class="idx ${on ? 'on' : ''}" x="${x + bw / 2}" y="140">[${i}]</text>
+      ${i < n - 1 ? `<text class="comma" x="${x + bw + gap / 2}" y="94">,</text>` : ''}
+    </g>`;
+  });
+  s += `<text class="bracket" x="${x0 + n * (bw + gap) - gap + 8}" y="104">]</text>`;
+  if (n) {
+    const px = x0 + arrSel * (bw + gap) + bw / 2;
+    s += `<g class="bob"><path class="pointer" d="M${px - 9} 20 L${px + 9} 20 L${px} 34 Z"/><text x="${px}" y="14" text-anchor="middle" style="font-size:11px;fill:var(--primary-text);font-family:var(--font-sans);font-weight:700">取這個</text></g>`;
+  } else s += `<text x="60" y="94" style="fill:var(--text-muted);font-family:var(--font-sans)">空陣列 [ ]：沒有任何元素，按 push 加入</text>`;
+  s += `<text x="${W - 10}" y="172" text-anchor="end" style="font-size:12px;fill:var(--text-muted);font-family:var(--font-sans)">length = ${n}</text>`;
+  svg.innerHTML = s;
+  const name = arrMode;
+  const rng = $('#arr-idx'); rng.max = Math.max(0, n - 1); rng.value = arrSel; rng.disabled = !n; $('#arr-idx-val').textContent = n ? arrSel : '–';
+  let path, val;
+  if (!n) { path = `${name}[0]`; val = '取不到（陣列是空的）'; }
+  else if (arrMode === 'scores') { path = `${name}[${arrSel}]`; val = String(a[arrSel]); }
+  else { path = `${name}[${arrSel}].name`; val = JSON.stringify(a[arrSel].name); }
+  $('#arr-info').innerHTML = `
+    <div class="box"><div class="k">取值路徑</div><div class="v" style="color:var(--primary-text)">${esc(path)}</div></div>
+    <div class="box"><div class="k">取到的值</div><div class="v">${esc(val)}</div></div>
+    <div class="box"><div class="k">陣列長度 length</div><div class="v">${n}　<span class="small muted" style="font-weight:400">${n ? `最後一個是 [${n - 1}]` : ''}</span></div></div>`;
+  $('#arr-json').innerHTML = hl(JSON.stringify({ [name]: a }, null, arrMode === 'scores' ? 0 : 2).replace(/^\{"/, '{ "').replace(/\]\}$/, '] }').replace(/":\[/, '": [').replace(/,(?=\d)/g, ', '));
+}
+function buildArray() {
+  $('#arr-mode').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; arrMode = b.dataset.mode; arrSel = 0; $$('#arr-mode button').forEach(x => x.classList.toggle('active', x === b)); drawArr(); });
+  $('#arr-push').addEventListener('click', () => {
+    const a = arrData[arrMode]; if (a.length >= 8) return flash($('#arr-push'));
+    if (arrMode === 'scores') a.push(50 + Math.floor(Math.random() * 51));
+    else a.push({ name: ARR_POOL[(a.length - 3 + ARR_POOL.length) % ARR_POOL.length], age: 18 + Math.floor(Math.random() * 4) });
+    arrSel = a.length - 1; drawArr();
+  });
+  $('#arr-pop').addEventListener('click', () => { const a = arrData[arrMode]; if (!a.length) return flash($('#arr-pop')); a.pop(); arrSel = Math.max(0, Math.min(arrSel, a.length - 1)); drawArr(); });
+  $('#arr-reset').addEventListener('click', () => { arrData[arrMode] = JSON.parse(JSON.stringify(ARR_DEFAULT[arrMode])); arrSel = 0; drawArr(); });
+  $('#arr-idx').addEventListener('input', e => { arrSel = +e.target.value; drawArr(); });
+  $('#arr-svg').addEventListener('click', e => { const g = e.target.closest('.it'); if (g) { arrSel = +g.dataset.i; drawArr(); } });
+  drawArr();
+}
+function flash(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+/* ===== 6. 標點符號 ===== */
+const PUNC = [
+  {k:'brace', g:'{ }', name:'大括號', d:'<b>物件</b>的開始與結束。裡面放「鍵: 值」，一定要成對出現。'},
+  {k:'bracket', g:'[ ]', name:'中括號', d:'<b>陣列</b>的開始與結束。裡面放有順序的值，一定要成對出現。'},
+  {k:'colon', g:':', name:'冒號', d:'放在<b>鍵和值中間</b>，把兩者連起來：<code>"name": "王小明"</code>。只會出現在物件裡。'},
+  {k:'comma', g:',', name:'逗號', d:'<b>分隔</b>物件的成員或陣列的元素。最後一個後面<b>不能</b>加逗號。'},
+  {k:'quote', g:'" "', name:'雙引號', d:'包住<b>字串</b>和<b>鍵</b>。一定要是半形雙引號，字串裡要放雙引號時寫成 <code>\\"</code>。'}
+];
+const PUNC_SAMPLE = L('{', '  "course": "程式設計",', '  "credit": 3,', '  "students": [', '    { "name": "王小明", "score": 88 },', '    { "name": "林小美", "score": 95 }', '  ],', '  "online": false', '}');
+let puncSel = 'brace';
+function buildPunct() {
+  let html = '', inStr = false; const counts = { brace: 0, bracket: 0, colon: 0, comma: 0, quote: 0 };
+  const kindOf = c => '{}'.includes(c) ? 'brace' : '[]'.includes(c) ? 'bracket' : c === ':' ? 'colon' : c === ',' ? 'comma' : null;
+  let buf = '';
+  const flush = () => { if (buf) { html += inStr ? `<span class="t-string">${esc(buf)}</span>` : esc(buf).replace(/\b(\d+)\b/g, '<span class="t-number">$1</span>').replace(/\b(true|false)\b/g, '<span class="t-boolean">$1</span>'); buf = ''; } };
+  for (const c of PUNC_SAMPLE) {
+    if (c === '"') { flush(); counts.quote++; html += `<span class="p" data-k="quote">"</span>`; inStr = !inStr; continue; }
+    const k = !inStr && kindOf(c);
+    if (k) { flush(); counts[k]++; html += `<span class="p" data-k="${k}">${c}</span>`; continue; }
+    buf += c;
+  }
+  flush();
+  $('#punc-code').innerHTML = html;
+  let s = '';
+  PUNC.forEach((p, i) => {
+    const x = 70 + i * 125;
+    s += `<g class="pg-glyph" data-k="${p.k}" tabindex="0" role="button" aria-label="${p.name}">
+      <circle class="halo" cx="${x}" cy="56" r="48"/>
+      <circle class="c" cx="${x}" cy="56" r="40"/>
+      <text class="g" x="${x}" y="67">${p.g}</text>
+      <text class="l" x="${x}" y="122">${p.name}</text>
+      <text class="cnt" x="${x}" y="141">範例中 ${p.k === 'quote' ? counts.quote / 2 + ' 對' : (p.k === 'brace' || p.k === 'bracket') ? counts[p.k] / 2 + ' 對' : counts[p.k] + ' 個'}</text></g>`;
+  });
+  $('#punc-svg').innerHTML = s;
+  $('#punc-svg').addEventListener('click', e => { const g = e.target.closest('.pg-glyph'); if (g) selectPunc(g.dataset.k); });
+  $('#punc-code').addEventListener('click', e => { const p = e.target.closest('.p'); if (p) selectPunc(p.dataset.k); });
+  selectPunc('brace');
+}
+function selectPunc(k) {
+  puncSel = k; const p = PUNC.find(x => x.k === k);
+  $$('.pg-glyph').forEach(g => g.classList.toggle('active', g.dataset.k === k));
+  $$('#punc-code .p').forEach(sp => sp.classList.toggle('hl', sp.dataset.k === k));
+  $('#punc-detail').innerHTML = `<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px"><span style="font-family:var(--font-mono);font-size:2rem;font-weight:700;color:var(--primary-text)">${p.g}</span><b style="font-size:1.1rem">${p.name}</b></div><div>${p.d}</div>`;
+}
+
+/* ===== 7. Playground ===== */
+const SAMPLES = [
+  {name:'🎓 學生資料（巢狀物件）', text:JSON.stringify({student:{name:'王小明', age:19, isGraduated:false, email:null, scores:[88, 92, 75], address:{city:'台中市', zip:'404'}, courses:[{title:'程式設計', credit:3, tags:['Python', '必修']}, {title:'數位藝術', credit:2, tags:['Scratch']}]}, classmates:[{name:'林小美', age:18}, {name:'陳大文', age:20}]}, null, 2),
+    paths:['student.name', 'student.age', 'student.scores[1]', 'student.scores.2', 'student.address.city', 'student.courses[0].title', 'student.courses[1].tags[0]', 'classmates[*].name', 'student.scores.length', 'student.name.age']},
+  {name:'📋 班級名單（最外層是陣列）', text:'[{"seat":1,"name":"王小明","scores":[88,92]},{"seat":2,"name":"林小美","scores":[95,90]},{"seat":3,"name":"陳大文","scores":[70,85]}]',
+    paths:['[0].name', '[1].scores[0]', '[2]', '[*].name', '[-1].name', 'length', '[5].name']},
+  {name:'🗜️ 未排版的一行 JSON', text:'{"title":"JSON 練習","author":{"name":"王小明","school":"某某大學"},"tags":["json","教學"],"published":true,"pages":42}',
+    paths:['title', 'author.name', 'tags[1]', 'published', 'pages']},
+  {name:'🐞 有錯誤的 JSON', text:L('{', '  "title": "JSON 練習",', "  'author': \"王小明\",", '  "tags": ["json", "教學",],', '}'), paths:['title']},
+  {name:'📓 Colab 筆記本 .ipynb 片段', text:JSON.stringify({cells:[{cell_type:'markdown', source:['# 第一週：Python 入門']}, {cell_type:'code', execution_count:1, source:["print('Hello')"], outputs:[{name:'stdout', output_type:'stream', text:['Hello\n']}]}], metadata:{colab:{name:'week1.ipynb'}, kernelspec:{name:'python3', display_name:'Python 3'}}, nbformat:4, nbformat_minor:0}, null, 2),
+    paths:['cells[0].source[0]', 'cells[1].outputs[0].text[0]', 'cells[*].cell_type', 'metadata.kernelspec.display_name', 'nbformat']}
+];
+const pg = { ok: false, value: undefined, res: null, view: 'pretty' };
+const IDENT = /^[A-Za-z_$\u4e00-\u9fff][\w$\u4e00-\u9fff]*$/;
+function joinPath(base, k, isIdx) {
+  if (isIdx) return `${base}[${k}]`;
+  if (IDENT.test(k)) return base ? `${base}.${k}` : k;
+  return `${base}[${JSON.stringify(k)}]`;
+}
+function indentArg() { const v = $('#pg-indent').value; return v === 'tab' ? '\t' : +v; }
+function sortDeep(v) {
+  if (Array.isArray(v)) return v.map(sortDeep);
+  if (v && typeof v === 'object') { const o = {}; Object.keys(v).sort((a, b) => a.localeCompare(b)).forEach(k => { o[k] = sortDeep(v[k]); }); return o; }
+  return v;
+}
+function prettyText(minify) { const v = $('#pg-sort').checked ? sortDeep(pg.value) : pg.value; return minify ? JSON.stringify(v) : JSON.stringify(v, null, indentArg()); }
+function updateGutter(errLine) {
+  const n = $('#pg-input').value.split('\n').length; let h = '';
+  for (let k = 1; k <= n; k++) h += `<div${k === errLine ? ' class="e"' : ''}>${k}</div>`;
+  const g = $('#pg-gutter'); g.innerHTML = h; g.scrollTop = $('#pg-input').scrollTop;
+}
+function pgRender() {
+  const text = $('#pg-input').value; const r = validateJSON(text); pg.res = r; pg.ok = r.ok; pg.value = r.ok ? r.value : undefined;
+  const badge = $('#pg-badge');
+  if (r.ok) { badge.className = 'badge ok'; badge.innerHTML = '<span class="d"></span>合法的 JSON'; }
+  else { badge.className = 'badge err'; badge.innerHTML = '<span class="d"></span>格式錯誤'; }
+  updateGutter(r.ok ? 0 : r.error.line);
+  const st = $('#pg-status');
+  if (r.ok) {
+    const w = r.warnings.map(x => `<div class="msg warn" style="margin-top:8px">⚠️ 第 ${posToLC(text, x.pos).line} 行：${esc(x.msg)}</div>`).join('');
+    st.innerHTML = `<div class="msg ok">✅ 驗證通過！${text.includes('\n') ? '' : '這是一行壓縮的 JSON，按「✨ 格式化排版」會更好讀。'}</div>${w}`;
+  } else {
+    st.innerHTML = `<div class="msg err">❌ <b class="where">第 ${r.error.line} 行，第 ${r.error.col} 個字</b>：${esc(r.error.msg)}
+      ${text.trim() ? `<div class="snip">${errorLineHTML(text, r.error.pos)}</div><div class="actions"><button class="btn" id="pg-jump">📍 跳到錯誤位置</button></div>` : ''}</div>`;
+  }
+  if (r.ok) {
+    const pretty = prettyText(false);
+    $('#pg-pretty').innerHTML = hl(pretty);
+    buildTree();
+    let objs = 0, arrs = 0, keys = 0, depth = 0;
+    (function walk(v, d) { depth = Math.max(depth, d); if (Array.isArray(v)) { arrs++; v.forEach(x => walk(x, d + 1)); } else if (v && typeof v === 'object') { objs++; const ks = Object.keys(v); keys += ks.length; ks.forEach(k => walk(v[k], d + 1)); } })(r.value, 0);
+    $('#pg-stats').innerHTML = `<div><b>${keys}</b><span>鍵的總數</span></div><div><b>${objs} / ${arrs}</b><span>物件 / 陣列</span></div><div><b>${depth}</b><span>最大深度</span></div><div><b>${JSON.stringify(r.value).length}</b><span>壓縮後字元</span></div>`;
+  } else {
+    $('#pg-pretty').innerHTML = `<span class="muted">（JSON 有錯誤，修正後這裡會顯示排版結果）</span>`;
+    $('#pg-tree').innerHTML = `<span class="muted" style="font-family:var(--font-sans)">（JSON 有錯誤，修正後這裡會顯示樹狀結構）</span>`;
+    $('#pg-stats').innerHTML = '';
+  }
+  runQuery();
+}
+function buildTree() {
+  const box = $('#pg-tree'); box.innerHTML = '';
+  box.appendChild(treeNode(pg.value, null, '', 0, false));
+}
+function treeNode(v, key, path, depth, isIdx) {
+  const t = typeOf(v);
+  const label = key === null ? 'data（根）' : isIdx ? `[${key}]` : JSON.stringify(key);
+  if (t === 'object' || t === 'array') {
+    const d = document.createElement('details'); if (depth < 3) d.open = true;
+    const sm = document.createElement('summary'); sm.className = 'tr-row'; sm.dataset.path = path;
+    const cnt = t === 'object' ? Object.keys(v).length : v.length;
+    sm.innerHTML = `<span class="tr-tog">▸</span><span class="tr-key ${isIdx ? 'idx' : ''}">${esc(label)}</span><span class="tr-type ty-${t}">${t === 'object' ? '{ } ' + cnt + ' 個鍵' : '[ ] ' + cnt + ' 個'}</span>`;
+    d.appendChild(sm);
+    const kids = document.createElement('div'); kids.className = 'tr-children';
+    if (t === 'array') v.forEach((x, i) => kids.appendChild(treeNode(x, i, joinPath(path, i, true), depth + 1, true)));
+    else Object.keys(v).forEach(k => kids.appendChild(treeNode(v[k], k, joinPath(path, k, false), depth + 1, false)));
+    d.appendChild(kids); return d;
+  }
+  const row = document.createElement('div'); row.className = 'tr-row leaf'; row.dataset.path = path;
+  row.innerHTML = `<span class="tr-key ${isIdx ? 'idx' : ''}">${esc(label)}</span><span class="t-punc">:</span><span class="tr-val t-${t}">${esc(t === 'string' ? JSON.stringify(v) : String(v))}</span>`;
+  return row;
+}
+$('#pg-tree').addEventListener('click', e => {
+  const row = e.target.closest('.tr-row'); if (!row) return;
+  if (row.tagName === 'SUMMARY' && !e.target.closest('.tr-tog')) e.preventDefault();
+  if (e.target.closest('.tr-tog')) return;
+  $('#pg-path').value = row.dataset.path; runQuery();
+});
+
+function parsePath(str) {
+  const s = str.trim(); const toks = []; let i = 0, trailingDot = false;
+  if (s[0] === '$') i = 1;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === ' ') { i++; continue; }
+    if (c === '.') {
+      i++;
+      if (i >= s.length) { trailingDot = true; break; }
+      if (s[i] === '.') throw new Error('路徑中出現連續的「..」，兩個點中間要有鍵名');
+      continue;
+    }
+    if (c === '[') {
+      i++; while (s[i] === ' ') i++;
+      if (s[i] === '"' || s[i] === "'") {
+        const q = s[i++]; let k = '';
+        while (i < s.length && s[i] !== q) { if (s[i] === '\\' && i + 1 < s.length) { k += s[i + 1]; i += 2; continue; } k += s[i++]; }
+        if (s[i] !== q) throw new Error('中括號裡的鍵缺少結尾的引號');
+        i++; while (s[i] === ' ') i++;
+        if (s[i] !== ']') throw new Error('缺少右中括號 ]');
+        i++; toks.push({ t: 'key', v: k, raw: `[${JSON.stringify(k)}]` }); continue;
+      }
+      const j = s.indexOf(']', i);
+      if (j < 0) throw new Error('缺少右中括號 ]，例如 scores[0]');
+      const inner = s.slice(i, j).trim(); i = j + 1;
+      if (inner === '*') { toks.push({ t: 'wild', raw: '[*]' }); continue; }
+      if (/^-?\d+$/.test(inner)) { toks.push({ t: 'index', v: parseInt(inner, 10), raw: `[${inner}]` }); continue; }
+      if (inner === '') throw new Error('中括號 [ ] 裡面要放索引數字，例如 [0]');
+      toks.push({ t: 'key', v: inner, raw: `[${inner}]` }); continue;
+    }
+    if (c === ']') throw new Error('多了一個右中括號 ]');
+    let k = ''; while (i < s.length && s[i] !== '.' && s[i] !== '[' && s[i] !== ']') k += s[i++];
+    k = k.trim();
+    if (k === '*') toks.push({ t: 'wild', raw: '.*' }); else toks.push({ t: 'key', v: k, raw: '.' + k });
+  }
+  return { toks, trailingDot };
+}
+function stepInto(v, tk) {
+  const t = typeOf(v);
+  if (t === 'array') {
+    let idx;
+    if (tk.t === 'index') idx = tk.v;
+    else if (/^-?\d+$/.test(tk.v)) idx = parseInt(tk.v, 10);
+    else if (tk.v === 'length') return { ok: true, val: v.length, res: { k: 'len' } };
+    else return { ok: false, msg: `這一層是陣列，要用數字索引取值，例如 [0]；「${tk.v}」不是索引。` };
+    if (!v.length) return { ok: false, msg: '這個陣列是空的 [ ]，沒有任何元素可以取。' };
+    const real = idx < 0 ? v.length + idx : idx;
+    if (real < 0 || real >= v.length) return { ok: false, msg: `索引 ${idx} 超出範圍：這個陣列只有 ${v.length} 個元素，索引是 0 ~ ${v.length - 1}${idx < 0 ? `（或 -1 ~ -${v.length}）` : ''}。` };
+    return { ok: true, val: v[real], res: { k: 'index', v: real, neg: idx < 0 ? idx : null } };
+  }
+  if (t === 'object') {
+    const key = tk.t === 'index' ? String(tk.v) : tk.v;
+    if (Object.prototype.hasOwnProperty.call(v, key)) return { ok: true, val: v[key], res: { k: 'key', v: key } };
+    if (tk.t === 'index') return { ok: false, msg: `這一層是物件，不能用索引 [${tk.v}] 取值，要用鍵名。` };
+    const keys = Object.keys(v);
+    const near = keys.find(k => k.toLowerCase() === key.toLowerCase()) || (key && keys.find(k => k.startsWith(key) || key.startsWith(k)));
+    return { ok: false, msg: `這一層的物件裡找不到鍵「${key}」。${near ? `你是不是要找「${near}」？鍵名的大小寫、拼字必須完全一樣。` : ''}` };
+  }
+  return { ok: false, msg: `這一層的值是${TYPE_ZH[t]} ${preview(v)}，不是物件或陣列，所以不能再往下取「${tk.raw}」。` };
+}
+function evalPath(root, toks) {
+  const steps = [{ label: 'data', type: typeOf(root), value: root }];
+  let cur = [root], multi = false, canon = ''; const resolved = [];
+  const canonAdd = r => r.k === 'key' ? joinPath(canon, r.v, false) : r.k === 'index' ? joinPath(canon, r.v, true) : r.k === 'len' ? (canon ? canon + '.length' : 'length') : canon + '[*]';
+  for (const tk of toks) {
+    const next = [];
+    if (tk.t === 'wild') {
+      for (const v of cur) {
+        const t = typeOf(v);
+        if (t === 'array') next.push(...v); else if (t === 'object') next.push(...Object.values(v));
+        else { steps.push({ label: tk.raw, error: true }); return { ok: false, steps, msg: `「[*]」只能用在陣列或物件上，這一層的值是${TYPE_ZH[t]}。`, at: v, canon }; }
+      }
+      multi = true; const r = { k: 'wild' }; canon = canonAdd(r); resolved.push(r);
+    } else {
+      let res = null;
+      for (const v of cur) {
+        const r = stepInto(v, tk);
+        if (!r.ok) { steps.push({ label: tk.raw, error: true }); return { ok: false, steps, msg: (multi ? '（[*] 取出的其中一個元素）' : '') + r.msg, at: v, canon }; }
+        next.push(r.val); res = r.res;
+      }
+      if (!res) res = { k: 'key', v: tk.v };
+      canon = canonAdd(res); resolved.push(res);
+    }
+    cur = next;
+    steps.push({ label: tk.raw, type: multi ? 'list' : typeOf(cur[0]), value: multi ? cur : cur[0], multi });
+  }
+  return { ok: true, steps, value: multi ? cur : cur[0], multi, canon, resolved };
+}
+function drawTrace(steps, ok) {
+  const rh = 46, gap = 18, H = 8 + steps.length * (rh + gap) - gap + 10;
+  let s = '';
+  steps.forEach((st, i) => {
+    const y = 8 + i * (rh + gap), last = i === steps.length - 1;
+    const col = st.error ? 'var(--danger)' : `var(--t-${st.type === 'list' ? 'key' : st.type})`;
+    if (i < steps.length - 1) s += `<path class="tr-link" d="M20 ${y + rh / 2 + 12} L20 ${y + rh + gap + rh / 2 - 12}" ${steps[i + 1].error ? 'style="stroke:var(--danger)"' : ''}/>`;
+    if (last && ok) s += `<rect class="breathe" x="38" y="${y - 4}" width="298" height="${rh + 8}" rx="14" fill="none" stroke="var(--accent-primary)" stroke-width="2.5" opacity=".7"/>`;
+    if (st.error) s += `<circle class="pulse-ring" cx="20" cy="${y + rh / 2}" r="12" fill="var(--danger)"/>`;
+    const pv = st.error ? '✗ 這一步取不到值' : st.multi ? `${st.value.length} 筆結果` : `${TYPE_ZH[st.type]} · ${preview(st.value, 22)}`;
+    s += `<g class="tr-step">
+      <circle cx="20" cy="${y + rh / 2}" r="12" style="fill:${col}" ${st.error ? 'class="blink"' : ''}/>
+      <text class="num" x="20" y="${y + rh / 2 + 4}">${st.error ? '✗' : i}</text>
+      <rect class="box ${st.error ? 'blink' : ''}" x="42" y="${y}" width="290" height="${rh}" rx="11" style="stroke:${col};fill:color-mix(in srgb, ${col} 9%, var(--bg-card))"/>
+      <text class="lab" x="54" y="${y + 19}">${esc(trunc(i === 0 ? 'data（根）' : st.label, 34))}</text>
+      <text class="pv" x="54" y="${y + 36}">${esc(pv)}</text></g>`;
+  });
+  const svg = $('#pg-trace'); svg.setAttribute('viewBox', `0 0 340 ${H}`); svg.innerHTML = s;
+}
+function codeFor(resolved) {
+  if (resolved.some(r => r.k === 'wild')) return null;
+  let js = 'data', py = 'data';
+  resolved.forEach(r => {
+    if (r.k === 'key') { js += IDENT.test(r.v) ? '.' + r.v : `[${JSON.stringify(r.v)}]`; py += `[${JSON.stringify(r.v)}]`; }
+    else if (r.k === 'index') { js += r.neg != null ? `.at(${r.neg})` : `[${r.v}]`; py += `[${r.neg != null ? r.neg : r.v}]`; }
+    else if (r.k === 'len') { js += '.length'; py = `len(${py})`; }
+  });
+  return { js, py };
+}
+function suggestChips(container, base) {
+  const t = typeOf(container); let chips = [];
+  if (t === 'object') chips = Object.keys(container).slice(0, 14).map(k => joinPath(base, k, false));
+  else if (t === 'array') { chips = container.slice(0, 8).map((_, i) => joinPath(base, i, true)); if (container.length > 8) chips.push(joinPath(base, -1, true)); chips.push(base + '[*]', base ? base + '.length' : 'length'); }
+  return chips.map(p => `<button class="chip" data-path="${esc(p)}">${esc(p)}</button>`).join('');
+}
+function runQuery() {
+  const out = $('#pg-result');
+  if (!pg.ok) { $('#pg-trace').innerHTML = ''; $('#pg-trace').setAttribute('viewBox', '0 0 340 1'); out.innerHTML = `<div class="msg warn">⚠️ 請先修正左邊的 JSON 錯誤，才能用路徑取值喔！</div>`; return; }
+  const raw = $('#pg-path').value;
+  let parsed;
+  try { parsed = parsePath(raw); } catch (e) { $('#pg-trace').innerHTML = ''; out.innerHTML = `<div class="msg err">❌ 路徑寫法有誤：${esc(e.message)}</div>`; return; }
+  const r = evalPath(pg.value, parsed.toks);
+  drawTrace(r.steps, r.ok);
+  $$('#pg-tree .tr-row.sel').forEach(x => x.classList.remove('sel'));
+  if (!r.ok) {
+    out.innerHTML = `<div class="msg err">❌ ${esc(r.msg)}</div>
+      ${suggestChips(r.at, r.canon) ? `<div class="sub-label" style="margin-top:10px">這一層可以取的：</div><div class="chips">${suggestChips(r.at, r.canon)}</div>` : ''}`;
+    return;
+  }
+  const v = r.value, t = r.multi ? 'list' : typeOf(v);
+  const extra = r.multi ? `[*] 取出 ${v.length} 筆結果` : t === 'array' ? `共 ${v.length} 個元素` : t === 'object' ? `共 ${Object.keys(v).length} 個鍵` : '';
+  const code = r.steps.length > 1 ? codeFor(r.resolved) : null;
+  const jsonOut = JSON.stringify(v, null, 2);
+  const nextFrom = r.multi ? v.find(x => x && typeof x === 'object') : v;
+  const sug = nextFrom && typeof nextFrom === 'object' ? suggestChips(nextFrom, r.multi ? r.canon : r.canon) : '';
+  out.innerHTML = `
+    <div class="q-head"><b>${raw.trim() ? '取到的值' : '整份資料（根）'}</b><span class="ty-badge ty-${t}">${TYPE_ZH[t]}${t === 'list' ? '' : ' ' + t}</span><span class="small muted">${extra}</span>
+      <span style="flex:1"></span><button class="btn copy-btn" style="padding:3px 10px;font-size:.8rem" data-copy="#q-val">📋 複製值</button></div>
+    <pre class="code q-val" id="q-val">${hl(jsonOut)}</pre>
+    ${code ? `<div class="q-code"><div class="sub-label" style="margin:0">在程式裡這樣寫（假設已解析成變數 data）：</div>
+      <div class="line"><span class="tag">JavaScript</span><code>${esc(code.js)}</code><button class="btn" data-copy-text="${esc(code.js)}">📋</button></div>
+      <div class="line"><span class="tag">Python</span><code>${esc(code.py)}</code><button class="btn" data-copy-text="${esc(code.py)}">📋</button></div></div>`
+      : r.multi ? `<div class="tipbox">[*] 是「萬用字元」（來自 JSONPath 的寫法），會把陣列中每一個元素都取出來。在程式中通常用迴圈完成，例如 Python：<code>[x["name"] for x in data["classmates"]]</code></div>` : ''}
+    ${sug ? `<div class="sub-label" style="margin-top:12px">下一層可以取的：</div><div class="chips">${sug}</div>` : ''}`;
+  if (!r.multi) {
+    const row = $$('#pg-tree .tr-row').find(x => x.dataset.path === r.canon);
+    if (row) {
+      row.classList.add('sel');
+      let p = row.parentElement; while (p && p.id !== 'pg-tree') { if (p.tagName === 'DETAILS') p.open = true; p = p.parentElement; }
+      if (pg.view === 'tree') { const box = $('#pg-tree'); const top = row.offsetTop - box.offsetTop - box.clientHeight / 2; box.scrollTo({ top: Math.max(0, top), behavior: 'smooth' }); }
+    }
+  }
+}
+function setExamples(k) {
+  $('#pg-examples').innerHTML = SAMPLES[k].paths.map(p => `<button class="chip" data-path="${esc(p)}">${esc(p)}</button>`).join('');
+}
+function loadSample(k) {
+  $('#pg-input').value = SAMPLES[k].text; setExamples(k);
+  $('#pg-path').value = SAMPLES[k].paths[0]; $('#pg-input').scrollTop = 0; pgRender();
+}
+function buildPlayground() {
+  $('#pg-sample').innerHTML = SAMPLES.map((s, k) => `<option value="${k}">${s.name}</option>`).join('');
+  $('#pg-sample').addEventListener('change', e => loadSample(+e.target.value));
+  const ta = $('#pg-input'); let t;
+  ta.addEventListener('input', () => { updateGutter(0); clearTimeout(t); t = setTimeout(pgRender, 220); });
+  ta.addEventListener('scroll', () => { $('#pg-gutter').scrollTop = ta.scrollTop; });
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); const a = ta.selectionStart, b = ta.selectionEnd; ta.setRangeText('  ', a, b, 'end'); ta.dispatchEvent(new Event('input')); }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); $('#pg-format').click(); }
+  });
+  $('#pg-format').addEventListener('click', () => {
+    pgRender();
+    if (!pg.ok) { flash($('#pg-status')); return jumpToError(); }
+    ta.value = prettyText(false); pgRender();
+  });
+  $('#pg-minify').addEventListener('click', () => { pgRender(); if (!pg.ok) { flash($('#pg-status')); return jumpToError(); } ta.value = prettyText(true); pgRender(); });
+  $('#pg-validate').addEventListener('click', () => { pgRender(); flash($('#pg-status')); if (!pg.ok) jumpToError(); });
+  $('#pg-copy').addEventListener('click', e => copyText(ta.value, e.currentTarget));
+  $('#pg-clear').addEventListener('click', () => { ta.value = ''; pgRender(); ta.focus(); });
+  $('#pg-indent').addEventListener('change', pgRender);
+  $('#pg-sort').addEventListener('change', pgRender);
+  $('#pg-status').addEventListener('click', e => { if (e.target.closest('#pg-jump')) jumpToError(); });
+  $('#pg-view').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; pg.view = b.dataset.view;
+    $$('#pg-view button').forEach(x => x.classList.toggle('active', x === b));
+    $('#pg-pretty').hidden = pg.view !== 'pretty'; $('#pg-tree').hidden = pg.view !== 'tree'; runQuery();
+  });
+  $('#pg-path').addEventListener('input', runQuery);
+  document.addEventListener('click', e => {
+    const c = e.target.closest('#ch-playground .chip[data-path]');
+    if (c) { $('#pg-path').value = c.dataset.path; runQuery(); }
+  });
+  loadSample(0);
+}
+function jumpToError() {
+  if (!pg.res || pg.ok) return;
+  const ta = $('#pg-input'), p = pg.res.error.pos;
+  ta.focus(); ta.setSelectionRange(p, Math.min(p + 1, ta.value.length));
+  ta.scrollTop = Math.max(0, (pg.res.error.line - 4) * 21);
+}
+
+/* ===== 初始化 ===== */
+buildNav(); buildRoadmap(); buildChapterNav();
+buildName(); buildTimeline(); updateXJ();
+buildLab(); buildTypes(); buildDetector(); detect();
+buildAnatomy(); buildObject(); buildArray(); buildPunct(); buildPlayground();
+goTo((location.hash || '#history').slice(1), { scroll: false });
+})();
+</script>
+</body>
+</html>

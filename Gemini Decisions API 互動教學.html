@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="day">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini Decisions API 互動教學</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="day"]{
+  --bg-main:#F8FAFC;--bg-card:#FFFFFF;--bg-soft:#F1F5F9;--text-main:#0F172A;--text-muted:#475569;
+  --border-color:#E2E8F0;--accent-primary:#2563EB;--accent-secondary:#0D9488;--accent-third:#7C3AED;--accent-warn:#F59E0B;--accent-bad:#E11D48;
+  --card-shadow:0 4px 20px -2px rgba(15,23,42,.08);--card-border-width:1px;--code-bg:#0F172A;--code-text:#E2E8F0;--radius:14px;
+}
+:root[data-theme="night"]{
+  --bg-main:#0B0F19;--bg-card:#151C2C;--bg-soft:#1B2438;--text-main:#F8FAFC;--text-muted:#94A3B8;
+  --border-color:#26334D;--accent-primary:#38BDF8;--accent-secondary:#34D399;--accent-third:#A855F7;--accent-warn:#FBBF24;--accent-bad:#FB7185;
+  --card-shadow:0 8px 30px rgba(0,0,0,.45);--card-border-width:1px;--code-bg:#070A12;--code-text:#E2E8F0;--radius:14px;
+}
+:root[data-theme="candy"]{
+  --bg-main:#FFF5F8;--bg-card:#FFFFFF;--bg-soft:#FFE4EF;--text-main:#3B0764;--text-muted:#701A75;
+  --border-color:#F472B6;--accent-primary:#EC4899;--accent-secondary:#14B8A6;--accent-third:#8B5CF6;--accent-warn:#EAB308;--accent-bad:#E11D48;
+  --card-shadow:4px 4px 0px #F472B6;--card-border-width:2px;--code-bg:#3B0764;--code-text:#FDF4FF;--radius:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg-main);color:var(--text-main);font-family:"Noto Sans TC",system-ui,sans-serif;line-height:1.75;transition:background .3s,color .3s}
+code,pre{font-family:"JetBrains Mono",ui-monospace,monospace}
+a{color:var(--accent-primary)}
+/* header */
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg-main) 86%,transparent);backdrop-filter:blur(10px);border-bottom:var(--card-border-width) solid var(--border-color)}
+.top-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 18px;flex-wrap:wrap}
+.brand{font-weight:900;font-size:1.05rem;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand .dot{width:12px;height:12px;border-radius:50%;background:var(--accent-primary);box-shadow:0 0 0 0 var(--accent-primary);animation:dotpulse 1.8s infinite}
+@keyframes dotpulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent-primary) 60%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+nav.tabs button,.theme button{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);color:var(--text-main);border-radius:999px;padding:6px 13px;font:inherit;font-size:.86rem;cursor:pointer;transition:.2s}
+nav.tabs button:hover{border-color:var(--accent-primary)}
+nav.tabs button.active{background:var(--accent-primary);color:#fff;border-color:var(--accent-primary)}
+.theme{display:flex;gap:4px}
+.theme button.active{background:var(--text-main);color:var(--bg-main)}
+/* hero */
+.hero{max-width:1180px;margin:0 auto;padding:26px 18px 6px}
+.hero h1{margin:0;font-size:clamp(1.5rem,3.4vw,2.3rem);font-weight:900;letter-spacing:.5px}
+.hero p.sub{color:var(--text-muted);margin:.3rem 0 1rem}
+.roadmap-card{background:var(--bg-card);border:var(--card-border-width) solid var(--border-color);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:10px 8px 4px}
+.roadmap-card svg{width:100%;height:auto;display:block}
+.now{font-size:.9rem;color:var(--text-muted);text-align:center;padding:2px 0 8px}
+.now b{color:var(--accent-primary)}
+/* svg anims */
+.breathe{animation:svg-breathe 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.pulse-ring{animation:svg-pulse-ring 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.flow{stroke-dasharray:8 8;animation:svg-dash-flow 1s linear infinite}
+.blink{animation:blink 1.2s steps(2,start) infinite}
+@keyframes svg-breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.08);opacity:1}}
+@keyframes svg-pulse-ring{0%{transform:scale(.95);opacity:.8}100%{transform:scale(1.6);opacity:0}}
+@keyframes svg-dash-flow{to{stroke-dashoffset:-32}}
+@keyframes blink{to{visibility:hidden}}
+.node{cursor:pointer}
+.node .ring{opacity:0}
+.node.active .ring{opacity:1}
+.node.active .core{transform:scale(1.15)}
+.node .core{transition:transform .3s;transform-box:fill-box;transform-origin:center}
+/* main */
+main{max-width:1180px;margin:0 auto;padding:18px 18px 60px}
+section.chap{display:none;animation:fadein .35s}
+section.chap.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2{font-size:1.5rem;font-weight:900;margin:.6rem 0 .4rem;display:flex;align-items:center;gap:10px}
+h2 .num{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--accent-primary);color:#fff;font-size:1rem}
+h3{font-size:1.1rem;margin:1.2rem 0 .4rem}
+.card{background:var(--bg-card);border:var(--card-border-width) solid var(--border-color);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:18px 20px;margin:14px 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.muted{color:var(--text-muted)}
+.pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:.78rem;font-weight:700;border:var(--card-border-width) solid currentColor}
+.p-blue{color:var(--accent-primary)}.p-green{color:var(--accent-secondary)}.p-purple{color:var(--accent-third)}.p-warn{color:var(--accent-warn)}.p-bad{color:var(--accent-bad)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border-color);vertical-align:top}
+th{background:var(--bg-soft);font-weight:700}
+td code,p code,li code{background:var(--bg-soft);padding:1px 6px;border-radius:6px;font-size:.86em;color:var(--accent-third)}
+.callout{border-left:4px solid var(--accent-warn);background:color-mix(in srgb,var(--accent-warn) 10%,var(--bg-card));padding:10px 14px;border-radius:8px;margin:12px 0}
+.callout.info{border-color:var(--accent-primary);background:color-mix(in srgb,var(--accent-primary) 9%,var(--bg-card))}
+/* code */
+.codebox{position:relative;margin:10px 0 16px;border-radius:12px;overflow:hidden;border:var(--card-border-width) solid var(--border-color)}
+.codebox .bar{display:flex;justify-content:space-between;align-items:center;background:color-mix(in srgb,var(--code-bg) 88%,#fff);color:#CBD5E1;font-size:.8rem;padding:6px 12px}
+.codebox pre{margin:0;background:var(--code-bg);color:var(--code-text);padding:14px 16px;overflow-x:auto;font-size:.85rem;line-height:1.6}
+.copy{border:1px solid #475569;background:transparent;color:#E2E8F0;border-radius:8px;padding:3px 10px;font:inherit;font-size:.78rem;cursor:pointer}
+.copy:hover{border-color:#fff}
+.copy.done{background:#10B981;border-color:#10B981;color:#fff}
+.tok-k{color:#F472B6}.tok-s{color:#86EFAC}.tok-c{color:#94A3B8;font-style:italic}.tok-n{color:#FCD34D}
+/* sim */
+.sim{display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,1.3fr);gap:18px;align-items:center}
+@media(max-width:760px){.sim{grid-template-columns:1fr}}
+.ctrl label{display:block;font-weight:700;font-size:.9rem;margin-top:10px}
+.ctrl input[type=range]{width:100%;accent-color:var(--accent-primary)}
+.val{font-family:"JetBrains Mono";color:var(--accent-primary);font-weight:600}
+.result{font-size:1rem;padding:10px 14px;border-radius:10px;background:var(--bg-soft);margin-top:12px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.seg button{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);color:var(--text-main);border-radius:10px;padding:6px 12px;cursor:pointer;font:inherit;font-size:.88rem}
+.seg button.on{background:var(--accent-primary);color:#fff;border-color:var(--accent-primary)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:4px;width:28px;height:28px;border-radius:50%;background:var(--accent-secondary);color:#fff;display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.exnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.exlbl{margin:14px 0 4px;font-size:1rem;color:var(--accent-secondary)}
+.pm{border:var(--card-border-width) solid var(--border-color);border-radius:12px;overflow:hidden;background:var(--bg-card)}
+.pm-url{display:flex;gap:8px;align-items:center;padding:10px;background:var(--bg-soft);flex-wrap:wrap}
+.pm-method{font-weight:900;color:#F59E0B;font-family:"JetBrains Mono";padding:6px 10px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card)}
+.pm-addr{flex:1;min-width:220px;font-family:"JetBrains Mono";font-size:.82rem;padding:7px 10px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);overflow-x:auto;white-space:nowrap}
+.pm-send{background:#2563EB;color:#fff;font-weight:700;padding:7px 18px;border-radius:8px}
+.pm-tabs{display:flex;border-bottom:1px solid var(--border-color);flex-wrap:wrap}
+.pm-tabs button{background:none;border:none;border-bottom:3px solid transparent;color:var(--text-muted);padding:9px 14px;cursor:pointer;font:inherit;font-size:.9rem;position:relative}
+.pm-tabs button.on{color:var(--text-main);border-bottom-color:#F59E0B;font-weight:700}
+.pm-tabs button .hot{position:absolute;top:6px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--accent-secondary);animation:dotpulse 1.6s infinite}
+.pm-panel{padding:14px 16px}
+.pm-kv{width:100%;font-family:"JetBrains Mono";font-size:.84rem}
+.pm-kv td,.pm-kv th{border:1px solid var(--border-color)}
+.pager{display:flex;justify-content:space-between;margin-top:26px}
+.pager button{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);color:var(--text-main);padding:8px 16px;border-radius:10px;cursor:pointer;font:inherit}
+.pager button:hover{border-color:var(--accent-primary)}
+footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand"><span class="dot"></span>Decisions API</div>
+    <nav class="tabs" id="tabs"></nav>
+    <div class="theme" id="theme">
+      <button data-t="day" class="active">☀️ 白天</button>
+      <button data-t="night">🌙 黑夜</button>
+      <button data-t="candy">🍬 糖果</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Gemini Decision 1 · Decisions API 互動教學</h1>
+  <p class="sub">不生成文字、只回傳「機率」的判斷模型：是非題、單選題、評分題，一次最多 1,000 題。附 Colab 可直接執行的範例。</p>
+  <div class="roadmap-card">
+    <svg id="roadmap" viewBox="0 0 1000 150" role="img" aria-label="章節導覽">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g id="rm-lines"></g>
+      <g id="rm-nodes"></g>
+    </svg>
+    <div class="now" id="now"></div>
+  </div>
+</div>
+
+<main>
+
+<!-- ================= 1 ================= -->
+<section class="chap" id="c0">
+  <h2><span class="num">1</span>Decisions API 是什麼？</h2>
+  <div class="card">
+    <p>Decisions API 讓你把文字、PDF、音訊、圖片或影片丟進去，再問它一組<b>封閉式問題</b>（是非、單選、評分）。模型是 <code>gemini-decision-1</code>，回傳的不是一段文字，而是<b>校準過的機率</b>，程式可以直接拿來 <code>if</code> 判斷、排序或分流。</p>
+    <div class="grid3">
+      <div><span class="pill p-blue">不產生文字</span><p class="muted">輸出 token 固定為 0，只按輸入 token 計費。</p></div>
+      <div><span class="pill p-green">多題平行</span><p class="muted">同一份輸入可同時問 1～1,000 題，每題獨立評估、彼此看不到。</p></div>
+      <div><span class="pill p-purple">附信心值</span><p class="muted"><code>confidence</code> 可用來決定「自動處理」或「交給人工」。</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">資料流程：一份輸入 → 多個問題 → 機率 → 程式分流</h3>
+    <svg viewBox="0 0 960 300" style="width:100%;height:auto">
+      <!-- input -->
+      <g>
+        <rect x="20" y="95" width="180" height="110" rx="14" fill="var(--bg-soft)" stroke="var(--accent-primary)" stroke-width="2"/>
+        <text x="110" y="128" text-anchor="middle" fill="var(--text-main)" font-weight="700" font-size="17">input（共用）</text>
+        <text x="110" y="153" text-anchor="middle" fill="var(--text-muted)" font-size="13">文字 / PDF / 圖片</text>
+        <text x="110" y="173" text-anchor="middle" fill="var(--text-muted)" font-size="13">音訊 / 影片</text>
+        <text x="110" y="193" text-anchor="middle" fill="var(--text-muted)" font-size="12">只計算一次</text>
+      </g>
+      <!-- model -->
+      <circle cx="380" cy="150" r="58" fill="var(--accent-primary)" opacity=".18" class="pulse-ring"/>
+      <circle cx="380" cy="150" r="54" fill="var(--bg-card)" stroke="var(--accent-primary)" stroke-width="3" class="breathe" filter="url(#glow)"/>
+      <text x="380" y="146" text-anchor="middle" fill="var(--text-main)" font-weight="900" font-size="15">gemini-</text>
+      <text x="380" y="166" text-anchor="middle" fill="var(--text-main)" font-weight="900" font-size="15">decision-1</text>
+      <path d="M200 150 L326 150" stroke="var(--accent-primary)" stroke-width="3" fill="none" class="flow"/>
+      <!-- questions -->
+      <g font-size="14">
+        <path d="M434 150 C480 150 480 60 540 60" stroke="var(--accent-primary)" stroke-width="2.5" fill="none" class="flow"/>
+        <path d="M434 150 L540 150" stroke="var(--accent-secondary)" stroke-width="2.5" fill="none" class="flow"/>
+        <path d="M434 150 C480 150 480 240 540 240" stroke="var(--accent-third)" stroke-width="2.5" fill="none" class="flow"/>
+        <rect x="540" y="35" width="190" height="50" rx="10" fill="var(--bg-card)" stroke="var(--accent-primary)" stroke-width="2"/>
+        <text x="635" y="57" text-anchor="middle" fill="var(--text-main)" font-weight="700">noul 是非題</text>
+        <text x="635" y="76" text-anchor="middle" fill="var(--text-muted)" font-size="12">noul = 0.93</text>
+        <rect x="540" y="125" width="190" height="50" rx="10" fill="var(--bg-card)" stroke="var(--accent-secondary)" stroke-width="2"/>
+        <text x="635" y="147" text-anchor="middle" fill="var(--text-main)" font-weight="700">choice 單選題</text>
+        <text x="635" y="166" text-anchor="middle" fill="var(--text-muted)" font-size="12">choice = "refund"</text>
+        <rect x="540" y="215" width="190" height="50" rx="10" fill="var(--bg-card)" stroke="var(--accent-third)" stroke-width="2"/>
+        <text x="635" y="237" text-anchor="middle" fill="var(--text-main)" font-weight="700">score 評分題</text>
+        <text x="635" y="256" text-anchor="middle" fill="var(--text-muted)" font-size="12">score = 2.7 / 4</text>
+      </g>
+      <!-- router -->
+      <path d="M730 60 C780 60 780 150 820 150 M730 150 L820 150 M730 240 C780 240 780 150 820 150" stroke="var(--text-muted)" stroke-width="2" fill="none" class="flow"/>
+      <rect x="820" y="110" width="125" height="80" rx="12" fill="var(--accent-secondary)" opacity=".15"/>
+      <rect x="820" y="110" width="125" height="80" rx="12" fill="none" stroke="var(--accent-secondary)" stroke-width="2"/>
+      <text x="882" y="143" text-anchor="middle" fill="var(--text-main)" font-weight="700">你的 if 判斷</text>
+      <text x="882" y="166" text-anchor="middle" fill="var(--text-muted)" font-size="12">自動 / 轉人工</text>
+      <circle cx="935" cy="118" r="5" fill="var(--accent-warn)" class="blink"/>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">基本資訊</h3>
+    <table>
+      <tr><th style="width:28%">項目</th><th>內容</th></tr>
+      <tr><td>模型名稱</td><td><code>gemini-decision-1</code></td></tr>
+      <tr><td>端點</td><td><code>POST https://generativelanguage.googleapis.com/v1beta/decisions</code></td></tr>
+      <tr><td>API 版本</td><td><code>v1beta</code>，只在 Gemini Developer API（AI Studio 金鑰）提供</td></tr>
+      <tr><td>Python SDK</td><td><code>google-genai</code> 3.2 以上，呼叫 <code>client.decisions.create(...)</code></td></tr>
+      <tr><td>認證</td><td>HTTP 標頭 <code>x-goog-api-key</code></td></tr>
+      <tr><td>計費</td><td>只算輸入 token；實際費率見 AI Studio Pricing 頁的 Gemini Decision 區塊</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">跟一般 generate_content 有什麼不同？</h3>
+    <table>
+      <tr><th></th><th>generate_content（一般聊天）</th><th>decisions.create</th></tr>
+      <tr><td>輸出</td><td>一段文字（可能要再 parse）</td><td>數字機率，可直接比較大小</td></tr>
+      <tr><td>多題</td><td>一次一個 prompt</td><td>一份 input 配最多 1,000 題</td></tr>
+      <tr><td>適合</td><td>摘要、寫作、對話</td><td>分類、篩選、批改、品質檢查、路由</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="chap" id="c1">
+  <h2><span class="num">2</span>三種題型與互動模擬</h2>
+  <div class="card">
+    <p>每一題都必須有 <code>type</code> 和 <code>instructions</code>；<code>criteria</code> 依題型而定。</p>
+    <table>
+      <tr><th>type</th><th>用途</th><th>criteria</th><th>回傳欄位</th></tr>
+      <tr><td><span class="pill p-blue">noul</span></td><td>是非題：某陳述成立嗎？</td><td>選填：<code>{"true_description":..., "false_description":...}</code></td><td><code>noul</code>（0.01～0.99）、<code>confidence</code></td></tr>
+      <tr><td><span class="pill p-green">choice</span></td><td>從固定選項中選一個</td><td>必填：<code>{選項ID: 說明}</code>，說明可為 <code>""</code></td><td><code>choice</code>、<code>probabilities</code>、<code>confidence</code></td></tr>
+      <tr><td><span class="pill p-purple">score</span></td><td>依有序量尺評分</td><td>必填：由低到高的字串陣列，2～255 級（建議 2～10）</td><td><code>score</code>、<code>probabilities</code>、<code>legend</code>、<code>confidence</code></td></tr>
+    </table>
+    <div class="callout">⚠️ 是非題的 type 字串在官方文件中寫作 <code>"noul"</code>（不是 <code>"boolean"</code>），請照抄。</div>
+  </div>
+
+  <!-- noul sim -->
+  <div class="card">
+    <h3 style="margin-top:0">🎛️ 模擬器 A：noul 機率 → confidence → 自動或轉人工</h3>
+    <div class="sim">
+      <div class="ctrl">
+        <label>模型回傳的 noul（判定為「是」的機率）：<span class="val" id="nv">0.85</span></label>
+        <input type="range" id="nIn" min="0.01" max="0.99" step="0.01" value="0.85">
+        <label>你設定的信心門檻：<span class="val" id="tv">0.80</span></label>
+        <input type="range" id="tIn" min="0.5" max="0.99" step="0.01" value="0.80">
+        <div class="result" id="nRes"></div>
+        <p class="muted" style="font-size:.85rem">公式：<code>confidence = max(noul, 1 − noul)</code>；否定機率 = <code>1 − noul</code></p>
+      </div>
+      <svg viewBox="0 0 420 240" style="width:100%">
+        <text x="20" y="28" fill="var(--text-muted)" font-size="13">P(否) = 1 − noul</text>
+        <text x="400" y="28" fill="var(--text-muted)" font-size="13" text-anchor="end">P(是) = noul</text>
+        <rect x="20" y="40" width="380" height="36" rx="8" fill="var(--bg-soft)" stroke="var(--border-color)"/>
+        <rect id="nNo" x="20" y="40" width="57" height="36" rx="8" fill="var(--accent-bad)" opacity=".75"/>
+        <rect id="nYes" x="77" y="40" width="323" height="36" rx="8" fill="var(--accent-secondary)" opacity=".85"/>
+        <text id="nNoT" x="30" y="64" fill="#fff" font-size="13" font-weight="700"></text>
+        <text id="nYesT" x="390" y="64" fill="#fff" font-size="13" font-weight="700" text-anchor="end"></text>
+        <!-- confidence gauge -->
+        <text x="20" y="118" fill="var(--text-main)" font-size="14" font-weight="700">confidence</text>
+        <rect x="20" y="128" width="380" height="16" rx="8" fill="var(--bg-soft)" stroke="var(--border-color)"/>
+        <rect id="cBar" x="20" y="128" width="300" height="16" rx="8" fill="var(--accent-primary)"/>
+        <line id="thLine" x1="320" y1="120" x2="320" y2="152" stroke="var(--accent-warn)" stroke-width="3"/>
+        <text id="thTxt" x="320" y="168" fill="var(--accent-warn)" font-size="12" text-anchor="middle">門檻</text>
+        <!-- decision lamp -->
+        <circle id="lampRing" cx="60" cy="208" r="16" fill="var(--accent-secondary)" class="pulse-ring"/>
+        <circle id="lamp" cx="60" cy="208" r="14" fill="var(--accent-secondary)" class="breathe"/>
+        <text id="lampTxt" x="90" y="214" fill="var(--text-main)" font-size="16" font-weight="700"></text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- choice sim -->
+  <div class="card">
+    <h3 style="margin-top:0">🎛️ 模擬器 B：choice 的 probabilities</h3>
+    <p class="muted">拖動滑桿改變模型「原始傾向」，系統會自動正規化成總和為 1 的 <code>probabilities</code>；機率最高者就是 <code>choice</code>，其機率即 <code>confidence</code>。</p>
+    <div class="sim">
+      <div class="ctrl" id="chCtrl"></div>
+      <svg viewBox="0 0 420 230" style="width:100%" id="chSvg"></svg>
+    </div>
+  </div>
+
+  <!-- score sim -->
+  <div class="card">
+    <h3 style="margin-top:0">🎛️ 模擬器 C：score 是「機率加權平均」</h3>
+    <p class="muted">評分量尺 <code>criteria</code> 有 5 級（索引 0～4）。<code>score = Σ 索引 × 機率</code>，所以可能落在兩級之間，例如 2.7。</p>
+    <div class="seg" id="scPreset">
+      <button data-p="sharp" class="on">模型很確定（集中）</button>
+      <button data-p="split">兩級之間猶豫</button>
+      <button data-p="flat">完全不確定（平均）</button>
+    </div>
+    <div class="sim">
+      <div class="ctrl" id="scCtrl"></div>
+      <svg viewBox="0 0 420 260" style="width:100%" id="scSvg"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="chap" id="c2">
+  <h2><span class="num">3</span>參數完整說明</h2>
+
+  <div class="card">
+    <h3 style="margin-top:0">請求本體（Request body）</h3>
+    <table>
+      <tr><th>欄位</th><th>型別</th><th>必填</th><th>說明</th></tr>
+      <tr><td><code>model</code></td><td>string</td><td>是</td><td>固定 <code>"gemini-decision-1"</code></td></tr>
+      <tr><td><code>input</code></td><td>string / Content / Content[]</td><td>是</td><td>所有題目共用的上下文，不能為空。相鄰文字區塊會直接串接，不會自動加空白，需自行加 <code>\n</code></td></tr>
+      <tr><td><code>questions</code></td><td>map（string → Question）</td><td>是</td><td>1～1,000 題。鍵名只能用 <code>[A-Za-z0-9_-]</code>、最長 64 字元；回答會用同樣鍵名回傳</td></tr>
+    </table>
+    <h3>Question 物件</h3>
+    <table>
+      <tr><th>欄位</th><th>必填</th><th>說明</th></tr>
+      <tr><td><code>type</code></td><td>是</td><td><code>"noul"</code> / <code>"choice"</code> / <code>"score"</code></td></tr>
+      <tr><td><code>instructions</code></td><td>是</td><td>要問的問題，只能是文字（string、TextContent 或其陣列）</td></tr>
+      <tr><td><code>criteria</code></td><td>choice、score 必填</td><td>見上一章各題型說明</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🔍 input 與 instructions 有什麼不同？</h3>
+    <p>一句話：<b>input 是「要被判斷的資料」，instructions 是「要問的問題」</b>。同一份 input 可以被很多題目共用，每題各有自己的 instructions。</p>
+    <svg viewBox="0 0 960 250" style="width:100%;height:auto">
+      <rect x="20" y="60" width="250" height="130" rx="14" fill="var(--bg-soft)" stroke="var(--accent-primary)" stroke-width="2.5" class="breathe"/>
+      <text x="145" y="92" text-anchor="middle" fill="var(--accent-primary)" font-weight="900" font-size="18">input（共用一次）</text>
+      <text x="145" y="120" text-anchor="middle" fill="var(--text-main)" font-size="14">學生答案 / 照片 / PDF</text>
+      <text x="145" y="142" text-anchor="middle" fill="var(--text-main)" font-size="14">客服對話 / 音訊 / 影片</text>
+      <text x="145" y="170" text-anchor="middle" fill="var(--text-muted)" font-size="12">可多模態・不可為空・token 只算一次</text>
+      <path d="M270 125 C340 125 340 45 420 45" stroke="var(--accent-primary)" stroke-width="2.5" fill="none" class="flow"/>
+      <path d="M270 125 L420 125" stroke="var(--accent-primary)" stroke-width="2.5" fill="none" class="flow"/>
+      <path d="M270 125 C340 125 340 205 420 205" stroke="var(--accent-primary)" stroke-width="2.5" fill="none" class="flow"/>
+      <g font-size="13">
+        <rect x="420" y="20" width="330" height="50" rx="10" fill="var(--bg-card)" stroke="var(--accent-secondary)" stroke-width="2"/>
+        <text x="435" y="42" fill="var(--text-main)" font-weight="700">Q1 instructions：答案是否提到 dropout？</text>
+        <text x="435" y="61" fill="var(--text-muted)">type: noul（只能是文字）</text>
+        <rect x="420" y="100" width="330" height="50" rx="10" fill="var(--bg-card)" stroke="var(--accent-secondary)" stroke-width="2"/>
+        <text x="435" y="122" fill="var(--text-main)" font-weight="700">Q2 instructions：屬於哪一種錯誤類型？</text>
+        <text x="435" y="141" fill="var(--text-muted)">type: choice + criteria</text>
+        <rect x="420" y="180" width="330" height="50" rx="10" fill="var(--bg-card)" stroke="var(--accent-secondary)" stroke-width="2"/>
+        <text x="435" y="202" fill="var(--text-main)" font-weight="700">Q3 instructions：依量尺評分</text>
+        <text x="435" y="221" fill="var(--text-muted)">type: score + criteria</text>
+      </g>
+      <g stroke="var(--accent-warn)" stroke-width="2" stroke-dasharray="4 5">
+        <line x1="760" y1="70" x2="760" y2="100"/><line x1="760" y1="150" x2="760" y2="180"/>
+      </g>
+      <circle cx="760" cy="85" r="5" fill="var(--accent-warn)" class="blink"/>
+      <circle cx="760" cy="165" r="5" fill="var(--accent-warn)" class="blink"/>
+      <text x="780" y="120" fill="var(--accent-warn)" font-size="13" font-weight="700">題目彼此看不到</text>
+      <text x="780" y="140" fill="var(--text-muted)" font-size="12">各自獨立評估</text>
+    </svg>
+    <table>
+      <tr><th style="width:20%"></th><th>input</th><th>instructions</th></tr>
+      <tr><td>角色</td><td>被判斷的材料（證據、上下文）</td><td>要回答的問題（判斷標準的題幹）</td></tr>
+      <tr><td>位置</td><td>請求最外層，只有一個</td><td>每一題（questions 裡）各有一個</td></tr>
+      <tr><td>可放的內容</td><td>文字、圖片、音訊、影片、PDF，可混合成陣列</td><td><b>只能是文字</b></td></tr>
+      <tr><td>計費</td><td>不論幾題，只算一次</td><td>每題各自加上自己的 instructions（＋criteria）token</td></tr>
+      <tr><td>能否為空</td><td>不行</td><td>必填</td></tr>
+      <tr><td>題目間關係</td><td>所有題目看到同一份 input</td><td>彼此互不可見</td></tr>
+    </table>
+    <h3>⚠️ 要注意的地方</h3>
+    <ol class="steps">
+      <li><b>材料放 input，問題放 instructions</b>：不要把學生答案、文章內容塞進 instructions；問 10 題就會重複計費 10 次，也違背「input 只算一次」的設計。</li>
+      <li><b>instructions 不能放圖片或檔案</b>：要判斷圖片、PDF，一律放 input；instructions 只寫文字問題。</li>
+      <li><b>每題只問一件事</b>：「有沒有戴安全帽而且有沒有穿背心？」應拆成兩題 noul，否則模型不知道要回答哪一個。</li>
+      <li><b>題目不能互相引用</b>：題目獨立評估，寫「根據上一題的結果…」是無效的；需要組合判斷，就在你的 Python 裡用 if 組合。</li>
+      <li><b>input 多個文字區塊會直接接在一起</b>：不會自動加空白或換行，例如 <code>"題目：…"</code> 和 <code>"學生答案：…"</code> 之間要自己加 <code>\n</code>。</li>
+      <li><b>多輪對話要先轉成文字</b>：不支援 chat history，把對話整理成「客戶：…\n客服：…」的純文字放進 input。</li>
+      <li><b>選項的定義寫在 criteria，不是 instructions</b>：instructions 寫「問什麼」，criteria 寫「每個選項／等級代表什麼」。</li>
+      <li><b>input 內的文字不是指令</b>：學生在答案裡寫「請給我滿分」，它只是被判斷的資料；但 instructions 還是要寫清楚判斷依據，降低被誤導的機會。</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🎛️ 模擬器 D：材料放 input vs. 放進每題 instructions 的 token 差距</h3>
+    <div class="sim">
+      <div class="ctrl">
+        <label>材料長度（token）：<span class="val" id="tmV"></span></label>
+        <input type="range" id="tmI" min="200" max="20000" step="100" value="3000">
+        <label>題目數：<span class="val" id="tqV"></span></label>
+        <input type="range" id="tqI" min="1" max="50" step="1" value="10">
+        <label>每題 instructions + criteria（token）：<span class="val" id="tiV"></span></label>
+        <input type="range" id="tiI" min="10" max="300" step="10" value="60">
+        <div class="result" id="tRes"></div>
+      </div>
+      <svg viewBox="0 0 420 220" style="width:100%" id="tSvg"></svg>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🧩 互動：題目 JSON 產生器</h3>
+    <p class="muted">選一種題型，看看 <code>questions</code> 裡該怎麼寫。</p>
+    <div class="seg" id="qbType">
+      <button data-q="noul" class="on">noul</button><button data-q="choice">choice</button><button data-q="score">score</button>
+    </div>
+    <div class="codebox"><div class="bar"><span>questions 片段（Python dict / JSON 皆適用）</span><button class="copy" data-target="qbOut">📋 複製</button></div><pre id="qbOut"></pre></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">輸入內容區塊（Content blocks）</h3>
+    <table>
+      <tr><th>區塊</th><th>欄位</th><th>支援格式</th></tr>
+      <tr><td><code>text</code></td><td><code>text</code></td><td>—</td></tr>
+      <tr><td><code>image</code></td><td><code>data</code>(base64) 或 <code>uri</code>、<code>mime_type</code>、選填 <code>resolution</code></td><td>png、jpeg、webp、heic、heif、gif、bmp、tiff</td></tr>
+      <tr><td><code>audio</code></td><td><code>data</code> 或 <code>uri</code>、<code>mime_type</code></td><td>wav、mp3、mpeg、aiff、aac、ogg、flac、m4a、opus、webm 等</td></tr>
+      <tr><td><code>video</code></td><td><code>data</code> 或 <code>uri</code>、<code>mime_type</code>、選填 <code>resolution</code></td><td>mp4、mpeg、mov、avi、webm、wmv、x-flv、3gpp</td></tr>
+      <tr><td><code>document</code></td><td><code>data</code> 或 <code>uri</code>、<code>mime_type</code></td><td><code>application/pdf</code></td></tr>
+    </table>
+    <p><code>resolution</code>：<code>low</code> / <code>medium</code> / <code>high</code> / <code>ultra_high</code>（ultra_high 只限圖片）。解析度越高細節越多、token 也越多。</p>
+    <div class="callout info">媒體可用：base64 內嵌、Files API 上傳後的 URI、公開或簽章的 HTTPS 網址。<b>不支援</b> YouTube 網址與 <code>gs://</code>。</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">回應（Response）</h3>
+    <table>
+      <tr><th>欄位</th><th>說明</th></tr>
+      <tr><td><code>answers</code></td><td>每題一個答案，鍵名同 <code>questions</code></td></tr>
+      <tr><td><code>noul</code> 題</td><td><code>noul</code>：「是」的機率；<code>confidence</code> = max(noul, 1−noul)</td></tr>
+      <tr><td><code>choice</code> 題</td><td><code>choice</code>：機率最高的選項；<code>probabilities</code>：各選項機率（總和 1）；<code>confidence</code></td></tr>
+      <tr><td><code>score</code> 題</td><td><code>score</code>：加權平均（可介於兩級之間）；<code>legend</code>：索引對應文字；<code>probabilities</code>；<code>confidence</code></td></tr>
+      <tr><td><code>usage</code></td><td><code>total_input_tokens</code>、<code>input_tokens_by_modality</code>、<code>total_output_tokens</code>（固定 0）、<code>total_tokens</code></td></tr>
+      <tr><td>安全過濾</td><td>被擋時回 HTTP 400，<code>error.code</code> 為 <code>safety</code> / <code>prohibited_content</code> / <code>blocklist</code> / <code>image_safety</code> / <code>content_blocked</code></td></tr>
+    </table>
+    <div class="codebox"><div class="bar"><span>回應範例（JSON）</span><button class="copy" data-target="respEx">📋 複製</button></div><pre id="respEx"></pre></div>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="chap" id="c3">
+  <h2><span class="num">4</span>在 Colab 設定與讀取 API Key</h2>
+  <div class="card">
+    <svg viewBox="0 0 960 170" style="width:100%;height:auto" id="keyFlow">
+      <g id="kfNodes"></g>
+    </svg>
+    <div class="seg" id="kfBtns" style="justify-content:center"></div>
+    <div class="result" id="kfTxt"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">步驟</h3>
+    <ol class="steps">
+      <li><b>取得金鑰</b>：到 <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a> 按「Create API key」，複製那串 <code>AIza...</code>。</li>
+      <li><b>存進 Colab Secrets</b>：在 Colab 左側欄點 <b>🔑（Secrets／密鑰）</b> → 「新增密鑰」→ 名稱填 <code>GEMINI_API_KEY</code>、值貼上金鑰 → 打開「筆記本存取權」開關。</li>
+      <li><b>程式讀取</b>：用 <code>google.colab.userdata.get("GEMINI_API_KEY")</code> 取出，再交給 <code>genai.Client</code>。第一次執行時 Colab 會跳出授權視窗，按允許即可。</li>
+      <li><b>分享筆記本時</b>：Secrets 不會跟著筆記本被分享，學生需各自設定自己的金鑰。</li>
+    </ol>
+    <div class="callout">🚫 不要把金鑰直接寫在程式碼裡（例如 <code>api_key="AIza..."</code>）。分享 .ipynb 或上傳 GitHub 時會外洩。</div>
+  </div>
+
+  <div class="codebox"><div class="bar"><span>Cell 1：安裝 SDK（需 3.2 以上）</span><button class="copy" data-target="k1">📋 複製</button></div><pre id="k1"></pre></div>
+  <div class="codebox"><div class="bar"><span>Cell 2：讀取金鑰並建立 client（推薦寫法）</span><button class="copy" data-target="k2">📋 複製</button></div><pre id="k2"></pre></div>
+  <div class="codebox"><div class="bar"><span>替代寫法：沒有設定 Secrets 時，用隱藏輸入框臨時貼上</span><button class="copy" data-target="k3">📋 複製</button></div><pre id="k3"></pre></div>
+  <div class="callout info">SDK 也會自動讀取環境變數 <code>GEMINI_API_KEY</code>（或 <code>GOOGLE_API_KEY</code>）。上面範例另外明確傳入 <code>api_key=</code>，比較不容易出錯。</div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="chap" id="c4">
+  <h2><span class="num">5</span>Colab 範例集</h2>
+  <p class="muted">以下每個範例都假設已執行第 4 章的 Cell 1、Cell 2（已有 <code>client</code> 變數）。</p>
+  <div class="exnav seg" id="exNav"></div>
+  <div class="card" id="exCard">
+    <h3 id="exTitle" style="margin-top:0"></h3>
+    <p id="exDesc" class="muted"></p>
+    <h4 id="exLblA" class="exlbl" style="display:none"></h4>
+    <div class="codebox"><div class="bar"><span id="exLang">Python</span><button class="copy" data-target="exCode">📋 複製</button></div><pre id="exCode"></pre></div>
+    <div id="exB" style="display:none">
+      <h4 id="exLblB" class="exlbl"></h4>
+      <div class="codebox"><div class="bar"><span>Python</span><button class="copy" data-target="exCode2">📋 複製</button></div><pre id="exCode2"></pre></div>
+    </div>
+    <div id="exNote"></div>
+  </div>
+</section>
+
+<!-- ================= 6 Postman ================= -->
+<section class="chap" id="c5">
+  <h2><span class="num">6</span>用 Postman 測試 API</h2>
+  <div class="card">
+    <p><b>Postman</b> 是一個圖形化的 API 測試工具（有桌面版與網頁版，免費帳號即可使用）。不用寫程式，只要填好<b>方法、網址、Headers、Body</b> 按 Send，就能看到 API 回傳的原始 JSON。很適合在寫 Colab 程式前，先確認金鑰、格式、題目寫法都正確。</p>
+    <svg viewBox="0 0 960 200" style="width:100%;height:auto">
+      <g font-size="14">
+        <rect x="20" y="20" width="300" height="160" rx="14" fill="var(--bg-soft)" stroke="var(--accent-warn)" stroke-width="2.5"/>
+        <text x="170" y="48" text-anchor="middle" fill="var(--accent-warn)" font-weight="900" font-size="17">一個 HTTP 請求</text>
+        <rect x="40" y="62" width="260" height="30" rx="7" fill="var(--bg-card)" stroke="var(--border-color)"/>
+        <text x="52" y="82" fill="var(--text-main)"><tspan font-weight="700" fill="var(--accent-secondary)">POST</tspan>  …/v1beta/decisions</text>
+        <rect x="40" y="100" width="260" height="30" rx="7" fill="var(--bg-card)" stroke="var(--border-color)"/>
+        <text x="52" y="120" fill="var(--text-main)"><tspan font-weight="700" fill="var(--accent-primary)">Headers</tspan>  金鑰 + 資料格式</text>
+        <rect x="40" y="138" width="260" height="30" rx="7" fill="var(--bg-card)" stroke="var(--border-color)"/>
+        <text x="52" y="158" fill="var(--text-main)"><tspan font-weight="700" fill="var(--accent-third)">Body</tspan>  JSON：model/input/questions</text>
+      </g>
+      <path d="M320 100 L470 100" stroke="var(--accent-warn)" stroke-width="3" fill="none" class="flow"/>
+      <text x="395" y="88" text-anchor="middle" fill="var(--text-muted)" font-size="13">Send ▶</text>
+      <circle cx="540" cy="100" r="62" fill="var(--accent-primary)" opacity=".15" class="pulse-ring"/>
+      <circle cx="540" cy="100" r="56" fill="var(--bg-card)" stroke="var(--accent-primary)" stroke-width="3" class="breathe"/>
+      <text x="540" y="96" text-anchor="middle" fill="var(--text-main)" font-weight="900" font-size="14">Google</text>
+      <text x="540" y="116" text-anchor="middle" fill="var(--text-main)" font-weight="900" font-size="14">Gemini API</text>
+      <path d="M596 100 L700 100" stroke="var(--accent-secondary)" stroke-width="3" fill="none" class="flow"/>
+      <rect x="700" y="40" width="240" height="120" rx="14" fill="var(--bg-soft)" stroke="var(--accent-secondary)" stroke-width="2.5"/>
+      <text x="820" y="70" text-anchor="middle" fill="var(--accent-secondary)" font-weight="900" font-size="17">Response</text>
+      <text x="820" y="98" text-anchor="middle" fill="var(--text-main)" font-size="14">200 OK → answers + usage</text>
+      <text x="820" y="124" text-anchor="middle" fill="var(--text-main)" font-size="14">400 → error.code / message</text>
+      <circle cx="925" cy="52" r="5" fill="var(--accent-secondary)" class="blink"/>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🖱️ 互動：Postman 畫面該怎麼填？（點分頁看說明）</h3>
+    <div class="pm">
+      <div class="pm-url"><span class="pm-method">POST</span><span class="pm-addr">https://generativelanguage.googleapis.com/v1beta/decisions</span><span class="pm-send">Send</span></div>
+      <div class="pm-tabs" id="pmTabs"></div>
+      <div class="pm-panel" id="pmPanel"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">操作步驟</h3>
+    <ol class="steps">
+      <li><b>建立 Environment 存放金鑰</b>：左側 Environments → ＋ → 命名（例如 Gemini）→ 新增變數 <code>GEMINI_API_KEY</code>，Type 選 <b>secret</b>，Current value 貼上金鑰 → Save。右上角環境選單選取它。</li>
+      <li><b>新增請求</b>：New → HTTP（或 ＋ 分頁），方法下拉選 <b>POST</b>，網址貼上 <code>https://generativelanguage.googleapis.com/v1beta/decisions</code>。</li>
+      <li><b>Headers</b>：新增兩列 — <code>x-goog-api-key</code> = <code>{{GEMINI_API_KEY}}</code>、<code>Content-Type</code> = <code>application/json</code>。</li>
+      <li><b>Body</b>：選 <b>raw</b>，右側格式選 <b>JSON</b>，貼上下方任一個 Body 範例。</li>
+      <li><b>Send</b>：下方 Response 區看狀態碼（200 / 400）與 JSON 結果，右上可看耗時與大小。</li>
+      <li><b>轉成程式碼</b>：右側欄的 <code>&lt;/&gt;</code>（Code）可把這個請求轉成 Python requests、cURL 等程式碼，直接貼到 Colab。</li>
+    </ol>
+    <div class="callout info">💡 捷徑：左上 <b>Import</b> → 貼上下面這段 cURL（官方 REST 範例），Postman 會自動拆成方法、網址、Headers 與 Body。</div>
+    <div class="codebox"><div class="bar"><span>cURL（貼到 Postman Import）</span><button class="copy" data-target="pmCurl">📋 複製</button></div><pre id="pmCurl"></pre></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Body 範例（raw → JSON）</h3>
+    <div class="seg" id="pmBodyNav"></div>
+    <p class="muted" id="pmBodyDesc"></p>
+    <div class="codebox"><div class="bar"><span>Body · raw · JSON</span><button class="copy" data-target="pmBody">📋 複製</button></div><pre id="pmBody"></pre></div>
+    <div class="callout">⚠️ JSON 不能有註解（<code>#</code> 或 <code>//</code>）、最後一個項目後不能有逗號、字串一定用雙引號。Python 範例裡的 <code>True</code>/<code>None</code> 在 JSON 要寫成 <code>true</code>/<code>null</code>。</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">常見問題</h3>
+    <table>
+      <tr><th>狀況</th><th>原因與解法</th></tr>
+      <tr><td>401 / 403、API key not valid</td><td>環境沒選到（右上角顯示 No environment）、變數名稱打錯，或 <code>{{ }}</code> 變數顯示紅色代表找不到</td></tr>
+      <tr><td>404</td><td>網址少了 <code>v1beta</code>，或多了空白</td></tr>
+      <tr><td>400 + 解析錯誤</td><td>Body 不是合法 JSON（多逗號、有註解）、或 Body 格式選成 Text 而非 JSON</td></tr>
+      <tr><td>400 + error.code 為 safety 類</td><td>內容被安全過濾擋下</td></tr>
+      <tr><td>圖片 base64 太長貼不進去</td><td>改用公開 HTTPS 圖片網址（<code>uri</code>，上限 15 MB），或在 Colab 用程式送</td></tr>
+    </table>
+    <div class="callout">🔐 匯出或分享 Collection 前，確認金鑰只放在 Environment 的 secret 變數，不要直接寫在 Headers 裡。</div>
+  </div>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="chap" id="c6">
+  <h2><span class="num">7</span>限制與注意事項</h2>
+  <div class="card">
+    <table>
+      <tr><th>項目</th><th>上限 / 規則</th></tr>
+      <tr><td>每次請求題數</td><td>1～1,000（仍受上下文長度限制）</td></tr>
+      <tr><td>上下文窗口</td><td>共用輸入 + 所有題目合計 262,144 token</td></tr>
+      <tr><td>choice 選項數</td><td>2～255；選項鍵名 1～128 字元（≤512 UTF-8 bytes）</td></tr>
+      <tr><td>score 等級數</td><td>2～255（建議 2～10）</td></tr>
+      <tr><td>內嵌資料</td><td>單次請求 ≤ 100 MB（PDF ≤ 50 MB）；URI 外部網址 ≤ 15 MB</td></tr>
+      <tr><td>JSON 巢狀深度</td><td>100 層</td></tr>
+    </table>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3 style="margin-top:0">❌ 不支援</h3>
+      <ul><li>對話歷史、thought、tool-call 區塊（多輪對話要自己轉成文字）</li><li>context caching、Batch API、Flex / Priority 推論</li><li>YouTube 網址、<code>gs://</code> URI</li><li>Vertex AI（目前只有 Gemini Developer API v1beta）</li></ul></div>
+    <div class="card"><h3 style="margin-top:0">✅ 實用建議</h3>
+      <ul><li>同一份輸入要問很多事 → 放進同一個請求，輸入只算一次</li><li>題目獨立評估：不要寫「根據上一題…」</li><li>用 <code>confidence</code> 設門檻，低信心交給人工複核</li><li>score 量尺描述要寫清楚每級的差別</li><li>重複輸入每次都會重新計費（無快取）</li></ul></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">常見錯誤排查</h3>
+    <table>
+      <tr><th>症狀</th><th>可能原因</th></tr>
+      <tr><td><code>AttributeError: 'Client' object has no attribute 'decisions'</code></td><td>SDK 太舊，執行 <code>!pip install -U google-genai</code> 後「重新啟動工作階段」</td></tr>
+      <tr><td>404 / 找不到端點</td><td>沒有指定 <code>http_options={"api_version": "v1beta"}</code></td></tr>
+      <tr><td>400 + <code>error.code</code> 為 safety 類</td><td>內容被安全過濾擋下</td></tr>
+      <tr><td>400 + 驗證錯誤</td><td>題目鍵名含中文或空白、choice/score 缺 criteria、type 拼錯</td></tr>
+      <tr><td><code>SecretNotFoundError</code></td><td>Colab Secrets 名稱不一致，或沒開啟筆記本存取權</td></tr>
+    </table>
+  </div>
+  <p class="muted" style="font-size:.85rem">資料來源：<a href="https://aistudio.google.com/docs/decisions-api">Google AI Studio · Decisions API 文件</a>（2026-11 整理）。API 為 v1beta，欄位可能變動，以官方文件為準。</p>
+</section>
+
+<div class="pager"><button id="prev">← 上一章</button><button id="next">下一章 →</button></div>
+</main>
+<footer>Gemini Decisions API 互動教學 · 單頁講義</footer>
+
+<!-- ============ code snippets ============ -->
+<script type="text/plain" id="src-resp">{
+  "answers": {
+    "is_damaged": { "type": "noul", "noul": 0.99, "confidence": 0.99 }
+  },
+  "usage": {
+    "total_input_tokens": 100,
+    "input_tokens_by_modality": [{ "modality": "text", "tokens": 100 }],
+    "total_output_tokens": 0,
+    "total_tokens": 100
+  }
+}</script>
+
+<script type="text/plain" id="src-k1">!pip install -q -U google-genai
+
+# 確認版本（需 3.2 以上）。若剛升級，請「執行階段 → 重新啟動工作階段」再往下跑
+import google.genai
+print(google.genai.__version__)</script>
+
+<script type="text/plain" id="src-k2">import os
+from google.colab import userdata
+from google import genai
+
+# 從 Colab 左側 🔑 Secrets 讀取名為 GEMINI_API_KEY 的密鑰
+GEMINI_API_KEY = userdata.get("GEMINI_API_KEY")
+os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY   # 給之後的 REST 範例用
+
+# Decisions API 目前在 v1beta，必須指定 api_version
+client = genai.Client(
+    api_key=GEMINI_API_KEY,
+    http_options={"api_version": "v1beta"},
+)
+print("client 建立完成 ✅")</script>
+
+<script type="text/plain" id="src-k3">import os
+from getpass import getpass
+from google import genai
+
+# 執行後會出現輸入框，貼上金鑰按 Enter（畫面不會顯示）
+os.environ["GEMINI_API_KEY"] = getpass("請貼上 Gemini API Key：")
+
+client = genai.Client(
+    api_key=os.environ["GEMINI_API_KEY"],
+    http_options={"api_version": "v1beta"},
+)</script>
+
+<script type="text/plain" id="ex-1">result = client.decisions.create(
+    model="gemini-decision-1",
+    input="The blue mug I ordered on Monday arrived cracked on Wednesday.",
+    questions={
+        "is_damaged": {
+            "type": "noul",
+            "instructions": "Did the item arrive damaged?",
+        },
+    },
+)
+
+ans = result.answers["is_damaged"]
+print(f"P(是) = {ans.noul:.2f}")
+print(f"P(否) = {1 - ans.noul:.2f}")
+print(f"confidence = {ans.confidence:.2f}")
+print("輸入 token：", result.usage.total_input_tokens)</script>
+
+<script type="text/plain" id="ex-2">situation = """我有一個很喜歡的女生，
+我們彼此有好感，但目前還沒有正式交往。
+我正在思考接下來應該採取什麼行動。"""
+
+# 選項 ID 只能用英數字、底線、連字號，所以用英文 ID，中文放在說明裡
+labels = {"pursue": "追求", "wait": "觀望", "bless": "祝福", "other": "其他"}
+
+result = client.decisions.create(
+    model="gemini-decision-1",
+    input=situation,
+    questions={
+        "next_action": {
+            "type": "choice",
+            "instructions": "根據這段描述，接下來最適合採取哪一種行動？",
+            "criteria": {
+                "pursue": "追求：主動表達心意，邀約或告白，推進關係",
+                "wait": "觀望：維持現狀，多相處、多觀察，再決定",
+                "bless": "祝福：放下追求的念頭，維持朋友關係並祝福對方",
+                "other": "其他：以上三種都不適合",
+            },
+        },
+    },
+)
+
+ans = result.answers["next_action"]
+print("建議行動：", labels[ans.choice], f"(confidence={ans.confidence:.2f})")
+print("各選項機率：")
+for k, p in ans.probabilities.items():
+    print(f"  {labels[k]}（{k:7s}） {p:.3f}  " + "█" * int(p * 30))</script>
+
+<script type="text/plain" id="ex-3">import pandas as pd
+
+rubric = [
+    "0：未作答或完全錯誤",
+    "1：只寫出零星關鍵字",
+    "2：觀念部分正確，但有明顯錯誤",
+    "3：觀念正確，說明不夠完整",
+    "4：觀念正確且說明完整、有舉例",
+]
+question = "請說明什麼是過擬合（overfitting），以及一種避免的方法。"
+
+answers = {
+    "s01": "模型在訓練資料表現很好但測試資料很差，可以用 dropout 或增加資料量來避免。",
+    "s02": "就是模型太大。",
+    "s03": "",
+    "s04": "過擬合是模型記住訓練資料的雜訊，泛化能力差；可用 early stopping，在驗證集 loss 上升時停止訓練。",
+}
+
+rows = []
+for sid, text in answers.items():
+    res = client.decisions.create(
+        model="gemini-decision-1",
+        input=f"題目：{question}\n學生答案：{text or '（空白）'}",
+        questions={
+            "grade": {
+                "type": "score",
+                "instructions": "依評分量尺，替這份學生答案評分。",
+                "criteria": rubric,          # 由低到高排列
+            },
+        },
+    )
+    g = res.answers["grade"]
+    rows.append({"學號": sid, "分數(加權)": round(g.score, 2),
+                 "四捨五入": round(g.score), "confidence": round(g.confidence, 2)})
+
+df = pd.DataFrame(rows)
+df["需人工複核"] = df["confidence"] < 0.7
+df</script>
+
+<script type="text/plain" id="ex-4">ticket = """客戶：我上週買的藍牙耳機，右耳完全沒聲音，換手機也一樣。
+這已經是第二次了，再這樣我要取消會員。"""
+
+result = client.decisions.create(
+    model="gemini-decision-1",
+    input=ticket,                 # 共用輸入只計算一次
+    questions={
+        "hw_defect": {
+            "type": "noul",
+            "instructions": "這是否為硬體瑕疵？",
+            "criteria": {
+                "true_description": "產品本身故障或損壞",
+                "false_description": "使用方式、設定或其他非硬體問題",
+            },
+        },
+        "action": {
+            "type": "choice",
+            "instructions": "應該採取哪種處理方式？",
+            "criteria": {
+                "replace": "寄送新品更換",
+                "refund": "退款",
+                "troubleshoot": "提供故障排除步驟",
+            },
+        },
+        "churn_risk": {
+            "type": "score",
+            "instructions": "客戶流失風險有多高？",
+            "criteria": ["低", "中", "高", "極高"],
+        },
+    },
+)
+
+a = result.answers
+print(f"硬體瑕疵 P={a['hw_defect'].noul:.2f}")
+print(f"處理方式 {a['action'].choice} (conf={a['action'].confidence:.2f})")
+print(f"流失風險 score={a['churn_risk'].score:.2f}  legend={a['churn_risk'].legend}")
+
+# 用一般 if 組合結果做分流
+if a["hw_defect"].noul > 0.8 and a["action"].confidence > 0.75:
+    print("➡️ 自動處理：", a["action"].choice)
+else:
+    print("➡️ 轉交人工客服")
+if a["churn_risk"].score >= 2:
+    print("⚠️ 高流失風險，通知主管")</script>
+
+<script type="text/plain" id="ex-5">import base64
+from google.colab import files
+
+uploaded = files.upload()                 # 選一張照片（例如安全帽、產品照）
+fname = next(iter(uploaded))
+img_b64 = base64.b64encode(uploaded[fname]).decode()
+mime = "image/png" if fname.lower().endswith(".png") else "image/jpeg"
+
+result = client.decisions.create(
+    model="gemini-decision-1",
+    input=[
+        {"type": "text", "text": "這是一張工地現場照片。\n"},
+        {"type": "image", "data": img_b64, "mime_type": mime,
+         "resolution": "medium"},   # low / medium / high / ultra_high
+    ],
+    questions={
+        "has_person": {"type": "noul", "instructions": "照片中是否有人？"},
+        "all_helmets": {"type": "noul",
+                        "instructions": "照片中所有的人是否都有戴安全帽？"},
+        "scene": {
+            "type": "choice",
+            "instructions": "這是什麼場景？",
+            "criteria": {"construction": "", "factory": "", "office": "", "outdoor": ""},
+        },
+    },
+)
+
+for k, v in result.answers.items():
+    print(k, v)
+print(result.usage)</script>
+
+<script type="text/plain" id="ex-6">import base64
+from google.colab import files
+
+up = files.upload()                       # 上傳一份 PDF（內嵌上限 50 MB）
+pdf_name = next(iter(up))
+pdf_b64 = base64.b64encode(up[pdf_name]).decode()
+
+result = client.decisions.create(
+    model="gemini-decision-1",
+    input=[
+        {"type": "document", "data": pdf_b64, "mime_type": "application/pdf"},
+    ],
+    questions={
+        "has_po_number": {
+            "type": "noul",
+            "instructions": "這份發票是否有填寫採購單號（PO number）？",
+        },
+        "category": {
+            "type": "choice",
+            "instructions": "這筆費用屬於哪一類？",
+            "criteria": {
+                "equipment": "設備、硬體",
+                "software": "軟體授權、雲端服務",
+                "travel": "差旅、交通、住宿",
+                "other": "",
+            },
+        },
+    },
+)
+
+print("有 PO 單號機率：", round(result.answers["has_po_number"].noul, 2))
+print("費用類別：", result.answers["category"].choice)</script>
+
+<script type="text/plain" id="ex-5b">import base64, mimetypes
+from pathlib import Path
+
+# 檔案已經在 Colab 上（左側 📁 檔案面板可以看到）
+# 例如 /content/site01.jpg，或資料集解壓後的 /content/dataset/images/xxx.jpg
+#
+# 若檔案放在 Google 雲端硬碟，先掛載：
+# from google.colab import drive
+# drive.mount("/content/drive")
+# img_path = "/content/drive/MyDrive/YOLO/images/site01.jpg"
+
+img_path = "/content/site01.jpg"
+
+data = Path(img_path).read_bytes()                      # 以二進位讀檔
+img_b64 = base64.b64encode(data).decode()
+mime = mimetypes.guess_type(img_path)[0] or "image/jpeg"  # 依副檔名判斷 MIME
+print(f"{img_path}  {len(data)/1024:.1f} KB  {mime}")
+
+result = client.decisions.create(
+    model="gemini-decision-1",
+    input=[
+        {"type": "text", "text": "這是一張工地現場照片。\n"},
+        {"type": "image", "data": img_b64, "mime_type": mime,
+         "resolution": "medium"},
+    ],
+    questions={
+        "has_person": {"type": "noul", "instructions": "照片中是否有人？"},
+        "all_helmets": {"type": "noul",
+                        "instructions": "照片中所有的人是否都有戴安全帽？"},
+    },
+)
+
+for k, v in result.answers.items():
+    print(k, round(v.noul, 2), "confidence", round(v.confidence, 2))
+
+# ── 進階：整個資料夾的圖片逐張判斷 ──
+# for p in sorted(Path("/content/dataset/images").glob("*.jpg")):
+#     ...（同上，把 img_path 換成 p）</script>
+
+<script type="text/plain" id="ex-6b">import base64
+from pathlib import Path
+import pandas as pd
+
+# PDF 已在 Colab 上，例如放在 /content/invoices/ 資料夾
+# （雲端硬碟則先 drive.mount("/content/drive")，路徑改成 /content/drive/MyDrive/...）
+pdf_dir = Path("/content/invoices")
+
+rows = []
+for pdf_path in sorted(pdf_dir.glob("*.pdf")):
+    pdf_b64 = base64.b64encode(pdf_path.read_bytes()).decode()
+
+    result = client.decisions.create(
+        model="gemini-decision-1",
+        input=[
+            {"type": "document", "data": pdf_b64, "mime_type": "application/pdf"},
+        ],
+        questions={
+            "has_po_number": {
+                "type": "noul",
+                "instructions": "這份發票是否有填寫採購單號（PO number）？",
+            },
+            "category": {
+                "type": "choice",
+                "instructions": "這筆費用屬於哪一類？",
+                "criteria": {
+                    "equipment": "設備、硬體",
+                    "software": "軟體授權、雲端服務",
+                    "travel": "差旅、交通、住宿",
+                    "other": "",
+                },
+            },
+        },
+    )
+    a = result.answers
+    rows.append({
+        "檔名": pdf_path.name,
+        "有PO單號機率": round(a["has_po_number"].noul, 2),
+        "費用類別": a["category"].choice,
+        "類別信心": round(a["category"].confidence, 2),
+        "輸入token": result.usage.total_input_tokens,
+    })
+
+df = pd.DataFrame(rows)
+df</script>
+
+<script type="text/plain" id="src-curl">curl -X POST "https://generativelanguage.googleapis.com/v1beta/decisions" \
+  -H "x-goog-api-key: {{GEMINI_API_KEY}}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gemini-decision-1",
+    "input": "The blue mug I ordered on Monday arrived cracked on Wednesday.",
+    "questions": {
+      "is_damaged": {
+        "type": "noul",
+        "instructions": "Did the item arrive damaged?"
+      }
+    }
+  }'</script>
+<script type="text/plain" id="ex-7">import os, json, requests
+
+url = "https://generativelanguage.googleapis.com/v1beta/decisions"
+headers = {
+    "x-goog-api-key": os.environ["GEMINI_API_KEY"],   # 第 4 章 Cell 2 已設定
+    "Content-Type": "application/json",
+}
+body = {
+    "model": "gemini-decision-1",
+    "input": "The blue mug I ordered on Monday arrived cracked on Wednesday.",
+    "questions": {
+        "is_damaged": {"type": "noul", "instructions": "Did the item arrive damaged?"},
+        "sentiment": {"type": "score",
+                      "instructions": "How negative is the customer?",
+                      "criteria": ["calm", "annoyed", "angry"]},
+    },
+}
+
+r = requests.post(url, headers=headers, json=body, timeout=60)
+if r.status_code == 400:
+    err = r.json().get("error", {})
+    print("被擋下或格式錯誤：", err.get("code"), err.get("message"))
+else:
+    r.raise_for_status()
+    print(json.dumps(r.json(), indent=2, ensure_ascii=False))</script>
+
+<script>
+/* ---------- theme ---------- */
+document.querySelectorAll('#theme button').forEach(b=>b.onclick=()=>{
+  document.documentElement.setAttribute('data-theme',b.dataset.t);
+  document.querySelectorAll('#theme button').forEach(x=>x.classList.toggle('active',x===b));
+  try{localStorage.setItem('dec-theme',b.dataset.t)}catch(e){}
+});
+try{const t=localStorage.getItem('dec-theme');if(t){const b=document.querySelector(`#theme button[data-t="${t}"]`);b&&b.click()}}catch(e){}
+
+/* ---------- code fill + highlight ---------- */
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function hl(code,lang){
+  let h=esc(code);
+  if(lang==='json'){
+    return h.replace(/("(?:[^"\\]|\\.)*")(\s*:)?/g,(m,s,c)=>c?`<span class="tok-k">${s}</span>${c}`:`<span class="tok-s">${s}</span>`).replace(/\b(\d+\.?\d*)\b/g,'<span class="tok-n">$1</span>');
+  }
+  // python: protect strings & comments first
+  const out=[];let i=0;
+  const re=/(#[^\n]*)|("""[\s\S]*?"""|f?"(?:[^"\\\n]|\\.)*"|f?'(?:[^'\\\n]|\\.)*')/g;
+  let m,last=0,res='';
+  const kw=s=>s.replace(/\b(import|from|as|for|in|if|else|elif|print|def|return|and|or|not|True|False|None)\b/g,'<span class="tok-k">$1</span>');
+  while((m=re.exec(h))){res+=kw(h.slice(last,m.index));res+=m[1]?`<span class="tok-c">${m[0]}</span>`:`<span class="tok-s">${m[0]}</span>`;last=re.lastIndex}
+  res+=kw(h.slice(last));
+  return res;
+}
+const raw={};
+function fill(id,src,lang='py'){const s=document.getElementById(src).textContent;raw[id]=s;document.getElementById(id).innerHTML=hl(s,lang)}
+fill('respEx','src-resp','json');fill('k1','src-k1');fill('k2','src-k2');fill('k3','src-k3');raw.pmCurl=document.getElementById('src-curl').textContent;document.getElementById('pmCurl').textContent=raw.pmCurl;
+
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('.copy');if(!b)return;
+  const id=b.dataset.target;const txt=raw[id]??document.getElementById(id).textContent;
+  try{await navigator.clipboard.writeText(txt)}catch(err){
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(_){}ta.remove();
+  }
+  b.textContent='✅ 已複製！';b.classList.add('done');
+  setTimeout(()=>{b.textContent='📋 複製';b.classList.remove('done')},1600);
+});
+
+/* ---------- chapters & roadmap ---------- */
+const chapters=['概觀','三種題型','參數說明','Colab 金鑰','Colab 範例','Postman','限制注意'];
+const icons=['🧭','🎛️','📋','🔑','🧪','📮','⚠️'];
+const tabs=document.getElementById('tabs');
+chapters.forEach((c,i)=>{const b=document.createElement('button');b.textContent=`${i+1}. ${c}`;b.onclick=()=>go(i);tabs.appendChild(b)});
+const NS='http://www.w3.org/2000/svg';
+const rmL=document.getElementById('rm-lines'),rmN=document.getElementById('rm-nodes');
+const xs=chapters.map((_,i)=>70+i*143);
+const lines=[];
+for(let i=0;i<chapters.length-1;i++){const l=document.createElementNS(NS,'line');l.setAttribute('x1',xs[i]+30);l.setAttribute('x2',xs[i+1]-30);l.setAttribute('y1',62);l.setAttribute('y2',62);l.setAttribute('stroke-width',3);rmL.appendChild(l);lines.push(l)}
+const nodes=chapters.map((c,i)=>{
+  const g=document.createElementNS(NS,'g');g.setAttribute('class','node');g.innerHTML=`
+   <circle class="ring pulse-ring" cx="${xs[i]}" cy="62" r="34" fill="none" stroke="var(--accent-primary)" stroke-width="3"/>
+   <circle class="ring breathe" cx="${xs[i]}" cy="62" r="38" fill="var(--accent-primary)" opacity=".12"/>
+   <circle class="core" cx="${xs[i]}" cy="62" r="28" fill="var(--bg-card)" stroke="var(--border-color)" stroke-width="3"/>
+   <text x="${xs[i]}" y="70" text-anchor="middle" font-size="22">${icons[i]}</text>
+   <text class="lbl" x="${xs[i]}" y="122" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text-muted)">${i+1}. ${c}</text>`;
+  g.onclick=()=>go(i);rmN.appendChild(g);return g});
+let cur=0;
+function go(i,scroll=true){
+  cur=i;
+  document.querySelectorAll('section.chap').forEach((s,k)=>s.classList.toggle('active',k===i));
+  [...tabs.children].forEach((b,k)=>b.classList.toggle('active',k===i));
+  nodes.forEach((n,k)=>{n.classList.toggle('active',k===i);
+    n.querySelector('.core').setAttribute('stroke',k<=i?'var(--accent-primary)':'var(--border-color)');
+    n.querySelector('.core').setAttribute('filter',k===i?'url(#glow)':'');
+    n.querySelector('.lbl').setAttribute('fill',k===i?'var(--accent-primary)':'var(--text-muted)')});
+  lines.forEach((l,k)=>{
+    if(k<i){l.setAttribute('stroke','var(--accent-primary)');l.setAttribute('class','');l.removeAttribute('stroke-dasharray')}
+    else if(k===i){l.setAttribute('stroke','var(--accent-primary)');l.setAttribute('class','flow')}
+    else{l.setAttribute('stroke','var(--border-color)');l.setAttribute('class','');l.setAttribute('stroke-dasharray','6 8')}});
+  document.getElementById('now').innerHTML=`目前瀏覽：<b>第 ${i+1} 章 · ${chapters[i]}</b>　（點擊上方節點或按鈕切換）`;
+  document.getElementById('prev').disabled=i===0;document.getElementById('next').disabled=i===chapters.length-1;
+  if(scroll)window.scrollTo({top:0,behavior:'smooth'});
+}
+document.getElementById('prev').onclick=()=>cur>0&&go(cur-1);
+document.getElementById('next').onclick=()=>cur<chapters.length-1&&go(cur+1);
+
+/* ---------- Sim A: noul ---------- */
+const nIn=document.getElementById('nIn'),tIn=document.getElementById('tIn');
+function simA(){
+  const p=+nIn.value,t=+tIn.value,conf=Math.max(p,1-p),W=380;
+  document.getElementById('nv').textContent=p.toFixed(2);document.getElementById('tv').textContent=t.toFixed(2);
+  const wNo=W*(1-p);
+  const no=document.getElementById('nNo'),yes=document.getElementById('nYes');
+  no.setAttribute('width',wNo);yes.setAttribute('x',20+wNo);yes.setAttribute('width',W-wNo);
+  document.getElementById('nNoT').textContent=wNo>50?(1-p).toFixed(2):'';
+  document.getElementById('nYesT').textContent=W-wNo>50?p.toFixed(2):'';
+  document.getElementById('cBar').setAttribute('width',W*conf);
+  const tx=20+W*t;['x1','x2'].forEach(a=>document.getElementById('thLine').setAttribute(a,tx));document.getElementById('thTxt').setAttribute('x',tx);
+  document.getElementById('thTxt').textContent=`門檻 ${t.toFixed(2)}`;
+  const auto=conf>=t,ans=p>=0.5?'是':'否';
+  const col=auto?'var(--accent-secondary)':'var(--accent-warn)';
+  ['lamp','lampRing'].forEach(id=>document.getElementById(id).setAttribute('fill',col));
+  document.getElementById('lampTxt').textContent=auto?`自動判定為「${ans}」`:'信心不足 → 轉人工複核';
+  document.getElementById('nRes').innerHTML=`confidence = max(${p.toFixed(2)}, ${(1-p).toFixed(2)}) = <b>${conf.toFixed(2)}</b><br>${auto?'✅ ≥ 門檻，程式可自動執行':'🟡 &lt; 門檻，建議交給人工'}`;
+}
+nIn.oninput=tIn.oninput=simA;simA();
+
+/* ---------- Sim B: choice ---------- */
+const chOpts=[['refund','退款',2.0],['replace','換貨',4.5],['troubleshoot','排除故障',1.2],['escalate','升級主管',0.6]];
+const chCtrl=document.getElementById('chCtrl'),chSvg=document.getElementById('chSvg');
+chOpts.forEach((o,i)=>{chCtrl.insertAdjacentHTML('beforeend',`<label>${o[0]}（${o[1]}）原始傾向：<span class="val" id="chv${i}">${o[2]}</span></label><input type="range" min="0.1" max="8" step="0.1" value="${o[2]}" id="chi${i}">`)});
+function simB(){
+  const raw=chOpts.map((_,i)=>+document.getElementById('chi'+i).value);
+  const s=raw.reduce((a,b)=>a+b,0),pr=raw.map(r=>r/s);const best=pr.indexOf(Math.max(...pr));
+  raw.forEach((r,i)=>document.getElementById('chv'+i).textContent=r.toFixed(1));
+  const colors=['var(--accent-primary)','var(--accent-secondary)','var(--accent-third)','var(--accent-warn)'];
+  let h='';pr.forEach((p,i)=>{const y=14+i*48,w=Math.max(2,250*p);
+    h+=`<text x="10" y="${y+22}" fill="var(--text-main)" font-size="14" font-weight="${i===best?900:500}">${chOpts[i][0]}</text>
+    <rect x="115" y="${y+4}" width="250" height="26" rx="6" fill="var(--bg-soft)"/>
+    <rect x="115" y="${y+4}" width="${w}" height="26" rx="6" fill="${colors[i]}" ${i===best?'class="breathe" filter="url(#glow)"':''} opacity="${i===best?1:.55}"/>
+    <text x="372" y="${y+22}" fill="var(--text-main)" font-size="13">${p.toFixed(2)}</text>
+    ${i===best?`<circle cx="410" cy="${y+17}" r="5" fill="${colors[i]}" class="blink"/>`:''}`});
+  h+=`<text x="10" y="222" fill="var(--text-muted)" font-size="13">→ choice = "${chOpts[best][0]}"，confidence = ${pr[best].toFixed(2)}（總和 = 1.00）</text>`;
+  chSvg.innerHTML=h;
+}
+chCtrl.addEventListener('input',simB);simB();
+
+/* ---------- Sim C: score ---------- */
+const lv=['0 未作答','1 零星','2 部分對','3 大致對','4 完整'];
+const presets={sharp:[0.02,0.03,0.1,0.75,0.1],split:[0.02,0.05,0.43,0.45,0.05],flat:[0.2,0.2,0.2,0.2,0.2]};
+const scCtrl=document.getElementById('scCtrl'),scSvg=document.getElementById('scSvg');
+lv.forEach((l,i)=>scCtrl.insertAdjacentHTML('beforeend',`<label>等級 ${l}：<span class="val" id="scv${i}"></span></label><input type="range" min="0" max="1" step="0.01" id="sci${i}">`));
+function setPreset(p){presets[p].forEach((v,i)=>document.getElementById('sci'+i).value=v);simC()}
+document.querySelectorAll('#scPreset button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#scPreset button').forEach(x=>x.classList.toggle('on',x===b));setPreset(b.dataset.p)});
+function simC(){
+  const r=lv.map((_,i)=>+document.getElementById('sci'+i).value);const s=r.reduce((a,b)=>a+b,0)||1;const p=r.map(x=>x/s);
+  const score=p.reduce((a,v,i)=>a+i*v,0),conf=Math.max(...p);
+  p.forEach((v,i)=>document.getElementById('scv'+i).textContent=v.toFixed(2));
+  let h='';const x0=40,bw=60,gap=16,base=170;
+  p.forEach((v,i)=>{const x=x0+i*(bw+gap),hh=Math.max(2,140*v);
+    h+=`<rect x="${x}" y="${base-hh}" width="${bw}" height="${hh}" rx="6" fill="var(--accent-third)" opacity="${.35+.65*v/Math.max(...p)}"/>
+    <text x="${x+bw/2}" y="${base-hh-6}" text-anchor="middle" fill="var(--text-main)" font-size="12">${v.toFixed(2)}</text>
+    <text x="${x+bw/2}" y="${base+18}" text-anchor="middle" fill="var(--text-muted)" font-size="12">${i}</text>`});
+  h+=`<line x1="${x0}" y1="${base}" x2="${x0+4*(bw+gap)+bw}" y2="${base}" stroke="var(--border-color)" stroke-width="2"/>`;
+  const mx=x0+bw/2+score*(bw+gap);
+  h+=`<line x1="${mx}" y1="22" x2="${mx}" y2="${base+4}" stroke="var(--accent-primary)" stroke-width="3" class="flow"/>
+  <circle cx="${mx}" cy="22" r="11" fill="var(--accent-primary)" class="pulse-ring"/><circle cx="${mx}" cy="22" r="8" fill="var(--accent-primary)"/>
+  <text x="210" y="222" text-anchor="middle" fill="var(--text-main)" font-size="15" font-weight="700">score = Σ i·pᵢ = ${score.toFixed(2)}</text>
+  <text x="210" y="246" text-anchor="middle" fill="var(--text-muted)" font-size="13">confidence ≈ ${conf.toFixed(2)}（最可能的等級：${lv[p.indexOf(conf)]}）</text>`;
+  scSvg.innerHTML=h;
+}
+scCtrl.addEventListener('input',simC);setPreset('sharp');
+
+
+/* ---------- Sim D: tokens ---------- */
+const $=id=>document.getElementById(id);const tmI=$('tmI'),tqI=$('tqI'),tiI=$('tiI'),tmV=$('tmV'),tqV=$('tqV'),tiV=$('tiV'),tSvg=$('tSvg'),tRes=$('tRes');
+function simD(){
+  const M=+tmI.value,Q=+tqI.value,I=+tiI.value;
+  tmV.textContent=M.toLocaleString();tqV.textContent=Q;tiV.textContent=I;
+  const good=M+Q*I, bad=Q*(M+I);
+  const mx=Math.max(good,bad),W=300;
+  const bars=[['✅ 材料放 input（一次請求）',good,'var(--accent-secondary)'],['❌ 材料重複塞進每題',bad,'var(--accent-bad)']];
+  let s='';bars.forEach((b,i)=>{const y=30+i*85,w=Math.max(4,W*b[1]/mx);
+    s+=`<text x="10" y="${y}" fill="var(--text-main)" font-size="14" font-weight="700">${b[0]}</text>
+    <rect x="10" y="${y+10}" width="${W}" height="30" rx="8" fill="var(--bg-soft)"/>
+    <rect x="10" y="${y+10}" width="${w}" height="30" rx="8" fill="${b[2]}" ${i===0?'class="breathe"':''}/>
+    <text x="${Math.min(10+w+8,330)}" y="${y+31}" fill="var(--text-main)" font-size="13">${b[1].toLocaleString()}</text>`});
+  s+=`<text x="10" y="210" fill="var(--text-muted)" font-size="12">公式：M + Q×I　vs　Q×(M + I)</text>`;
+  tSvg.innerHTML=s;
+  tRes.innerHTML=`正確寫法 <b>${good.toLocaleString()}</b> token，錯誤寫法 <b>${bad.toLocaleString()}</b> token，相差 <b>${(bad/good).toFixed(1)} 倍</b>。${good>262144?'<br>⚠️ 已超過 262,144 token 上下文上限！':''}`;
+}
+[tmI,tqI,tiI].forEach(x=>x.oninput=simD);simD();
+
+
+/* ---------- Postman ---------- */
+const pmT={
+ 'Params':{hot:false,h:`<p class="muted">這支 API <b>不需要</b>任何 Query Params，保持空白即可。（金鑰改放在 Headers，比放在網址 <code>?key=</code> 更安全。）</p>`},
+ 'Authorization':{hot:false,h:`<p>可以留 <b>No Auth</b>，在 Headers 填金鑰即可。</p><p class="muted">另一種做法：Auth Type 選 <b>API Key</b> → Key：<code>x-goog-api-key</code>、Value：<code>{{GEMINI_API_KEY}}</code>、Add to：<b>Header</b>。兩種擇一，不要重複。</p>`},
+ 'Headers':{hot:true,h:`<table class="pm-kv"><tr><th>✓</th><th>Key</th><th>Value</th></tr>
+   <tr><td>☑</td><td>x-goog-api-key</td><td>{{GEMINI_API_KEY}}</td></tr>
+   <tr><td>☑</td><td>Content-Type</td><td>application/json</td></tr></table>
+   <p class="muted" style="margin-top:8px">Postman 會自動加上 Host、Content-Length 等隱藏 header，不用理會。Body 選 raw JSON 時 Content-Type 也常會自動加上，手動加一次較保險。</p>`},
+ 'Body':{hot:true,h:`<div class="seg"><button class="on" style="pointer-events:none">raw</button><button style="pointer-events:none">JSON ▾</button></div>
+   <p>選 <b>raw</b>，右側格式下拉選 <b>JSON</b>，再貼上 JSON（見下方 Body 範例）。不要選 form-data 或 x-www-form-urlencoded。</p>`},
+ 'Response':{hot:false,h:`<p>按 Send 後下方會出現：</p><ul><li><b>Status</b>：200 OK 成功；400 格式錯誤或被安全過濾；401/403 金鑰問題</li><li><b>Body → Pretty</b>：格式化的 JSON，看 <code>answers</code> 與 <code>usage</code></li><li><b>Time / Size</b>：回應時間與大小</li></ul>`}
+};
+const pmTabs=$('pmTabs'),pmPanel=$('pmPanel');
+Object.keys(pmT).forEach((k,i)=>{const b=document.createElement('button');b.innerHTML=k+(pmT[k].hot?'<span class="hot"></span>':'');b.onclick=()=>pmShow(k);pmTabs.appendChild(b)});
+function pmShow(k){[...pmTabs.children].forEach(b=>b.classList.toggle('on',b.textContent===k));pmPanel.innerHTML=pmT[k].h}
+pmShow('Headers');
+
+const pmB=[
+ {t:'是非題',d:'最基本的測試，確認金鑰與網址正確。',b:{model:'gemini-decision-1',input:'The blue mug I ordered on Monday arrived cracked on Wednesday.',questions:{is_damaged:{type:'noul',instructions:'Did the item arrive damaged?'}}}},
+ {t:'單選題（感情抉擇）',d:'與 Colab 範例②相同的情境；input 裡的換行寫成 \\n。',b:{model:'gemini-decision-1',input:'我有一個很喜歡的女生，\n我們彼此有好感，但目前還沒有正式交往。\n我正在思考接下來應該採取什麼行動。',questions:{next_action:{type:'choice',instructions:'根據這段描述，接下來最適合採取哪一種行動？',criteria:{pursue:'追求：主動表達心意，邀約或告白，推進關係',wait:'觀望：維持現狀，多相處、多觀察，再決定',bless:'祝福：放下追求的念頭，維持朋友關係並祝福對方',other:'其他：以上三種都不適合'}}}}},
+ {t:'評分題',d:'評分量尺 criteria 由低到高排列。',b:{model:'gemini-decision-1',input:'題目：請說明什麼是過擬合。\n學生答案：模型在訓練資料表現很好但測試資料很差，可以用 dropout 避免。',questions:{grade:{type:'score',instructions:'依評分量尺，替這份學生答案評分。',criteria:['完全錯誤','部分正確','大致正確','完整正確']}}}},
+ {t:'多題同時',d:'一份 input，三種題型一起問。',b:{model:'gemini-decision-1',input:'客戶：我上週買的藍牙耳機，右耳完全沒聲音，換手機也一樣。這已經是第二次了，再這樣我要取消會員。',questions:{hw_defect:{type:'noul',instructions:'這是否為硬體瑕疵？'},action:{type:'choice',instructions:'應該採取哪種處理方式？',criteria:{replace:'寄送新品更換',refund:'退款',troubleshoot:'提供故障排除步驟'}},churn_risk:{type:'score',instructions:'客戶流失風險有多高？',criteria:['低','中','高','極高']}}}},
+ {t:'圖片（網址）',d:'Postman 不方便貼超長 base64，改用公開 HTTPS 圖片網址（uri，上限 15 MB）。請把網址換成你自己的圖片；內容區塊格式依官方欄位表組成。',b:{model:'gemini-decision-1',input:[{type:'text',text:'這是一張工地現場照片。\n'},{type:'image',uri:'https://example.com/site01.jpg',mime_type:'image/jpeg',resolution:'medium'}],questions:{all_helmets:{type:'noul',instructions:'照片中所有的人是否都有戴安全帽？'}}}}
+];
+const pmBodyNav=$('pmBodyNav');
+pmB.forEach((x,i)=>{const b=document.createElement('button');b.textContent=x.t;b.onclick=()=>pmBodyShow(i);pmBodyNav.appendChild(b)});
+function pmBodyShow(i){const x=pmB[i];const s=JSON.stringify(x.b,null,2);raw.pmBody=s;$('pmBody').innerHTML=hl(s,'json');$('pmBodyDesc').textContent=x.d;[...pmBodyNav.children].forEach((b,k)=>b.classList.toggle('on',k===i))}
+pmBodyShow(0);
+
+/* ---------- question builder ---------- */
+const qb={
+ noul:`"is_late": {
+    "type": "noul",
+    "instructions": "這份作業是否在截止日之後才繳交？",
+    "criteria": {                       # 選填
+        "true_description": "繳交時間晚於截止時間",
+        "false_description": "準時或提早繳交"
+    }
+}`,
+ choice:`"topic": {
+    "type": "choice",
+    "instructions": "這則提問屬於哪一類？",
+    "criteria": {                       # 必填：{選項ID: 說明}
+        "python_syntax": "Python 語法或除錯",
+        "math_concept": "數學或演算法觀念",
+        "other": ""                     # 說明可為空字串
+    }
+}`,
+ score:`"grade": {
+    "type": "score",
+    "instructions": "依量尺替學生答案評分",
+    "criteria": [                       # 必填：由低到高，2～255 級
+        "完全錯誤",
+        "部分正確",
+        "大致正確",
+        "完整正確"
+    ]
+}`};
+function qbShow(t){raw.qbOut=qb[t];document.getElementById('qbOut').innerHTML=hl(qb[t]);document.querySelectorAll('#qbType button').forEach(b=>b.classList.toggle('on',b.dataset.q===t))}
+document.querySelectorAll('#qbType button').forEach(b=>b.onclick=()=>qbShow(b.dataset.q));qbShow('noul');
+
+/* ---------- key flow ---------- */
+const kf=[['🌐','AI Studio','建立金鑰'],['🔑','Colab Secrets','存成 GEMINI_API_KEY'],['🐍','userdata.get()','程式讀取'],['🤖','genai.Client','api_version=v1beta'],['✅','decisions.create','開始呼叫']];
+const kfTxt=['到 aistudio.google.com/apikey 建立 API key，複製 AIza 開頭的字串。','Colab 左側 🔑 → 新增密鑰，名稱 GEMINI_API_KEY，打開「筆記本存取權」。','from google.colab import userdata；userdata.get("GEMINI_API_KEY") 取回金鑰（首次會詢問授權）。','genai.Client(api_key=..., http_options={"api_version": "v1beta"})，少了 v1beta 會找不到 decisions。','client.decisions.create(model="gemini-decision-1", input=..., questions=...) 開始判斷！'];
+const kfN=document.getElementById('kfNodes');let kfi=0;
+function drawKf(){
+  let h='';kf.forEach((k,i)=>{const x=96+i*192;
+    if(i<kf.length-1)h+=`<line x1="${x+46}" y1="70" x2="${x+146}" y2="70" stroke="${i<kfi?'var(--accent-secondary)':'var(--border-color)'}" stroke-width="3" ${i===kfi?'class="flow" stroke="var(--accent-secondary)"':''}/>`;
+    h+=`<g style="cursor:pointer" data-i="${i}">
+      ${i===kfi?`<circle cx="${x}" cy="70" r="44" fill="none" stroke="var(--accent-secondary)" stroke-width="3" class="pulse-ring"/>`:''}
+      <circle cx="${x}" cy="70" r="42" fill="var(--bg-card)" stroke="${i<=kfi?'var(--accent-secondary)':'var(--border-color)'}" stroke-width="3" ${i===kfi?'class="breathe" filter="url(#glow)"':''}/>
+      <text x="${x}" y="80" text-anchor="middle" font-size="28">${k[0]}</text>
+      <text x="${x}" y="134" text-anchor="middle" font-size="14" font-weight="700" fill="${i===kfi?'var(--accent-secondary)':'var(--text-main)'}">${k[1]}</text>
+      <text x="${x}" y="154" text-anchor="middle" font-size="12" fill="var(--text-muted)">${k[2]}</text></g>`});
+  kfN.innerHTML=h;
+  document.getElementById('kfTxt').innerHTML=`<b>步驟 ${kfi+1}：</b>${esc(kfTxt[kfi])}`;
+  document.querySelectorAll('#kfBtns button').forEach((b,i)=>b.classList.toggle('on',i===kfi));
+}
+kf.forEach((k,i)=>{const b=document.createElement('button');b.textContent=`${i+1}. ${k[1]}`;b.onclick=()=>{kfi=i;drawKf()};document.getElementById('kfBtns').appendChild(b)});
+kfN.addEventListener('click',e=>{const g=e.target.closest('g[data-i]');if(g){kfi=+g.dataset.i;drawKf()}});
+drawKf();
+
+/* ---------- examples ---------- */
+const ex=[
+ {t:'① 是非題 noul：商品是否損壞',d:'官方最基本的範例。讀 noul（是的機率）與 confidence。',id:'ex-1'},
+ {t:'② 單選題 choice：感情抉擇（追求／觀望／祝福／其他）',d:'給一段情境描述，讓模型從四個行動選項中選一個，並看每個選項的機率。',id:'ex-2',n:'選項鍵名只能是 [A-Za-z0-9_-]，所以用 pursue / wait / bless / other 當 ID，再用 labels 對照回中文顯示。'},
+ {t:'③ 評分題 score：簡答題批改 + pandas 表格',d:'用評分量尺批改多份學生答案，低信心自動標記人工複核。',id:'ex-3',n:'score 是機率加權平均，可能是 2.7 這種小數；正式給分時可四捨五入或以最高機率的等級為準。'},
+ {t:'④ 多題同時送出 + if 分流',d:'一份客服工單同時問 noul、choice、score，再用 if 組合判斷是否自動處理。',id:'ex-4',n:'共用輸入只計算一次 token，三題彼此獨立評估。'},
+ {t:'⑤ 圖片輸入：判斷照片內容',d:'兩種讀檔方式：A 是執行時跳出視窗從電腦上傳；B 是讀取已經在 Colab（或掛載的雲端硬碟）裡的檔案，適合大量處理。',id:'ex-5',la:'方法 A：files.upload() 從電腦上傳',id2:'ex-5b',lb:'方法 B：讀取 Colab 上已有的檔案（/content 或雲端硬碟）',n:'⚠️ 內容區塊的寫法依官方欄位表（type / data / mime_type / resolution）組成；若你的 SDK 版本回報格式錯誤，請對照官方文件中的圖片範例調整。方法 B 的路徑請以左側 📁 面板「複製路徑」取得最準。'},
+ {t:'⑥ PDF 輸入：發票檢查',d:'A 是單一檔案上傳；B 是批次讀取 Colab 資料夾裡所有 PDF，結果整理成表格。內嵌上限 50 MB，更大的檔案應改用 Files API 上傳。',id:'ex-6',la:'方法 A：files.upload() 從電腦上傳',id2:'ex-6b',lb:'方法 B：批次讀取 Colab 資料夾中已有的 PDF'},
+ {t:'⑦ 不用 SDK：requests 直接打 REST',d:'SDK 版本不夠新時的備案，也方便看到原始 JSON 回應與錯誤碼。',id:'ex-7',n:'被安全過濾擋下時會回 HTTP 400，error.code 會告訴你原因。'}
+];
+const exNav=document.getElementById('exNav');
+ex.forEach((e,i)=>{const b=document.createElement('button');b.textContent=e.t.split('：')[0];b.onclick=()=>showEx(i);exNav.appendChild(b)});
+function showEx(i){const e=ex[i];document.getElementById('exTitle').textContent=e.t;document.getElementById('exDesc').textContent=e.d;
+  fill('exCode',e.id);
+  const la=document.getElementById('exLblA');la.style.display=e.la?'block':'none';la.textContent=e.la||'';
+  document.getElementById('exB').style.display=e.id2?'block':'none';
+  if(e.id2){document.getElementById('exLblB').textContent=e.lb;fill('exCode2',e.id2)}document.getElementById('exNote').innerHTML=e.n?`<div class="callout info">${esc(e.n)}</div>`:'';
+  [...exNav.children].forEach((b,k)=>b.classList.toggle('on',k===i))}
+showEx(0);
+
+go(0,false);
+</script>
+</body>
+</html>

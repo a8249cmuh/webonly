@@ -1,0 +1,579 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>YOLO26 參數圖鑑</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 單欄長頁＋黏性章節列；黑底、金色結構線、螢光綠標示「可執行／偵測到」的東西 */
+:root{
+  --bg:#07080a; --panel:#0f1114; --panel2:#15181c; --line:#2a2618;
+  --gold:#d9b25a; --gold-dim:#8f7536; --neon:#39ff88; --neon-dim:#1d7a47;
+  --fg:#ece8dc; --muted:#9a968a;
+  --f-display:"Chakra Petch","Noto Sans TC",system-ui,sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1080px;margin:0 auto}
+a{color:var(--neon)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--neon);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.25;margin:0}
+h2{font-size:clamp(1.5rem,3.4vw,2.1rem);color:var(--gold)}
+h3{font-size:1.1rem;color:var(--fg);margin-top:8px}
+p{margin:0;max-width:68ch}
+code{font-family:var(--f-mono);font-size:.88em;color:var(--neon)}
+
+/* nav */
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:rgba(7,8,10,.94);backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line);margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px)))}
+nav .in{max-width:1080px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;padding:8px 16px;scrollbar-width:none}
+nav a{flex:none;text-decoration:none;color:var(--muted);font-family:var(--f-display);font-size:.85rem;letter-spacing:.06em;
+  padding:6px 12px;border:1px solid transparent;border-radius:3px}
+nav a:hover{color:var(--neon);border-color:var(--neon-dim)}
+nav a b{color:var(--gold);font-weight:700;margin-right:6px}
+
+/* hero */
+header.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:center;padding-block:40px 28px}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.18em;color:var(--neon);text-transform:uppercase}
+.hero h1{font-size:clamp(2.6rem,7vw,4.6rem);color:var(--fg);margin:8px 0 12px}
+.hero h1 span{color:var(--gold)}
+.hero p{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.chip{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--gold-dim);color:var(--gold);padding:3px 10px;border-radius:2px}
+.chip.n{border-color:var(--neon-dim);color:var(--neon)}
+.hero svg{width:100%;height:auto;max-width:100%}
+@media (max-width:760px){header.hero{grid-template-columns:1fr}}
+
+section{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px}
+.sec-head .num{font-family:var(--f-mono);color:var(--neon);font-size:.8rem;letter-spacing:.15em;display:block;margin-bottom:4px}
+.doc{font-family:var(--f-mono);font-size:.78rem;text-decoration:none;border:1px solid var(--neon-dim);padding:5px 10px;border-radius:3px;white-space:nowrap}
+.doc:hover{background:var(--neon);color:var(--bg)}
+.lead{color:var(--muted)}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.feat{background:var(--panel);border:1px solid var(--line);padding:16px 18px;border-radius:4px;min-width:0}
+.feat h3{color:var(--gold);margin:0 0 4px;font-size:1rem}
+.feat p{color:var(--muted);font-size:.92rem}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid #1d1b14;vertical-align:top}
+th{font-family:var(--f-display);color:var(--gold);font-weight:500;letter-spacing:.04em;background:var(--panel2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child code{white-space:nowrap}
+td.d{font-family:var(--f-mono);color:var(--gold);white-space:nowrap;font-size:.84rem}
+td.num{font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
+tr.hi td{background:rgba(57,255,136,.06)}
+.tag{font-family:var(--f-mono);font-size:.68rem;color:var(--bg);background:var(--neon);padding:0 5px;border-radius:2px;margin-left:6px;vertical-align:1px}
+.warn{color:#ffcf6b}
+
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{font-family:var(--f-display);font-size:.88rem;background:transparent;color:var(--muted);border:1px solid var(--line);padding:6px 14px;border-radius:3px;cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--bg);background:var(--gold);border-color:var(--gold)}
+
+/* code */
+.code{position:relative;background:#050606;border:1px solid var(--line);border-left:3px solid var(--neon);border-radius:4px;min-width:0}
+.code .bar{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-bottom:1px solid #16150f;font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.code button{font-family:var(--f-mono);font-size:.75rem;background:transparent;border:1px solid var(--neon-dim);color:var(--neon);padding:2px 10px;border-radius:3px;cursor:pointer}
+.code button:hover{background:var(--neon);color:var(--bg)}
+.code pre{margin:0;padding:14px 16px;overflow-x:auto;font-family:var(--f-mono);font-size:.83rem;line-height:1.6;color:#d8d4c6}
+.code .c{color:#6b6a5f}.code .s{color:var(--gold)}.code .k{color:var(--neon)}
+
+/* coco */
+.coco-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.coco-tools input{flex:1 1 220px;background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:3px;font-family:var(--f-body);font-size:.95rem}
+.coco-tools input:focus{outline:1px solid var(--neon);border-color:var(--neon)}
+.coco-tools span{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.coco{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.cls{display:grid;grid-template-columns:30px 1fr;gap:2px 8px;background:var(--panel);border:1px solid var(--line);padding:7px 10px;border-radius:3px;position:relative}
+.cls i{grid-row:span 2;font-style:normal;font-family:var(--f-mono);font-size:.78rem;color:var(--neon);font-variant-numeric:tabular-nums;align-self:center}
+.cls b{font-weight:500;font-size:.92rem}
+.cls small{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.cls::after{content:"";position:absolute;top:-1px;left:-1px;width:7px;height:7px;border-top:1px solid var(--gold);border-left:1px solid var(--gold)}
+.grp{grid-column:1/-1;font-family:var(--f-display);color:var(--gold);font-size:.85rem;letter-spacing:.08em;padding-top:8px}
+
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:8px}
+.links a{display:block;background:var(--panel);border:1px solid var(--line);padding:12px 14px;border-radius:4px;text-decoration:none;color:var(--fg)}
+.links a small{display:block;font-family:var(--f-mono);font-size:.72rem;color:var(--neon);word-break:break-all}
+.links a:hover{border-color:var(--neon)}
+svg text{font-family:var(--f-mono)}
+.diagram{overflow-x:auto}
+.diagram svg{min-width:640px;width:100%;height:auto}
+footer{padding-block:28px 48px;border-top:1px solid var(--line);color:var(--muted);font-size:.82rem}
+
+@keyframes scan{0%,100%{transform:translateY(0)}50%{transform:translateY(150px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.scan{animation:scan 5s ease-in-out infinite}
+.pulse{animation:pulse 2.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.scan,.pulse{animation:none}}
+</style>
+
+<nav aria-label="章節"><div class="in">
+  <a href="#intro"><b>01</b>介紹</a><a href="#train"><b>02</b>訓練參數</a><a href="#predict"><b>03</b>推論參數</a>
+  <a href="#coco"><b>04</b>COCO 80 類</a><a href="#results"><b>05</b>Results</a><a href="#colab"><b>06</b>Colab 串流</a><a href="#links"><b>07</b>官網連結</a>
+</div></nav>
+
+<div class="wrap">
+<header class="hero">
+  <div>
+    <div class="eyebrow">Ultralytics · Released Jan 2026</div>
+    <h1>YOLO<span>26</span></h1>
+    <p>端到端、免 NMS 的即時視覺模型。這頁整理介紹、訓練與推論參數、COCO 80 類英中對照，以及推論結果 Results 物件的屬性與方法，每段附可直接複製的程式碼與官網連結。</p>
+    <div class="chips"><span class="chip n">NMS-Free</span><span class="chip n">DFL-Free</span><span class="chip">MuSGD</span><span class="chip">ProgLoss</span><span class="chip">STAL</span><span class="chip">n / s / m / l / x</span></div>
+  </div>
+  <svg viewBox="0 0 420 300" role="img" aria-label="偵測框示意：公車與行人被框出並標示信心度">
+    <rect x="1" y="1" width="418" height="298" fill="#0b0d0f" stroke="#2a2618"/>
+    <g stroke="#1a1d20" stroke-width="1">
+      <path d="M0 60H420M0 120H420M0 180H420M0 240H420M70 0V300M140 0V300M210 0V300M280 0V300M350 0V300"/>
+    </g>
+    <!-- bus -->
+    <rect x="60" y="110" width="250" height="110" rx="8" fill="#16191c" stroke="#3a3628"/>
+    <rect x="76" y="124" width="46" height="40" fill="#22262a"/><rect x="132" y="124" width="46" height="40" fill="#22262a"/><rect x="188" y="124" width="46" height="40" fill="#22262a"/><rect x="244" y="124" width="50" height="40" fill="#22262a"/>
+    <circle cx="105" cy="222" r="16" fill="#0b0d0f" stroke="#3a3628"/><circle cx="265" cy="222" r="16" fill="#0b0d0f" stroke="#3a3628"/>
+    <!-- person -->
+    <circle cx="352" cy="140" r="11" fill="#22262a"/><rect x="340" y="154" width="24" height="52" rx="6" fill="#22262a"/><rect x="342" y="204" width="8" height="32" fill="#22262a"/><rect x="354" y="204" width="8" height="32" fill="#22262a"/>
+    <!-- boxes -->
+    <rect x="52" y="100" width="268" height="140" fill="none" stroke="#39ff88" stroke-width="2"/>
+    <rect x="52" y="82" width="104" height="18" fill="#39ff88"/><text x="58" y="95" font-size="11" fill="#07080a">bus 0.94</text>
+    <rect x="332" y="124" width="40" height="116" fill="none" stroke="#d9b25a" stroke-width="2"/>
+    <rect x="300" y="106" width="88" height="18" fill="#d9b25a"/><text x="306" y="119" font-size="11" fill="#07080a">person 0.88</text>
+    <g class="scan"><rect x="1" y="40" width="418" height="2" fill="#39ff88" opacity=".55"/></g>
+    <text x="14" y="26" font-size="11" fill="#9a968a">yolo26n.pt · imgsz=640 · nms=False</text>
+    <circle class="pulse" cx="402" cy="22" r="5" fill="#39ff88"/>
+    <text x="14" y="284" font-size="11" fill="#d9b25a">output (1, 300, 6) → x1 y1 x2 y2 conf cls</text>
+  </svg>
+</header>
+
+<!-- 01 -->
+<section id="intro">
+  <div class="sec-head"><div><span class="num">01 / INTRODUCTION</span><h2>YOLO26 介紹</h2></div>
+    <a class="doc" href="https://docs.ultralytics.com/models/yolo26" target="_blank" rel="noopener">官網 › models/yolo26</a></div>
+  <p class="lead">YOLO26 是 Ultralytics 於 2026 年 1 月正式釋出的模型家族，主打邊緣裝置部署。官方表示 YOLO26n 相較 YOLO11n，CPU ONNX 推論最多快約 43%。</p>
+  <div class="grid2">
+    <div class="feat"><h3>原生端到端、免 NMS</h3><p>內建 One-to-One 偵測頭，推論時加 <code>nms=False</code> 直接輸出結果，不必再做 NMS 後處理。</p></div>
+    <div class="feat"><h3>移除 DFL</h3><p>拿掉 Distribution Focal Loss，偵測頭更輕，匯出 ONNX、TensorRT 等格式更單純。</p></div>
+    <div class="feat"><h3>新訓練配方</h3><p>MuSGD（SGD＋Muon 混合最佳化器）、ProgLoss（漸進式損失）、STAL（小目標感知標籤分配）。</p></div>
+    <div class="feat"><h3>七種任務</h3><p>偵測、實例分割、語意分割、深度估計、分類、姿態、OBB；另有開放詞彙版 YOLOE-26。</p></div>
+  </div>
+
+  <h3>雙偵測頭 Dual-Head</h3>
+  <div class="diagram"><svg viewBox="0 0 760 210" role="img" aria-label="雙偵測頭：同一個骨幹，預設 One-to-Many 經過 NMS，nms=False 走 One-to-One 直接輸出">
+    <rect x="10" y="80" width="120" height="50" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="70" y="102" text-anchor="middle" font-size="13" fill="#ece8dc">影像輸入</text><text x="70" y="119" text-anchor="middle" font-size="11" fill="#9a968a">640×640</text>
+    <path d="M130 105H170" stroke="#d9b25a" stroke-width="1.5"/>
+    <rect x="170" y="70" width="150" height="70" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="245" y="100" text-anchor="middle" font-size="13" fill="#ece8dc">Backbone + Neck</text><text x="245" y="119" text-anchor="middle" font-size="11" fill="#9a968a">共用特徵</text>
+    <path d="M320 95C350 95 350 45 380 45" fill="none" stroke="#d9b25a" stroke-width="1.5"/>
+    <path d="M320 115C350 115 350 165 380 165" fill="none" stroke="#39ff88" stroke-width="1.5"/>
+    <rect x="380" y="20" width="160" height="50" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="460" y="41" text-anchor="middle" font-size="12" fill="#d9b25a">One-to-Many（預設）</text><text x="460" y="58" text-anchor="middle" font-size="11" fill="#9a968a">(N, nc+4, 8400)</text>
+    <rect x="380" y="140" width="160" height="50" rx="4" fill="#0f1114" stroke="#39ff88"/><text x="460" y="161" text-anchor="middle" font-size="12" fill="#39ff88">One-to-One</text><text x="460" y="178" text-anchor="middle" font-size="11" fill="#9a968a">nms=False · (N,300,6)</text>
+    <path d="M540 45H580" stroke="#d9b25a" stroke-width="1.5"/>
+    <rect x="580" y="25" width="70" height="40" rx="4" fill="#15181c" stroke="#8f7536" stroke-dasharray="4 3"/><text x="615" y="50" text-anchor="middle" font-size="12" fill="#d9b25a">NMS</text>
+    <path d="M650 45H680V100" fill="none" stroke="#d9b25a" stroke-width="1.5"/>
+    <path d="M540 165H680V120" fill="none" stroke="#39ff88" stroke-width="1.5"/>
+    <rect x="660" y="92" width="90" height="36" rx="4" fill="#39ff88"/><text x="705" y="115" text-anchor="middle" font-size="12" fill="#07080a">Results</text>
+    <text x="560" y="200" font-size="10" fill="#9a968a">免後處理，部署最簡單</text>
+  </svg></div>
+
+  <h3>COCO 偵測效能（640px）</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>模型</th><th>mAP50-95</th><th>mAP (e2e)</th><th>CPU ONNX ms</th><th>T4 TRT10 ms</th><th>參數 M</th><th>FLOPs B</th></tr></thead>
+    <tbody>
+      <tr><td><code>yolo26n</code></td><td class="num">40.9</td><td class="num">40.1</td><td class="num">38.9</td><td class="num">1.7</td><td class="num">2.4</td><td class="num">5.5</td></tr>
+      <tr><td><code>yolo26s</code></td><td class="num">48.6</td><td class="num">47.8</td><td class="num">87.2</td><td class="num">2.5</td><td class="num">9.5</td><td class="num">20.9</td></tr>
+      <tr><td><code>yolo26m</code></td><td class="num">53.1</td><td class="num">52.5</td><td class="num">220.0</td><td class="num">4.7</td><td class="num">20.4</td><td class="num">68.4</td></tr>
+      <tr><td><code>yolo26l</code></td><td class="num">55.0</td><td class="num">54.4</td><td class="num">286.2</td><td class="num">6.2</td><td class="num">24.8</td><td class="num">86.8</td></tr>
+      <tr><td><code>yolo26x</code></td><td class="num">57.5</td><td class="num">56.9</td><td class="num">525.8</td><td class="num">11.8</td><td class="num">55.7</td><td class="num">194.4</td></tr>
+    </tbody></table></div>
+
+  <div class="code"><div class="bar"><span>quickstart.py</span><button type="button">複製</button></div><pre><span class="c"># pip install -U ultralytics</span>
+<span class="k">from</span> ultralytics <span class="k">import</span> YOLO
+
+model = YOLO(<span class="s">"yolo26n.pt"</span>)                                 <span class="c"># 首次會自動下載</span>
+results = model(<span class="s">"https://ultralytics.com/images/bus.jpg"</span>)  <span class="c"># 推論</span>
+results[0].show()                                          <span class="c"># 顯示結果</span></pre></div>
+</section>
+
+<!-- 02 -->
+<section id="train">
+  <div class="sec-head"><div><span class="num">02 / TRAIN</span><h2>訓練參數詳解 <code style="font-size:.6em">model.train()</code></h2></div>
+    <a class="doc" href="https://docs.ultralytics.com/usage/cfg#train-settings" target="_blank" rel="noopener">官網 › cfg#train-settings</a></div>
+  <p class="lead">綠底列是課堂最常調的參數。預設值以官方 <code>default.yaml</code> 為準，套件更新後可用 <code>yolo cfg</code> 核對。</p>
+  <div class="tabs" role="tablist" data-group="tr">
+    <button role="tab" aria-selected="true" data-t="tr-basic">基本設定</button>
+    <button role="tab" aria-selected="false" data-t="tr-opt">最佳化器／學習率</button>
+    <button role="tab" aria-selected="false" data-t="tr-loss">損失權重</button>
+    <button role="tab" aria-selected="false" data-t="tr-aug">資料增強</button>
+  </div>
+  <div class="tbl" id="tr-basic"><table><thead><tr><th>參數</th><th>預設</th><th>說明</th></tr></thead><tbody>
+    <tr class="hi"><td><code>model</code></td><td class="d">None</td><td><code>.pt</code> 預訓練權重或 <code>.yaml</code> 從頭建構</td></tr>
+    <tr class="hi"><td><code>data</code></td><td class="d">None</td><td>資料集 YAML，例如 <code>coco8.yaml</code></td></tr>
+    <tr class="hi"><td><code>epochs</code></td><td class="d">100</td><td>訓練回合數</td></tr>
+    <tr><td><code>time</code></td><td class="d">None</td><td>最長訓練時數（小時），會覆蓋 epochs</td></tr>
+    <tr class="hi"><td><code>patience</code></td><td class="d">100</td><td>驗證指標 N 回合沒進步就提早停止</td></tr>
+    <tr class="hi"><td><code>batch</code></td><td class="d">16</td><td>批次大小；<code>-1</code> 自動用約 60% GPU 記憶體；<code>0.70</code> 用 70%</td></tr>
+    <tr class="hi"><td><code>imgsz</code></td><td class="d">640</td><td>訓練影像尺寸</td></tr>
+    <tr class="hi"><td><code>device</code></td><td class="d">None</td><td><code>0</code>、<code>[0,1]</code>、<code>cpu</code>、<code>mps</code>、<code>-1</code>（自動選閒置 GPU）</td></tr>
+    <tr><td><code>workers</code></td><td class="d">8</td><td>資料載入執行緒；Windows 出錯可改小或 0</td></tr>
+    <tr><td><code>cache</code></td><td class="d">False</td><td>快取影像：<code>ram</code> 或 <code>disk</code></td></tr>
+    <tr><td><code>project / name</code></td><td class="d">None</td><td>輸出資料夾 <code>runs/detect/&lt;name&gt;</code></td></tr>
+    <tr><td><code>exist_ok</code></td><td class="d">False</td><td>允許覆寫同名資料夾</td></tr>
+    <tr><td><code>pretrained</code></td><td class="d">True</td><td>是否使用預訓練權重</td></tr>
+    <tr><td><code>resume</code></td><td class="d">False</td><td>從 <code>last.pt</code> 接續訓練</td></tr>
+    <tr><td><code>save_period</code></td><td class="d">-1</td><td>每 N 回合另存權重</td></tr>
+    <tr><td><code>seed / deterministic</code></td><td class="d">0 / True</td><td>隨機種子與決定性運算，確保可重現</td></tr>
+    <tr><td><code>single_cls</code></td><td class="d">False</td><td>所有類別視為同一類</td></tr>
+    <tr><td><code>classes</code></td><td class="d">None</td><td>只訓練指定類別 ID</td></tr>
+    <tr class="hi"><td><code>fraction</code></td><td class="d">1.0</td><td>只用部分資料，課堂示範可設 0.1</td></tr>
+    <tr><td><code>freeze</code></td><td class="d">None</td><td>凍結前 N 層（遷移學習）</td></tr>
+    <tr><td><code>amp</code></td><td class="d">True</td><td>混合精度 FP16；可設 <code>"bf16"</code>、<code>False</code></td></tr>
+    <tr><td><code>rect</code></td><td class="d">False</td><td>矩形訓練，減少填補</td></tr>
+    <tr><td><code>multi_scale</code></td><td class="d">0.0</td><td>每批隨機縮放 ±比例</td></tr>
+    <tr><td><code>close_mosaic</code></td><td class="d">10</td><td>最後 N 回合關閉 Mosaic</td></tr>
+    <tr><td><code>val / split</code></td><td class="d">True / 'val'</td><td>訓練中驗證及使用的資料切分</td></tr>
+    <tr><td><code>nms</code><span class="tag">26</span></td><td class="d">None</td><td>訓練中驗證用哪個頭；<code>False</code> 用免 NMS 頭挑 best.pt</td></tr>
+    <tr><td><code>plots</code></td><td class="d">True</td><td>產生損失曲線、混淆矩陣、PR 曲線</td></tr>
+    <tr><td><code>compile</code></td><td class="d">False</td><td>PyTorch 2.x <code>torch.compile</code></td></tr>
+    <tr><td><code>max_det</code></td><td class="d">300</td><td>訓練中驗證每張圖最多偵測數</td></tr>
+  </tbody></table></div>
+  <div class="tbl" id="tr-opt" hidden><table><thead><tr><th>參數</th><th>預設</th><th>說明</th></tr></thead><tbody>
+    <tr class="hi"><td><code>optimizer</code></td><td class="d">'auto'</td><td><code>SGD</code>、<code>MuSGD</code><span class="tag">26</span>、<code>Adam</code>、<code>Adamax</code>、<code>AdamW</code>、<code>NAdam</code>、<code>RAdam</code>、<code>RMSProp</code>；auto 依迭代數選 AdamW 或 MuSGD</td></tr>
+    <tr class="hi"><td><code>lr0</code></td><td class="d">0.01</td><td>初始學習率。<span class="warn">optimizer='auto' 時會被忽略，需明確指定最佳化器才生效</span></td></tr>
+    <tr><td><code>lrf</code></td><td class="d">0.01</td><td>最終學習率 = lr0 × lrf</td></tr>
+    <tr><td><code>cos_lr</code></td><td class="d">False</td><td>餘弦學習率排程</td></tr>
+    <tr><td><code>momentum</code></td><td class="d">0.937</td><td>SGD/MuSGD 動量或 Adam beta1</td></tr>
+    <tr><td><code>weight_decay</code></td><td class="d">0.0005</td><td>L2 正則化</td></tr>
+    <tr><td><code>warmup_epochs</code></td><td class="d">3.0</td><td>暖身回合（可為小數）</td></tr>
+    <tr><td><code>warmup_momentum</code></td><td class="d">0.8</td><td>暖身起始動量</td></tr>
+    <tr><td><code>warmup_bias_lr</code></td><td class="d">0.1</td><td>暖身期間 bias 學習率（auto 時為 0）</td></tr>
+    <tr><td><code>nbs</code></td><td class="d">64</td><td>名目批次大小，用來累積梯度</td></tr>
+    <tr><td><code>dropout</code></td><td class="d">0.0</td><td>Dropout（分類任務）</td></tr>
+  </tbody></table></div>
+  <div class="tbl" id="tr-loss" hidden><table><thead><tr><th>參數</th><th>預設</th><th>說明</th></tr></thead><tbody>
+    <tr><td><code>box</code></td><td class="d">7.5</td><td>邊界框損失權重</td></tr>
+    <tr><td><code>cls</code></td><td class="d">0.5</td><td>分類損失權重</td></tr>
+    <tr><td><code>cls_pw</code></td><td class="d">0.0</td><td>類別不平衡加權（0 不加權、1 完全反頻率）</td></tr>
+    <tr><td><code>dfl</code></td><td class="d">1.5</td><td>框距離回歸權重；YOLO26 為 L1 損失（DFL-Free）</td></tr>
+    <tr><td><code>pose / kobj / rle</code></td><td class="d">12.0 / 1.0 / 1.0</td><td>姿態估計相關損失</td></tr>
+    <tr><td><code>angle</code></td><td class="d">1.0</td><td>OBB 角度損失</td></tr>
+    <tr><td><code>distill_model / dis</code></td><td class="d">None / 6.0</td><td>知識蒸餾：教師模型與蒸餾權重</td></tr>
+  </tbody></table></div>
+  <div class="tbl" id="tr-aug" hidden><table><thead><tr><th>參數</th><th>預設</th><th>說明</th></tr></thead><tbody>
+    <tr><td><code>hsv_h / hsv_s / hsv_v</code></td><td class="d">0.015 / 0.7 / 0.4</td><td>色相／飽和度／亮度隨機調整</td></tr>
+    <tr><td><code>degrees</code></td><td class="d">0.0</td><td>隨機旋轉角度</td></tr>
+    <tr><td><code>translate</code></td><td class="d">0.1</td><td>隨機平移</td></tr>
+    <tr><td><code>scale</code></td><td class="d">0.5</td><td>隨機縮放</td></tr>
+    <tr><td><code>shear / perspective</code></td><td class="d">0.0 / 0.0</td><td>剪切／透視變換</td></tr>
+    <tr><td><code>flipud / fliplr</code></td><td class="d">0.0 / 0.5</td><td>上下／左右翻轉機率</td></tr>
+    <tr><td><code>bgr</code></td><td class="d">0.0</td><td>RGB↔BGR 通道交換</td></tr>
+    <tr class="hi"><td><code>mosaic</code></td><td class="d">1.0</td><td>Mosaic 四圖拼接</td></tr>
+    <tr><td><code>mixup / cutmix</code></td><td class="d">0.0 / 0.0</td><td>影像混合</td></tr>
+    <tr><td><code>copy_paste</code></td><td class="d">0.0</td><td>複製貼上（分割）</td></tr>
+    <tr><td><code>erasing</code></td><td class="d">0.4</td><td>隨機擦除（分類）</td></tr>
+    <tr><td><code>auto_augment</code></td><td class="d">'randaugment'</td><td>自動增強策略（分類）</td></tr>
+  </tbody></table></div>
+
+  <div class="code"><div class="bar"><span>train.py</span><button type="button">複製</button></div><pre><span class="k">from</span> ultralytics <span class="k">import</span> YOLO
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:          <span class="c"># Windows 多執行緒必要的保護</span>
+    model = YOLO(<span class="s">"yolo26n.pt"</span>)
+
+    model.train(
+        data=<span class="s">"coco8.yaml"</span>,          <span class="c"># 換成自己的資料集 YAML</span>
+        epochs=50,
+        imgsz=640,
+        batch=16,                   <span class="c"># 記憶體不夠改 8，或 -1 自動</span>
+        device=0,                   <span class="c"># 沒有 GPU 改 "cpu"</span>
+        workers=4,
+        patience=20,
+        optimizer=<span class="s">"auto"</span>,           <span class="c"># 或 "MuSGD" / "AdamW"</span>
+        project=<span class="s">"runs_class"</span>,
+        name=<span class="s">"yolo26n_demo"</span>,
+    )
+
+    metrics = model.val()
+    print(<span class="s">"mAP50-95:"</span>, metrics.box.map)
+    print(<span class="s">"mAP50   :"</span>, metrics.box.map50)
+    <span class="c"># 最佳權重：runs_class/yolo26n_demo/weights/best.pt</span></pre></div>
+</section>
+
+<!-- 03 -->
+<section id="predict">
+  <div class="sec-head"><div><span class="num">03 / PREDICT</span><h2>推論參數詳解 <code style="font-size:.6em">model.predict()</code></h2></div>
+    <a class="doc" href="https://docs.ultralytics.com/modes/predict#inference-arguments" target="_blank" rel="noopener">官網 › predict#inference-arguments</a></div>
+  <div class="tabs" role="tablist" data-group="pr">
+    <button role="tab" aria-selected="true" data-t="pr-inf">推論參數</button>
+    <button role="tab" aria-selected="false" data-t="pr-vis">視覺化／存檔</button>
+  </div>
+  <div class="tbl" id="pr-inf"><table><thead><tr><th>參數</th><th>預設</th><th>說明</th></tr></thead><tbody>
+    <tr class="hi"><td><code>source</code></td><td class="d">None</td><td>圖片、影片、資料夾、URL、<code>0</code> 攝影機、RTSP、YouTube、<code>'screen'</code></td></tr>
+    <tr class="hi"><td><code>conf</code></td><td class="d">0.25</td><td>信心度門檻，低於此值丟棄</td></tr>
+    <tr class="hi"><td><code>iou</code></td><td class="d">0.5</td><td>NMS 的 IoU 門檻，越低刪越多重疊框</td></tr>
+    <tr class="hi"><td><code>imgsz</code></td><td class="d">640</td><td>推論尺寸，整數或 <code>(高, 寬)</code></td></tr>
+    <tr><td><code>rect</code></td><td class="d">True</td><td>最小矩形填補；需固定尺寸時設 False</td></tr>
+    <tr><td><code>quantize</code></td><td class="d">None</td><td><code>16</code> FP16 或 <code>32</code>；取代舊 <code>half</code></td></tr>
+    <tr class="hi"><td><code>device</code></td><td class="d">None</td><td><code>cpu</code>、<code>0</code>、<code>cuda:0</code>、<code>mps</code></td></tr>
+    <tr><td><code>batch</code></td><td class="d">1</td><td>批次推論（資料夾／影片）</td></tr>
+    <tr><td><code>max_det</code></td><td class="d">300</td><td>每張圖最多偵測數</td></tr>
+    <tr><td><code>vid_stride</code></td><td class="d">1</td><td>影片每隔幾幀推論一次</td></tr>
+    <tr><td><code>stream_buffer</code></td><td class="d">False</td><td>串流時緩衝全部幀</td></tr>
+    <tr><td><code>visualize</code></td><td class="d">False</td><td>輸出類別激活熱圖</td></tr>
+    <tr><td><code>augment</code></td><td class="d">False</td><td>測試時增強 TTA</td></tr>
+    <tr><td><code>agnostic_nms</code></td><td class="d">False</td><td>不分類別的 NMS</td></tr>
+    <tr class="hi"><td><code>classes</code></td><td class="d">None</td><td>只保留指定類別，如 <code>[0]</code> 只偵測人</td></tr>
+    <tr><td><code>retina_masks</code></td><td class="d">False</td><td>原圖解析度分割遮罩</td></tr>
+    <tr><td><code>embed</code></td><td class="d">None</td><td>擷取指定層特徵向量</td></tr>
+    <tr class="hi"><td><code>stream</code></td><td class="d">False</td><td>回傳 generator，長影片省記憶體</td></tr>
+    <tr><td><code>verbose</code></td><td class="d">True</td><td>終端機印出推論資訊</td></tr>
+    <tr><td><code>tile</code></td><td class="d">False</td><td>高解析度切塊推論</td></tr>
+    <tr class="hi"><td><code>nms</code><span class="tag">26</span></td><td class="d">None</td><td>預設 One-to-Many + NMS；<code>False</code> 使用免 NMS 端到端頭</td></tr>
+    <tr><td><code>project / name</code></td><td class="d">None</td><td>輸出資料夾</td></tr>
+  </tbody></table></div>
+  <div class="tbl" id="pr-vis" hidden><table><thead><tr><th>參數</th><th>預設</th><th>說明</th></tr></thead><tbody>
+    <tr><td><code>show</code></td><td class="d">False</td><td>開視窗顯示</td></tr>
+    <tr class="hi"><td><code>save</code></td><td class="d">Py False / CLI True</td><td>儲存標註後的圖片或影片</td></tr>
+    <tr><td><code>save_frames</code></td><td class="d">False</td><td>影片逐幀存圖</td></tr>
+    <tr><td><code>save_txt</code></td><td class="d">False</td><td>存 YOLO 格式文字檔</td></tr>
+    <tr><td><code>save_conf</code></td><td class="d">False</td><td>文字檔加信心度</td></tr>
+    <tr><td><code>save_crop</code></td><td class="d">False</td><td>裁切偵測物件另存</td></tr>
+    <tr><td><code>show_labels / show_conf / show_boxes</code></td><td class="d">True</td><td>畫出標籤、信心度、框線</td></tr>
+    <tr><td><code>line_width</code></td><td class="d">None</td><td>框線粗細，None 自動</td></tr>
+  </tbody></table></div>
+
+  <div class="grid2">
+  <div class="code"><div class="bar"><span>predict.py</span><button type="button">複製</button></div><pre><span class="k">from</span> ultralytics <span class="k">import</span> YOLO
+
+model = YOLO(<span class="s">"yolo26n.pt"</span>)
+results = model.predict(
+    source=<span class="s">"https://ultralytics.com/images/bus.jpg"</span>,
+    conf=0.4,
+    iou=0.5,
+    imgsz=640,
+    classes=[0, 5],   <span class="c"># 只要 person、bus</span>
+    max_det=100,
+    nms=False,        <span class="c"># YOLO26 免 NMS</span>
+    save=True,
+    save_txt=True,
+    device=<span class="s">"cpu"</span>,
+)
+print(results[0].save_dir)</pre></div>
+  <div class="code"><div class="bar"><span>webcam.py · 按 q 離開</span><button type="button">複製</button></div><pre><span class="k">import</span> cv2
+<span class="k">from</span> ultralytics <span class="k">import</span> YOLO
+
+model = YOLO(<span class="s">"yolo26n.pt"</span>)
+cap = cv2.VideoCapture(0)
+
+<span class="k">while</span> cap.isOpened():
+    ok, frame = cap.read()
+    <span class="k">if not</span> ok:
+        <span class="k">break</span>
+    r = model(frame, conf=0.4, verbose=False)
+    cv2.imshow(<span class="s">"YOLO26"</span>, r[0].plot())
+    <span class="k">if</span> cv2.waitKey(1) &amp; 0xFF == ord(<span class="s">"q"</span>):
+        <span class="k">break</span>
+
+cap.release()
+cv2.destroyAllWindows()</pre></div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section id="coco">
+  <div class="sec-head"><div><span class="num">04 / DATASET</span><h2>COCO 80 類英中對照</h2></div>
+    <a class="doc" href="https://docs.ultralytics.com/datasets/detect/coco" target="_blank" rel="noopener">官網 › datasets/detect/coco</a></div>
+  <p class="lead">COCO（Common Objects in Context）約 33 萬張影像、80 個物件類別，YOLO26 偵測預訓練權重即以此訓練。ID 就是 <code>classes=[...]</code> 與 <code>box.cls</code> 用的數字。</p>
+  <div class="coco-tools"><label for="q" class="eyebrow">搜尋</label><input id="q" type="search" placeholder="輸入英文、中文或 ID，例如 dog、手機、67"><span id="cnt">80 / 80</span></div>
+  <div class="coco" id="cocoGrid"></div>
+  <div class="code"><div class="bar"><span>list_classes.py</span><button type="button">複製</button></div><pre><span class="k">from</span> ultralytics <span class="k">import</span> YOLO
+
+model = YOLO(<span class="s">"yolo26n.pt"</span>)
+print(len(model.names))          <span class="c"># 80</span>
+<span class="k">for</span> idx, name <span class="k">in</span> model.names.items():
+    print(idx, name)</pre></div>
+</section>
+
+<!-- 05 -->
+<section id="results">
+  <div class="sec-head"><div><span class="num">05 / RESULTS</span><h2>推論結果 Results 的屬性與方法</h2></div>
+    <a class="doc" href="https://docs.ultralytics.com/modes/predict#working-with-results" target="_blank" rel="noopener">官網 › predict#working-with-results</a></div>
+  <p class="lead"><code>model()</code> 回傳 Results 物件的 list，每張圖一個；<code>stream=True</code> 時是 generator。</p>
+  <div class="diagram"><svg viewBox="0 0 760 230" role="img" aria-label="Results 物件結構：依任務分出 boxes、masks、keypoints、probs、obb 等子物件">
+    <rect x="290" y="10" width="180" height="46" rx="4" fill="#d9b25a"/><text x="380" y="31" text-anchor="middle" font-size="14" fill="#07080a" font-weight="600">results[0]</text><text x="380" y="47" text-anchor="middle" font-size="10" fill="#07080a">orig_img · orig_shape · names · speed · path</text>
+    <g stroke="#8f7536" stroke-width="1.2" fill="none"><path d="M380 56V82M70 82H690M70 82V100M215 82V100M380 82V100M545 82V100M690 82V100"/></g>
+    <g font-size="12">
+      <rect x="10" y="100" width="120" height="36" rx="4" fill="#0f1114" stroke="#39ff88"/><text x="70" y="123" text-anchor="middle" fill="#39ff88">.boxes</text>
+      <rect x="155" y="100" width="120" height="36" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="215" y="123" text-anchor="middle" fill="#ece8dc">.masks</text>
+      <rect x="320" y="100" width="120" height="36" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="380" y="123" text-anchor="middle" fill="#ece8dc">.keypoints</text>
+      <rect x="485" y="100" width="120" height="36" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="545" y="123" text-anchor="middle" fill="#ece8dc">.probs</text>
+      <rect x="630" y="100" width="120" height="36" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="690" y="123" text-anchor="middle" fill="#ece8dc">.obb</text>
+    </g>
+    <g font-size="10" fill="#9a968a" text-anchor="middle">
+      <text x="70" y="154">Detect</text><text x="215" y="154">Segment</text><text x="380" y="154">Pose</text><text x="545" y="154">Classify</text><text x="690" y="154">OBB</text>
+      <text x="70" y="174" fill="#39ff88">xyxy · xywh</text><text x="70" y="189" fill="#39ff88">conf · cls · id</text><text x="70" y="204" fill="#39ff88">xyxyn · xywhn</text>
+      <text x="215" y="174">data · xy · xyn</text>
+      <text x="380" y="174">xy · xyn · conf</text>
+      <text x="545" y="174">top1 · top5</text><text x="545" y="189">top1conf · top5conf</text>
+      <text x="690" y="174">xywhr · xyxyxyxy</text><text x="690" y="189">conf · cls</text>
+    </g>
+  </svg></div>
+
+  <div class="grid2">
+    <div class="tbl"><table><thead><tr><th>屬性</th><th>說明</th></tr></thead><tbody>
+      <tr><td><code>orig_img</code></td><td>原始影像（numpy，BGR）</td></tr>
+      <tr><td><code>orig_shape</code></td><td>原圖尺寸 (高, 寬)</td></tr>
+      <tr class="hi"><td><code>boxes</code></td><td>偵測框 Boxes</td></tr>
+      <tr><td><code>masks</code></td><td>實例分割遮罩</td></tr>
+      <tr><td><code>probs</code></td><td>分類機率</td></tr>
+      <tr><td><code>keypoints</code></td><td>姿態關鍵點</td></tr>
+      <tr><td><code>obb</code></td><td>旋轉框</td></tr>
+      <tr><td><code>semantic_mask</code></td><td>語意分割類別圖</td></tr>
+      <tr><td><code>depth</code></td><td>深度圖</td></tr>
+      <tr><td><code>speed</code></td><td>前處理／推論／後處理 ms</td></tr>
+      <tr class="hi"><td><code>names</code></td><td>類別 ID → 名稱</td></tr>
+      <tr><td><code>path</code></td><td>影像路徑</td></tr>
+      <tr><td><code>save_dir</code></td><td>輸出資料夾</td></tr>
+    </tbody></table></div>
+    <div class="tbl"><table><thead><tr><th>方法</th><th>說明</th></tr></thead><tbody>
+      <tr class="hi"><td><code>plot()</code></td><td>回傳畫好框的 BGR 影像</td></tr>
+      <tr><td><code>show()</code></td><td>顯示結果</td></tr>
+      <tr class="hi"><td><code>save(filename=)</code></td><td>儲存標註影像</td></tr>
+      <tr><td><code>save_txt(path)</code></td><td>存成文字檔</td></tr>
+      <tr><td><code>save_crop(save_dir)</code></td><td>裁切物件另存</td></tr>
+      <tr><td><code>verbose()</code></td><td>簡短記錄文字</td></tr>
+      <tr><td><code>summary()</code></td><td>摘要 dict 清單</td></tr>
+      <tr><td><code>to_df()</code></td><td>Polars DataFrame</td></tr>
+      <tr><td><code>to_csv()</code></td><td>CSV 字串</td></tr>
+      <tr><td><code>to_json()</code></td><td>JSON 字串</td></tr>
+      <tr><td><code>cpu() / cuda() / numpy() / to()</code></td><td>轉移裝置或轉 NumPy</td></tr>
+      <tr><td><code>update() / new()</code></td><td>更新內容／建立新物件</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <div class="code"><div class="bar"><span>parse_results.py</span><button type="button">複製</button></div><pre><span class="k">from</span> collections <span class="k">import</span> Counter
+<span class="k">from</span> ultralytics <span class="k">import</span> YOLO
+
+model = YOLO(<span class="s">"yolo26n.pt"</span>)
+results = model(<span class="s">"https://ultralytics.com/images/bus.jpg"</span>, conf=0.3)
+
+r = results[0]
+print(<span class="s">"原圖尺寸："</span>, r.orig_shape)
+print(<span class="s">"耗時(ms)："</span>, r.speed)
+print(<span class="s">"偵測數量："</span>, len(r.boxes))
+
+<span class="k">for</span> box <span class="k">in</span> r.boxes:
+    name = r.names[int(box.cls[0])]
+    conf = float(box.conf[0])
+    x1, y1, x2, y2 = box.xyxy[0].tolist()
+    print(f<span class="s">"{name:&lt;10} {conf:.2f}  ({x1:.0f},{y1:.0f})-({x2:.0f},{y2:.0f})"</span>)
+
+print(Counter(r.names[int(c)] <span class="k">for</span> c <span class="k">in</span> r.boxes.cls))   <span class="c"># 各類別數量</span>
+
+img = r.plot()                      <span class="c"># numpy 影像</span>
+r.save(filename=<span class="s">"bus_result.jpg"</span>)   <span class="c"># 存圖</span>
+print(r.to_json())                  <span class="c"># JSON</span>
+print(r.to_df())                    <span class="c"># DataFrame</span>
+r.save_crop(save_dir=<span class="s">"crops"</span>)       <span class="c"># 裁切物件</span></pre></div>
+</section>
+
+<!-- 06 -->
+<section id="colab">
+  <div class="sec-head"><div><span class="num">06 / COLAB STREAM</span><h2>Colab 上推論 YouTube 串流並顯示畫面</h2></div>
+    <a class="doc" href="https://docs.ultralytics.com/modes/predict#inference-sources" target="_blank" rel="noopener">官網 › predict#inference-sources</a></div>
+  <p class="lead">Colab 沒有 OpenCV 視窗，<code>cv2.imshow()</code> 不能用。做法是先建立一個可更新的輸出位置，每推論完一幀，就把畫好框的影像轉成 JPG，換掉上一張，畫面就會像影片一樣播放。</p>
+  <div class="diagram"><svg viewBox="0 0 760 130" role="img" aria-label="流程：YouTube 網址經 predict stream=True 逐幀推論，r.plot 畫框，imencode 轉 JPG，handle.update 更新 Colab 輸出區">
+    <g font-size="12">
+      <rect x="6" y="40" width="110" height="50" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="61" y="62" text-anchor="middle" fill="#ece8dc">YouTube</text><text x="61" y="79" text-anchor="middle" font-size="10" fill="#9a968a">影片 / 直播網址</text>
+      <rect x="156" y="40" width="140" height="50" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="226" y="62" text-anchor="middle" fill="#ece8dc">model.predict()</text><text x="226" y="79" text-anchor="middle" font-size="10" fill="#9a968a">stream=True 逐幀</text>
+      <rect x="336" y="40" width="110" height="50" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="391" y="62" text-anchor="middle" fill="#ece8dc">r.plot()</text><text x="391" y="79" text-anchor="middle" font-size="10" fill="#9a968a">畫上偵測框</text>
+      <rect x="486" y="40" width="120" height="50" rx="4" fill="#0f1114" stroke="#d9b25a"/><text x="546" y="62" text-anchor="middle" fill="#ece8dc">cv2.imencode</text><text x="546" y="79" text-anchor="middle" font-size="10" fill="#9a968a">轉成 JPG</text>
+      <rect x="646" y="40" width="108" height="50" rx="4" fill="#39ff88"/><text x="700" y="62" text-anchor="middle" fill="#07080a">handle.update</text><text x="700" y="79" text-anchor="middle" font-size="10" fill="#07080a">換掉上一張</text>
+    </g>
+    <g stroke="#d9b25a" stroke-width="1.5" fill="#d9b25a"><path d="M116 65H150"/><path d="M296 65H330"/><path d="M446 65H480"/><path d="M606 65H640" stroke="#39ff88"/></g>
+    <path d="M700 90V112H226V96" fill="none" stroke="#39ff88" stroke-width="1.2" stroke-dasharray="4 3"/>
+    <text x="463" y="125" text-anchor="middle" font-size="10" fill="#39ff88">下一幀，重複直到第 300 幀或按停止鈕</text>
+    <text x="226" y="26" text-anchor="middle" font-size="10" fill="#9a968a">logging 設為 ERROR → 不顯示 Waiting for stream 0</text>
+  </svg></div>
+
+  <div class="code"><div class="bar"><span>colab_youtube_stream.py</span><button type="button">複製</button></div><pre><span class="k">import</span> cv2
+<span class="k">import</span> logging
+<span class="k">from</span> IPython.display <span class="k">import</span> display, Image
+<span class="k">from</span> ultralytics <span class="k">import</span> YOLO
+
+logging.getLogger(<span class="s">"ultralytics"</span>).setLevel(logging.ERROR)   <span class="c"># 隱藏 WARNING，只顯示真正的錯誤</span>
+
+model = YOLO(<span class="s">"yolo26n.pt"</span>)
+url = <span class="s">"https://www.youtube.com/watch?v=影片或直播ID"</span>
+
+handle = display(display_id=True)        <span class="c"># 建立一個可更新的輸出位置</span>
+<span class="k">try</span>:
+    <span class="k">for</span> i, r <span class="k">in</span> enumerate(model.predict(url, stream=True, conf=0.4,
+                                        vid_stride=2, verbose=False)):
+        ok, jpg = cv2.imencode(<span class="s">".jpg"</span>, r.plot())
+        handle.update(Image(data=jpg.tobytes()))
+        <span class="k">if</span> i &gt;= 300:                     <span class="c"># 直播不會結束，設定幀數上限</span>
+            <span class="k">break</span>
+<span class="k">except</span> KeyboardInterrupt:
+    print(<span class="s">"已停止"</span>)</pre></div>
+
+  <div class="grid2">
+    <div class="feat"><h3>Waiting for stream 0 是什麼</h3><p>這不是錯誤。Ultralytics 用另一條執行緒讀串流，推論比畫面送來得快時，就會印出這行表示「下一幀還沒到」。<code>verbose=False</code> 擋不掉，要靠 logging 把等級調到 ERROR。</p></div>
+    <div class="feat"><h3>設定位置不能放錯</h3><p><code>setLevel</code> 要寫在 <code>from ultralytics import YOLO</code> 之後。Ultralytics 在 import 時會重設訊息等級，放在前面會被蓋掉。</p></div>
+    <div class="feat"><h3>影響範圍</h3><p>會隱藏 Ultralytics 所有的 WARNING，真正的錯誤（ERROR）還是會顯示。想看回警告，把 <code>logging.ERROR</code> 改成 <code>logging.INFO</code>。</p></div>
+    <div class="feat"><h3>結束與流暢度</h3><p>按儲存格左邊的停止鈕即可結束。每一幀都要從 Colab 傳回瀏覽器，通常每秒只有幾幀，適合示範；<code>vid_stride</code> 調大可跳過更多幀。</p></div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section id="links">
+  <div class="sec-head"><div><span class="num">07 / REFERENCES</span><h2>官網連結總整理</h2></div></div>
+  <div class="links">
+    <a href="https://docs.ultralytics.com/models/yolo26" target="_blank" rel="noopener">YOLO26 模型介紹<small>docs.ultralytics.com/models/yolo26</small></a>
+    <a href="https://docs.ultralytics.com/modes/train" target="_blank" rel="noopener">訓練模式 Train<small>docs.ultralytics.com/modes/train</small></a>
+    <a href="https://docs.ultralytics.com/modes/predict" target="_blank" rel="noopener">推論模式 Predict<small>docs.ultralytics.com/modes/predict</small></a>
+    <a href="https://docs.ultralytics.com/usage/cfg" target="_blank" rel="noopener">全部參數 Configuration<small>docs.ultralytics.com/usage/cfg</small></a>
+    <a href="https://docs.ultralytics.com/guides/yolo-data-augmentation" target="_blank" rel="noopener">資料增強指南<small>docs.ultralytics.com/guides/yolo-data-augmentation</small></a>
+    <a href="https://docs.ultralytics.com/guides/end2end-detection" target="_blank" rel="noopener">端到端免 NMS 指南<small>docs.ultralytics.com/guides/end2end-detection</small></a>
+    <a href="https://docs.ultralytics.com/datasets/detect/coco" target="_blank" rel="noopener">COCO 資料集<small>docs.ultralytics.com/datasets/detect/coco</small></a>
+    <a href="https://docs.ultralytics.com/reference/engine/results" target="_blank" rel="noopener">Results API 參考<small>docs.ultralytics.com/reference/engine/results</small></a>
+    <a href="https://arxiv.org/abs/2606.03748" target="_blank" rel="noopener">YOLO26 論文<small>arxiv.org/abs/2606.03748</small></a>
+  </div>
+</section>
+<footer>資料整理自 Ultralytics 官方文件（2026-11）。參數預設值可能隨套件版本更新，上課前建議 <code>pip install -U ultralytics</code> 後以 <code>yolo cfg</code> 核對。</footer>
+</div>
+
+<script>
+const COCO=[["person","人"],["bicycle","腳踏車"],["car","汽車"],["motorcycle","機車"],["airplane","飛機"],["bus","公車"],["train","火車"],["truck","卡車"],["boat","船"],["traffic light","紅綠燈"],["fire hydrant","消防栓"],["stop sign","停止標誌"],["parking meter","停車收費表"],["bench","長椅"],["bird","鳥"],["cat","貓"],["dog","狗"],["horse","馬"],["sheep","羊"],["cow","牛"],["elephant","大象"],["bear","熊"],["zebra","斑馬"],["giraffe","長頸鹿"],["backpack","背包"],["umbrella","雨傘"],["handbag","手提包"],["tie","領帶"],["suitcase","行李箱"],["frisbee","飛盤"],["skis","滑雪板"],["snowboard","單板滑雪板"],["sports ball","運動球"],["kite","風箏"],["baseball bat","棒球棒"],["baseball glove","棒球手套"],["skateboard","滑板"],["surfboard","衝浪板"],["tennis racket","網球拍"],["bottle","瓶子"],["wine glass","紅酒杯"],["cup","杯子"],["fork","叉子"],["knife","刀子"],["spoon","湯匙"],["bowl","碗"],["banana","香蕉"],["apple","蘋果"],["sandwich","三明治"],["orange","柳橙"],["broccoli","花椰菜"],["carrot","紅蘿蔔"],["hot dog","熱狗"],["pizza","披薩"],["donut","甜甜圈"],["cake","蛋糕"],["chair","椅子"],["couch","沙發"],["potted plant","盆栽"],["bed","床"],["dining table","餐桌"],["toilet","馬桶"],["tv","電視"],["laptop","筆記型電腦"],["mouse","滑鼠"],["remote","遙控器"],["keyboard","鍵盤"],["cell phone","手機"],["microwave","微波爐"],["oven","烤箱"],["toaster","烤麵包機"],["sink","水槽"],["refrigerator","冰箱"],["book","書"],["clock","時鐘"],["vase","花瓶"],["scissors","剪刀"],["teddy bear","泰迪熊"],["hair drier","吹風機"],["toothbrush","牙刷"]];
+const GROUPS={0:"人與交通 0–8",9:"街道設施 9–13",14:"動物 14–23",24:"隨身配件 24–28",29:"運動用品 29–38",39:"餐具 39–45",46:"食物 46–55",56:"家具 56–61",62:"電子產品 62–67",68:"家電 68–72",73:"居家雜物 73–79"};
+const grid=document.getElementById("cocoGrid"),q=document.getElementById("q"),cnt=document.getElementById("cnt");
+function render(term){
+  term=(term||"").trim().toLowerCase();let html="",n=0;
+  COCO.forEach(([en,zh],i)=>{
+    const hit=!term||en.includes(term)||zh.includes(term)||String(i)===term;
+    if(!term&&GROUPS[i])html+=`<div class="grp">${GROUPS[i]}</div>`;
+    if(hit){n++;html+=`<div class="cls"><i>${i}</i><b>${zh}</b><small>${en}</small></div>`;}
+  });
+  grid.innerHTML=html||'<p class="lead">沒有符合的類別，試試英文或中文名稱。</p>';cnt.textContent=`${n} / 80`;
+}
+render("");q.addEventListener("input",e=>render(e.target.value));
+
+document.querySelectorAll(".tabs").forEach(tl=>{
+  const btns=tl.querySelectorAll("button");
+  btns.forEach(b=>b.addEventListener("click",()=>{
+    btns.forEach(x=>{x.setAttribute("aria-selected",x===b);document.getElementById(x.dataset.t).hidden=x!==b;});
+  }));
+});
+
+document.querySelectorAll(".code button").forEach(b=>b.addEventListener("click",()=>{
+  const pre=b.closest(".code").querySelector("pre");const txt=pre.innerText;
+  const done=()=>{b.textContent="已複製";setTimeout(()=>b.textContent="複製",1500);};
+  try{navigator.clipboard.writeText(txt).then(done).catch(()=>sel(pre));}catch(e){sel(pre);}
+  function sel(el){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="已選取，按 Ctrl+C";}
+}));
+</script>
+
+</body></html>
