@@ -116,6 +116,12 @@ td code,p code,li code{background:var(--bg-soft);padding:1px 6px;border-radius:6
 .pm-panel{padding:14px 16px}
 .pm-kv{width:100%;font-family:"JetBrains Mono";font-size:.84rem}
 .pm-kv td,.pm-kv th{border:1px solid var(--border-color)}
+.doclink{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:8px 14px;border-radius:999px;text-decoration:none;font-weight:700;font-size:.9rem;color:var(--accent-primary);background:var(--bg-card);border:var(--card-border-width) solid var(--accent-primary);box-shadow:var(--card-shadow);transition:.2s}
+.doclink:hover{background:var(--accent-primary);color:#fff}
+.doclink .dl-url{font-family:"JetBrains Mono";font-weight:400;font-size:.78rem;opacity:.8}
+.doclink .dl-dot{width:9px;height:9px;border-radius:50%;background:var(--accent-secondary);animation:dotpulse 1.6s infinite}
+.hdr-doc{font-size:.78rem;font-weight:700;text-decoration:none;padding:3px 9px;border-radius:999px;border:var(--card-border-width) solid var(--border-color);color:var(--accent-primary)}
+.hdr-doc:hover{border-color:var(--accent-primary)}
 .pager{display:flex;justify-content:space-between;margin-top:26px}
 .pager button{border:var(--card-border-width) solid var(--border-color);background:var(--bg-card);color:var(--text-main);padding:8px 16px;border-radius:10px;cursor:pointer;font:inherit}
 .pager button:hover{border-color:var(--accent-primary)}
@@ -126,7 +132,7 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
 
 <header class="top">
   <div class="top-inner">
-    <div class="brand"><span class="dot"></span>Decisions API</div>
+    <div class="brand"><span class="dot"></span>Decisions API <a class="hdr-doc" href="https://aistudio.google.com/docs/decisions-api" target="_blank" rel="noopener" title="開啟官方文件">📘 官方文件 ↗</a></div>
     <nav class="tabs" id="tabs"></nav>
     <div class="theme" id="theme">
       <button data-t="day" class="active">☀️ 白天</button>
@@ -139,6 +145,7 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
 <div class="hero">
   <h1>Gemini Decision 1 · Decisions API 互動教學</h1>
   <p class="sub">不生成文字、只回傳「機率」的判斷模型：是非題、單選題、評分題，一次最多 1,000 題。附 Colab 可直接執行的範例。</p>
+  <a class="doclink" href="https://aistudio.google.com/docs/decisions-api" target="_blank" rel="noopener"><span class="dl-dot"></span>📘 官方文件：Decisions API（Google AI Studio）<span class="dl-url">https://aistudio.google.com/docs/decisions-api</span> ↗</a>
   <div class="roadmap-card">
     <svg id="roadmap" viewBox="0 0 1000 150" role="img" aria-label="章節導覽">
       <defs>
@@ -231,9 +238,140 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
   </div>
 </section>
 
+<!-- ================= Jev & Jevons ================= -->
+<section class="chap" id="cJ">
+  <h2><span class="num">2</span>決策模型的起點：Jev 與傑文斯悖論</h2>
+
+  <div class="card">
+    <h3 style="margin-top:0">🕰️ 決策模型時間軸（點節點看說明）</h3>
+    <svg viewBox="0 0 960 190" style="width:100%;height:auto" id="tlSvg"></svg>
+    <div class="result" id="tlTxt"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🥇 Jev：第一個「決策模型」</h3>
+    <p><b>Jev</b> 是舊金山新創 <b>TypeSafe AI</b> 在 2026 年 9 月中推出的模型，被視為「決策模型（decision model）」這個新類別的開創者。TypeSafe 自己稱它為 <b>System One 模型</b>，名稱借用康納曼《快思慢想》裡「快速、直覺」的系統 1：一次計算就回傳帶機率的判斷，不寫出推理過程。</p>
+    <div class="grid2">
+      <div>
+        <h4 style="margin:.4rem 0">它和 Gemini Decision 1 很像</h4>
+        <ul>
+          <li>題型同樣是 <code>noul</code>（是非）、<code>choice</code>（單選）、<code>score</code>（評分）—— Gemini 的 <code>"noul"</code> 這個奇怪的名字，就是跟 Jev 用同一套命名</li>
+          <li>只收輸入 token 的錢，輸出免費</li>
+          <li>多題平行評估，題目多了延遲也幾乎不變</li>
+          <li>以 RLCD（校準決策強化學習）訓練，目標是讓「信心越高，越可能答對」（廠商說法，尚無公開論文）</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="margin:.4rem 0">Jev 的限制</h4>
+        <ul>
+          <li>只吃文字（與 JSON），不支援圖片、音訊、影片</li>
+          <li>不會寫文章、寫程式；開放式文字仍要交給生成式模型</li>
+          <li>不適合計數、算術、日期比較 —— 這些交給程式</li>
+          <li>輸入裡無關的內容越多，準確度越低，要先精簡</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout info">💡 第三方實測提醒：Amplitude 的分析發現，決策模型和大型模型的答案「彼此一致」的比例，比它們「符合人工標準答案」的比例還高 6～8 個百分點。也就是說，快又便宜不等於準 —— 重要決策仍要用自己的標註資料驗證。</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">⚡ 生成式 LLM vs. 決策模型：為什麼它這麼快、這麼便宜？</h3>
+    <div class="seg" id="arBtns"><button data-m="gen" class="on">生成式 LLM（逐字生成）</button><button data-m="dec">決策模型（一次算完）</button></div>
+    <svg viewBox="0 0 960 200" style="width:100%;height:auto" id="arSvg"></svg>
+    <div class="result" id="arTxt"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">📊 三家決策模型比較（2026 年 11 月）</h3>
+    <table>
+      <tr><th></th><th>Jev</th><th>gpt-6-luna</th><th>Gemini Decision 1</th></tr>
+      <tr><td>公司</td><td>TypeSafe AI</td><td>OpenAI</td><td>Google</td></tr>
+      <tr><td>推出</td><td>2026 年 9 月中</td><td>2026 年 10 月</td><td>2026 年 11 月</td></tr>
+      <tr><td>輸入模態</td><td>文字 / JSON</td><td>文字 + 圖片</td><td>文字、圖片、音訊、影片、PDF</td></tr>
+      <tr><td>每百萬輸入 token</td><td><b>US$0.042</b>（最便宜）</td><td>US$0.10</td><td>US$0.10</td></tr>
+      <tr><td>輸出 token</td><td>免費</td><td>免費</td><td>免費</td></tr>
+      <tr><td>是非題的機率</td><td>測試中常給 1.0 / 0.0</td><td>測試中常給 1.0 / 0.0</td><td>較保守，介於 0.01～0.99</td></tr>
+    </table>
+    <p class="muted" style="font-size:.85rem">價格與比較來自 Simon Willison 的整理與廠商公告，實際費率以各家官方定價頁為準。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🔥 科普：傑文斯悖論（Jevons Paradox）</h3>
+    <p>1865 年，29 歲的英國經濟學家<b>威廉·斯坦利·傑文斯</b>出版《煤炭問題》（<i>The Coal Question</i>）。當時瓦特改良的蒸汽機比舊式機器省煤得多，大家直覺認為「機器更省煤 → 英國用的煤會變少」。傑文斯卻指出實際情況正好相反：<b>煤的總用量反而大幅增加</b>。</p>
+    <p>原因是：效率提高 → 使用成本下降 → 原本不划算的工廠、鐵路、新用途都開始用蒸汽機 → 「機器數量增加」遠遠蓋過「每台省下的煤」。他的結論大意是：更多的爐子，足以抵銷每個爐子省下的用量。</p>
+    <svg viewBox="0 0 960 260" style="width:100%;height:auto">
+      <defs><marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--accent-warn)"/></marker></defs>
+      <g font-size="15" font-weight="700" text-anchor="middle">
+        <g class="breathe"><rect x="40" y="95" width="170" height="64" rx="32" fill="var(--bg-soft)" stroke="var(--accent-primary)" stroke-width="2.5"/><text x="125" y="122" fill="var(--text-main)">① 效率提高</text><text x="125" y="144" fill="var(--text-muted)" font-size="12" font-weight="400">蒸汽機更省煤</text></g>
+        <rect x="270" y="20" width="190" height="64" rx="32" fill="var(--bg-soft)" stroke="var(--accent-secondary)" stroke-width="2.5"/><text x="365" y="47" fill="var(--text-main)">② 單位成本下降</text><text x="365" y="69" fill="var(--text-muted)" font-size="12" font-weight="400">用一次更便宜</text>
+        <rect x="520" y="20" width="190" height="64" rx="32" fill="var(--bg-soft)" stroke="var(--accent-third)" stroke-width="2.5"/><text x="615" y="47" fill="var(--text-main)">③ 需求暴增</text><text x="615" y="69" fill="var(--text-muted)" font-size="12" font-weight="400">更多人用、用更多</text>
+        <rect x="520" y="175" width="190" height="64" rx="32" fill="var(--bg-soft)" stroke="var(--accent-third)" stroke-width="2.5"/><text x="615" y="202" fill="var(--text-main)">④ 新用途出現</text><text x="615" y="224" fill="var(--text-muted)" font-size="12" font-weight="400">原本不划算的事變可行</text>
+        <circle cx="850" cy="128" r="62" fill="var(--accent-bad)" opacity=".18" class="pulse-ring"/>
+        <circle cx="850" cy="128" r="58" fill="var(--bg-card)" stroke="var(--accent-bad)" stroke-width="3"/>
+        <text x="850" y="122" fill="var(--accent-bad)">⑤ 總用量</text><text x="850" y="146" fill="var(--accent-bad)" font-size="20">不減反增</text>
+      </g>
+      <g stroke="var(--accent-warn)" stroke-width="2.5" fill="none" marker-end="url(#arw)" class="flow">
+        <path d="M200 105 C230 70 240 55 268 52"/>
+        <path d="M460 52 L516 52"/>
+        <path d="M615 86 L615 172"/>
+        <path d="M712 52 C770 52 790 80 800 88"/>
+        <path d="M712 207 C770 207 790 180 800 170"/>
+        <path d="M520 220 C300 250 180 210 140 162" stroke-dasharray="3 7"/>
+      </g>
+      <text x="300" y="250" fill="var(--text-muted)" font-size="12">經濟成長再帶動新一輪需求（循環）</text>
+    </svg>
+    <div class="grid3">
+      <div><span class="pill p-blue">關鍵：需求彈性</span><p class="muted">價格下降時需求增加得「比效率提升還多」（反彈效果 &gt; 100%），悖論才會發生；需求增加得少，就只是部分抵銷。</p></div>
+      <div><span class="pill p-green">生活例子</span><p class="muted">省油車讓人開更遠、更常開；LED 很省電，於是到處裝燈、招牌整夜亮著。</p></div>
+      <div><span class="pill p-purple">AI 時代</span><p class="muted">2025 年 DeepSeek 讓推論成本大降時，微軟執行長 Nadella 直接點名傑文斯悖論：AI 越有效率、越普及，用量就會暴增。</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🎛️ 模擬器 E：傑文斯悖論會不會發生？</h3>
+    <p class="muted">簡化模型：效率提升 E 倍 → 單位成本變成 1/E；需求量 ∝ E<sup>ε</sup>（ε 為需求彈性）；<b>總資源用量 ∝ E<sup>ε−1</sup></b>。ε &gt; 1 時，越有效率反而用越多。（教學用示意，非實證數據）</p>
+    <div class="seg" id="jvPre">
+      <button data-e="4" data-k="1.6">🚂 1860 年代煤炭</button>
+      <button data-e="3" data-k="0.3">🧊 家用冰箱</button>
+      <button data-e="25" data-k="1.4" class="on">🤖 AI 判斷（決策模型）</button>
+    </div>
+    <div class="sim">
+      <div class="ctrl">
+        <label>效率提升倍數 E：<span class="val" id="jvEv"></span></label>
+        <input type="range" id="jvE" min="1" max="30" step="0.5" value="25">
+        <label>需求彈性 ε：<span class="val" id="jvKv"></span></label>
+        <input type="range" id="jvK" min="0" max="2" step="0.05" value="1.4">
+        <div class="result" id="jvRes"></div>
+      </div>
+      <svg viewBox="0 0 420 250" style="width:100%" id="jvSvg"></svg>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🔗 Jev × 傑文斯：兩者有什麼關係？</h3>
+    <p><b>名字</b>：「Jev」讀起來很像「Jevons」，但目前查到的介紹都<b>沒有</b>官方說明命名由來，上課時建議當成「巧合／猜想」討論，不要當成事實。</p>
+    <p><b>精神</b>：兩者的關聯在於經濟邏輯。決策模型把「一次 AI 判斷」變得極便宜（Jev 每百萬 token 約 4 美分）、極快（一次約 70～500 毫秒），於是工程師開始在流程的<b>每一個分岔點</b>都放一個 AI 判斷：分流工單、審核每次工具呼叫、替每筆搜尋結果重排序……</p>
+    <div class="callout">📈 這正是傑文斯悖論的縮影：<b>單次判斷的成本降了幾十倍，但判斷的次數可能多了上千倍</b>，整體的 token 用量、算力與電力需求反而上升。對開發者而言，「換成決策模型就一定省錢」不一定成立 —— 要看你是否因為便宜而大量增加呼叫。</div>
+    <h4>💬 課堂討論題</h4>
+    <ol>
+      <li>如果批改一份作業的 AI 成本降到幾乎為零，老師會「少花時間批改」，還是會「出更多作業、每份都即時回饋」？這算不算傑文斯悖論？</li>
+      <li>用模擬器 E：要讓 AI 判斷的總用量「不增加」，需求彈性 ε 必須小於多少？</li>
+      <li>除了價格，還有什麼方式可以避免反彈效果（例如配額、碳費、使用上限）？</li>
+    </ol>
+  </div>
+
+  <p class="muted" style="font-size:.85rem">延伸閱讀：
+    <a href="https://simonwillison.net/tags/decision-models" target="_blank" rel="noopener">Simon Willison · decision models</a> ·
+    <a href="https://nexos.ai/blog/what-is-jev/" target="_blank" rel="noopener">nexos.ai · What is Jev</a> ·
+    <a href="https://amplitude.com/blog/jev-analysis" target="_blank" rel="noopener">Amplitude · An analysis of Jev</a> ·
+    <a href="https://www.wwt.com/blog/the-rise-of-decision-models" target="_blank" rel="noopener">WWT · The Rise of Decision Models</a> ·
+    <a href="https://kentclarkcenter.org/?p=8326" target="_blank" rel="noopener">Kent Clark Center · Coal, AI &amp; Jevons</a>
+  </p>
+</section>
+
 <!-- ================= 2 ================= -->
 <section class="chap" id="c1">
-  <h2><span class="num">2</span>三種題型與互動模擬</h2>
+  <h2><span class="num">3</span>三種題型與互動模擬</h2>
   <div class="card">
     <p>每一題都必須有 <code>type</code> 和 <code>instructions</code>；<code>criteria</code> 依題型而定。</p>
     <table>
@@ -307,7 +445,7 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
 
 <!-- ================= 3 ================= -->
 <section class="chap" id="c2">
-  <h2><span class="num">3</span>參數完整說明</h2>
+  <h2><span class="num">4</span>參數完整說明</h2>
 
   <div class="card">
     <h3 style="margin-top:0">請求本體（Request body）</h3>
@@ -435,7 +573,7 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
 
 <!-- ================= 4 ================= -->
 <section class="chap" id="c3">
-  <h2><span class="num">4</span>在 Colab 設定與讀取 API Key</h2>
+  <h2><span class="num">5</span>在 Colab 設定與讀取 API Key</h2>
   <div class="card">
     <svg viewBox="0 0 960 170" style="width:100%;height:auto" id="keyFlow">
       <g id="kfNodes"></g>
@@ -463,8 +601,8 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
 
 <!-- ================= 5 ================= -->
 <section class="chap" id="c4">
-  <h2><span class="num">5</span>Colab 範例集</h2>
-  <p class="muted">以下每個範例都假設已執行第 4 章的 Cell 1、Cell 2（已有 <code>client</code> 變數）。</p>
+  <h2><span class="num">6</span>Colab 範例集</h2>
+  <p class="muted">以下每個範例都假設已執行第 5 章的 Cell 1、Cell 2（已有 <code>client</code> 變數）。</p>
   <div class="exnav seg" id="exNav"></div>
   <div class="card" id="exCard">
     <h3 id="exTitle" style="margin-top:0"></h3>
@@ -481,7 +619,7 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
 
 <!-- ================= 6 Postman ================= -->
 <section class="chap" id="c5">
-  <h2><span class="num">6</span>用 Postman 測試 API</h2>
+  <h2><span class="num">7</span>用 Postman 測試 API</h2>
   <div class="card">
     <p><b>Postman</b> 是一個圖形化的 API 測試工具（有桌面版與網頁版，免費帳號即可使用）。不用寫程式，只要填好<b>方法、網址、Headers、Body</b> 按 Send，就能看到 API 回傳的原始 JSON。很適合在寫 Colab 程式前，先確認金鑰、格式、題目寫法都正確。</p>
     <svg viewBox="0 0 960 200" style="width:100%;height:auto">
@@ -557,7 +695,7 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
 
 <!-- ================= 7 ================= -->
 <section class="chap" id="c6">
-  <h2><span class="num">7</span>限制與注意事項</h2>
+  <h2><span class="num">8</span>限制與注意事項</h2>
   <div class="card">
     <table>
       <tr><th>項目</th><th>上限 / 規則</th></tr>
@@ -591,7 +729,7 @@ footer{text-align:center;color:var(--text-muted);font-size:.82rem;padding:20px}
 
 <div class="pager"><button id="prev">← 上一章</button><button id="next">下一章 →</button></div>
 </main>
-<footer>Gemini Decisions API 互動教學 · 單頁講義</footer>
+<footer>Gemini Decisions API 互動教學 · 單頁講義 · 官方文件：<a href="https://aistudio.google.com/docs/decisions-api" target="_blank" rel="noopener">https://aistudio.google.com/docs/decisions-api</a></footer>
 
 <!-- ============ code snippets ============ -->
 <script type="text/plain" id="src-resp">{
@@ -936,7 +1074,7 @@ df</script>
 
 url = "https://generativelanguage.googleapis.com/v1beta/decisions"
 headers = {
-    "x-goog-api-key": os.environ["GEMINI_API_KEY"],   # 第 4 章 Cell 2 已設定
+    "x-goog-api-key": os.environ["GEMINI_API_KEY"],   # 第 5 章 Cell 2 已設定
     "Content-Type": "application/json",
 }
 body = {
@@ -998,13 +1136,13 @@ document.addEventListener('click',async e=>{
 });
 
 /* ---------- chapters & roadmap ---------- */
-const chapters=['概觀','三種題型','參數說明','Colab 金鑰','Colab 範例','Postman','限制注意'];
-const icons=['🧭','🎛️','📋','🔑','🧪','📮','⚠️'];
+const chapters=['概觀','Jev與傑文斯','三種題型','參數說明','Colab 金鑰','Colab 範例','Postman','限制注意'];
+const icons=['🧭','🔥','🎛️','📋','🔑','🧪','📮','⚠️'];
 const tabs=document.getElementById('tabs');
 chapters.forEach((c,i)=>{const b=document.createElement('button');b.textContent=`${i+1}. ${c}`;b.onclick=()=>go(i);tabs.appendChild(b)});
 const NS='http://www.w3.org/2000/svg';
 const rmL=document.getElementById('rm-lines'),rmN=document.getElementById('rm-nodes');
-const xs=chapters.map((_,i)=>70+i*143);
+const xs=chapters.map((_,i)=>62+i*125);
 const lines=[];
 for(let i=0;i<chapters.length-1;i++){const l=document.createElementNS(NS,'line');l.setAttribute('x1',xs[i]+30);l.setAttribute('x2',xs[i+1]-30);l.setAttribute('y1',62);l.setAttribute('y2',62);l.setAttribute('stroke-width',3);rmL.appendChild(l);lines.push(l)}
 const nodes=chapters.map((c,i)=>{
@@ -1013,7 +1151,7 @@ const nodes=chapters.map((c,i)=>{
    <circle class="ring breathe" cx="${xs[i]}" cy="62" r="38" fill="var(--accent-primary)" opacity=".12"/>
    <circle class="core" cx="${xs[i]}" cy="62" r="28" fill="var(--bg-card)" stroke="var(--border-color)" stroke-width="3"/>
    <text x="${xs[i]}" y="70" text-anchor="middle" font-size="22">${icons[i]}</text>
-   <text class="lbl" x="${xs[i]}" y="122" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text-muted)">${i+1}. ${c}</text>`;
+   <text class="lbl" x="${xs[i]}" y="122" text-anchor="middle" font-size="14" font-weight="700" fill="var(--text-muted)">${i+1}. ${c}</text>`;
   g.onclick=()=>go(i);rmN.appendChild(g);return g});
 let cur=0;
 function go(i,scroll=true){
@@ -1151,6 +1289,87 @@ const pmBodyNav=$('pmBodyNav');
 pmB.forEach((x,i)=>{const b=document.createElement('button');b.textContent=x.t;b.onclick=()=>pmBodyShow(i);pmBodyNav.appendChild(b)});
 function pmBodyShow(i){const x=pmB[i];const s=JSON.stringify(x.b,null,2);raw.pmBody=s;$('pmBody').innerHTML=hl(s,'json');$('pmBodyDesc').textContent=x.d;[...pmBodyNav.children].forEach((b,k)=>b.classList.toggle('on',k===i))}
 pmBodyShow(0);
+
+
+/* ---------- Timeline ---------- */
+const tl=[
+ ['2025','Laya','開源決策模型',"由 Nandakishor M. 開發的開源模型，被描述為「非自迴歸」的決策模型：一次前向計算就解出結構化判斷。有人認為 Jev 用的是類似做法。"],
+ ['2026/09','Jev','TypeSafe AI',"TypeSafe AI 推出 Jev，自稱 System One 模型，業界改稱「決策模型」。只吃文字，每百萬輸入 token 約 US$0.042，輸出免費。題型：noul / choice / score。"],
+ ['2026/10','gpt-6-luna','OpenAI',"OpenAI 推出 Jev 風格的 Decisions API，比 Jev 多了圖片輸入，每百萬輸入 token US$0.10。"],
+ ['2026/11','Gemini Decision 1','Google',"Google 推出 gemini-decision-1，模態最完整（文字、圖片、音訊、影片、PDF），題型與 Jev 相同，連是非題名稱 noul 也一樣。"]
+];
+let tli=1;const tlSvg=$('tlSvg');
+function drawTl(){
+  let s=`<line x1="80" y1="80" x2="880" y2="80" stroke="var(--border-color)" stroke-width="4"/>`;
+  s+=`<line x1="80" y1="80" x2="${120+tli*240}" y2="80" stroke="var(--accent-primary)" stroke-width="4" class="flow"/>`;
+  tl.forEach((t,i)=>{const x=120+i*240,on=i===tli;
+    s+=`<g data-i="${i}" style="cursor:pointer">
+     ${on?`<circle cx="${x}" cy="80" r="26" fill="none" stroke="var(--accent-primary)" stroke-width="3" class="pulse-ring"/>`:''}
+     <circle cx="${x}" cy="80" r="${on?22:16}" fill="${i===1?'var(--accent-warn)':'var(--bg-card)'}" stroke="${i<=tli?'var(--accent-primary)':'var(--border-color)'}" stroke-width="3" ${on?'class="breathe" filter="url(#glow)"':''}/>
+     ${i===1?`<text x="${x}" y="86" text-anchor="middle" font-size="16">🥇</text>`:''}
+     <text x="${x}" y="38" text-anchor="middle" fill="var(--text-muted)" font-size="14">${t[0]}</text>
+     <text x="${x}" y="135" text-anchor="middle" fill="${on?'var(--accent-primary)':'var(--text-main)'}" font-size="16" font-weight="900">${t[1]}</text>
+     <text x="${x}" y="158" text-anchor="middle" fill="var(--text-muted)" font-size="13">${t[2]}</text></g>`});
+  tlSvg.innerHTML=s;$('tlTxt').innerHTML=`<b>${tl[tli][1]}</b>（${tl[tli][0]}）：${tl[tli][3]}`;
+}
+tlSvg.addEventListener('click',e=>{const g=e.target.closest('g[data-i]');if(g){tli=+g.dataset.i;drawTl()}});drawTl();
+
+/* ---------- AR vs decision ---------- */
+let arMode='gen',arTimer=null;
+function drawAr(){
+  clearInterval(arTimer);const svg=$('arSvg');
+  document.querySelectorAll('#arBtns button').forEach(b=>b.classList.toggle('on',b.dataset.m===arMode));
+  if(arMode==='gen'){
+    const toks=['這','位','學生','的','答案','大致','正確','，','我','給','3','分','。'];
+    let k=0;
+    const render=()=>{let s=`<rect x="20" y="70" width="140" height="60" rx="12" fill="var(--bg-soft)" stroke="var(--accent-primary)" stroke-width="2"/><text x="90" y="106" text-anchor="middle" fill="var(--text-main)" font-weight="700">輸入</text>`;
+      s+=`<path d="M160 100 L215 100" stroke="var(--accent-primary)" stroke-width="3" class="flow"/>`;
+      s+=`<circle cx="260" cy="100" r="42" fill="var(--bg-card)" stroke="var(--accent-third)" stroke-width="3" class="breathe"/><text x="260" y="105" text-anchor="middle" fill="var(--text-main)" font-weight="700" font-size="14">LLM</text>`;
+      s+=`<path d="M300 100 C330 40 230 30 240 58" stroke="var(--accent-warn)" stroke-width="2" fill="none" class="flow"/><text x="300" y="30" fill="var(--accent-warn)" font-size="12">每個字都回頭再算一次</text>`;
+      let x=320;toks.slice(0,k).forEach((w,i)=>{const wd=14+w.length*16;s+=`<rect x="${x}" y="82" width="${wd}" height="36" rx="8" fill="var(--accent-third)" opacity="${i===k-1?1:.45}"/><text x="${x+wd/2}" y="106" text-anchor="middle" fill="#fff" font-size="14">${w}</text>`;x+=wd+6});
+      s+=`<text x="320" y="160" fill="var(--text-muted)" font-size="13">已生成 ${k} 個 token → 還要再解析文字才能拿到「3 分」</text>`;
+      svg.innerHTML=s;k=k>=toks.length?0:k+1};
+    render();arTimer=setInterval(render,420);
+    $('arTxt').innerHTML='生成式 LLM 是<b>自迴歸</b>的：一次只產生一個 token，下一個要等上一個算完。答案越長越慢、越貴，最後還得自己從文字裡抓出「3 分」。';
+  }else{
+    let on=true;
+    const render=()=>{let s=`<rect x="20" y="70" width="140" height="60" rx="12" fill="var(--bg-soft)" stroke="var(--accent-primary)" stroke-width="2"/><text x="90" y="106" text-anchor="middle" fill="var(--text-main)" font-weight="700">輸入＋題目</text>`;
+      s+=`<path d="M160 100 L215 100" stroke="var(--accent-primary)" stroke-width="3" class="flow"/>`;
+      s+=`<circle cx="270" cy="100" r="46" fill="var(--bg-card)" stroke="var(--accent-secondary)" stroke-width="3" class="breathe" filter="url(#glow)"/><text x="270" y="96" text-anchor="middle" fill="var(--text-main)" font-weight="700" font-size="13">決策模型</text><text x="270" y="114" text-anchor="middle" fill="var(--text-muted)" font-size="11">一次前向計算</text>`;
+      [['noul','P(是)=0.93',40],['choice','replace 0.81',100],['score','2.7 / 4',160]].forEach(([a,b,y],i)=>{
+        s+=`<path d="M316 100 C380 100 380 ${y} 450 ${y}" stroke="var(--accent-secondary)" stroke-width="2.5" fill="none" class="flow"/>
+        <rect x="450" y="${y-20}" width="230" height="40" rx="10" fill="var(--bg-soft)" stroke="var(--accent-secondary)" stroke-width="2" opacity="${on?1:.5}"/>
+        <text x="465" y="${y+5}" fill="var(--accent-secondary)" font-weight="700" font-size="14">${a}</text><text x="665" y="${y+5}" text-anchor="end" fill="var(--text-main)" font-size="14">${b}</text>`});
+      s+=`<text x="710" y="95" fill="var(--text-main)" font-size="14" font-weight="700">輸出 token = 0</text><text x="710" y="118" fill="var(--text-muted)" font-size="13">多題同時回傳數字</text><circle cx="935" cy="90" r="6" fill="var(--accent-secondary)" class="blink"/>`;
+      svg.innerHTML=s;on=!on};
+    render();arTimer=setInterval(render,900);
+    $('arTxt').innerHTML='決策模型是<b>非自迴歸</b>的：答案空間事先固定（是非、選項、量尺），模型一次計算就同時填好所有題目的機率。不用逐字生成，所以快、便宜，結果還能直接給程式用。';
+  }
+}
+document.querySelectorAll('#arBtns button').forEach(b=>b.onclick=()=>{arMode=b.dataset.m;drawAr()});drawAr();
+
+/* ---------- Sim E: Jevons ---------- */
+const jvE=$('jvE'),jvK=$('jvK');
+function simE(){
+  const E=+jvE.value,k=+jvK.value;$('jvEv').textContent=E+' 倍';$('jvKv').textContent=k.toFixed(2);
+  const unit=100/E,demand=100*Math.pow(E,k),total=100*Math.pow(E,k-1);
+  const rows=[['每單位資源用量',unit,'var(--accent-secondary)'],['服務需求量',demand,'var(--accent-third)'],['總資源用量',total,total>100?'var(--accent-bad)':'var(--accent-primary)']];
+  const mx=Math.log10(Math.max(...rows.map(r=>r[1]),100)*1.2),mn=Math.log10(Math.min(...rows.map(r=>r[1]),100)/1.5);
+  const sc=v=>20+360*(Math.log10(v)-mn)/(mx-mn);
+  let s='';const bx=sc(100);
+  rows.forEach((r,i)=>{const y=30+i*62,w=sc(r[1])-20;
+    s+=`<text x="20" y="${y}" fill="var(--text-main)" font-size="13" font-weight="700">${r[0]}</text>
+    <rect x="20" y="${y+8}" width="${Math.max(3,w)}" height="28" rx="7" fill="${r[2]}" ${i===2?'class="breathe"':''}/>
+    <text x="${w>300?w+12:Math.max(3,w)+28}" y="${y+28}" fill="${w>300?'#fff':'var(--text-main)'}" text-anchor="${w>300?'end':'start'}" font-weight="700" font-size="13">${r[1]>=1000?Math.round(r[1]).toLocaleString():r[1].toFixed(1)}</text>`});
+  s+=`<line x1="${bx}" y1="14" x2="${bx}" y2="208" stroke="var(--accent-warn)" stroke-width="2" stroke-dasharray="5 4"/><text x="${bx}" y="224" text-anchor="middle" fill="var(--accent-warn)" font-size="12">原本 = 100（對數刻度）</text>`;
+  if(total>100)s+=`<circle cx="400" cy="160" r="7" fill="var(--accent-bad)" class="blink"/>`;
+  $('jvSvg').innerHTML=s;
+  const r=(k*100).toFixed(0);
+  $('jvRes').innerHTML=total>100.5?`🔥 <b>傑文斯悖論發生！</b>效率提高 ${E} 倍，總用量卻變成原本的 <b>${(total/100).toFixed(2)} 倍</b>。`:(total<99.5?(k>0.05?`🟡 部分反彈：省下的被需求增加吃掉一部分，總用量降為原本的 <b>${(total/100).toFixed(2)} 倍</b>（若需求不變應為 ${(1/E).toFixed(2)} 倍）。`:`🟢 需求幾乎不變，效率提升完全轉成節省：總用量降為 <b>${(total/100).toFixed(2)} 倍</b>。`):`⚖️ ε = 1：需求增加剛好抵銷效率提升，總用量不變。`);
+}
+[jvE,jvK].forEach(x=>x.oninput=()=>{document.querySelectorAll('#jvPre button').forEach(b=>b.classList.remove('on'));simE()});
+document.querySelectorAll('#jvPre button').forEach(b=>b.onclick=()=>{jvE.value=b.dataset.e;jvK.value=b.dataset.k;simE();document.querySelectorAll('#jvPre button').forEach(x=>x.classList.toggle('on',x===b))});
+simE();
 
 /* ---------- question builder ---------- */
 const qb={
