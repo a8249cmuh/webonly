@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YOLO 標記檢視器</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1d2330; --muted: #6b7280;
+    --border: #e2e5ea; --accent: #2563eb; --hover: #eef2ff; --active: #dbe6ff;
+    --tok-xy: #0369a1; --tok-wh: #7c3aed; --code-bg: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171c; --panel: #1e2128; --text: #e6e8ec; --muted: #9aa1ad;
+      --border: #2e323b; --accent: #6ea0ff; --hover: #262b36; --active: #2c3a57;
+      --tok-xy: #7dd3fc; --tok-wh: #c4b5fd; --code-bg: #171a20; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, "Segoe UI", "Microsoft JhengHei", sans-serif;
+    display: grid; grid-template-rows: auto 1fr auto; }
+  footer { padding: 6px 16px; background: var(--panel); border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px; text-align: center; }
+  header { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 16px; margin: 0 8px 0 0; }
+  .pick { display: inline-flex; align-items: center; gap: 6px; }
+  .pick label { display: inline-block; padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    background: var(--accent); color: #fff; font-weight: 600; }
+  .pick label.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .pick input { display: none; }
+  .pick span { color: var(--muted); font-size: 12px; max-width: 180px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .opts { display: inline-flex; gap: 12px; align-items: center; margin-left: auto; color: var(--muted); }
+  .opts input[type=range] { width: 90px; vertical-align: middle; }
+  main { display: grid; grid-template-columns: 260px 1fr 300px; min-height: 0; }
+  aside { background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; min-height: 0; }
+  aside.right { border-right: 0; border-left: 1px solid var(--border); padding: 12px; overflow: auto; display: block; }
+  .search { padding: 10px; border-bottom: 1px solid var(--border); }
+  .search input { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--text); }
+  .search .stat { margin-top: 6px; font-size: 12px; color: var(--muted); }
+  ul#list { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; }
+  ul#list li { padding: 6px 10px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px;
+    border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  ul#list li:hover { background: var(--hover); }
+  ul#list li.active { background: var(--active); }
+  ul#list li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  ul#list li .cnt { color: var(--muted); flex: none; }
+  ul#list li.nolabel .cnt { color: #d97706; }
+  #stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .toolbar button { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); cursor: pointer; }
+  .toolbar .title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .toolbar .meta { color: var(--muted); font-size: 12px; }
+  .canvas { flex: 1; min-height: 160px; display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .canvas svg { max-width: 100%; max-height: 100%; width: auto; height: auto; background: #000; }
+  .empty { color: var(--muted); text-align: center; max-width: 420px; }
+
+  /* ---- label preview ---- */
+  .labelpanel { flex: 0 0 auto; max-height: 38%; display: flex; flex-direction: column;
+    background: var(--panel); border-top: 1px solid var(--border); min-height: 0; }
+  .lp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 12px;
+    border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .lp-head b { font-size: 13px; }
+  .lp-head .fname { color: var(--muted); font-family: Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fmt { font-family: Consolas, "Courier New", monospace; background: var(--code-bg); border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 4px; }
+  .lp-body { overflow: auto; font-family: Consolas, "Courier New", monospace; font-size: 13px; background: var(--code-bg); }
+  .ln { display: grid; grid-template-columns: 38px minmax(260px, auto) 1fr; gap: 12px; align-items: baseline;
+    padding: 4px 12px 4px 0; cursor: pointer; border-left: 3px solid transparent; }
+  .ln:hover { background: var(--hover); }
+  .ln.sel { background: var(--active); border-left-color: var(--accent); }
+  .ln.bad { cursor: default; color: #dc2626; }
+  .ln.hidden-cls { opacity: .4; }
+  .ln .no { color: var(--muted); text-align: right; user-select: none; }
+  .ln .raw { white-space: pre; }
+  .ln .ex { font-family: system-ui, "Microsoft JhengHei", sans-serif; font-size: 12px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tok { padding: 0 3px; border-radius: 3px; }
+  .tok + .tok { margin-left: 6px; }
+  .t-c { color: #fff; font-weight: 700; }
+  .t-xy { color: var(--tok-xy); }
+  .t-wh { color: var(--tok-wh); }
+  .lp-empty { padding: 10px 12px; color: var(--muted); font-family: system-ui, sans-serif; }
+
+  /* ---- right panel ---- */
+  h3 { font-size: 13px; margin: 0 0 8px; }
+  h3 + * { margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; user-select: none; }
+  .legend-item.off { opacity: .35; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; flex: none; display: inline-block; vertical-align: -2px; }
+  .legend-item .n { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .calc { font-size: 12.5px; }
+  .calc .raw { font-family: Consolas, monospace; background: var(--code-bg); border: 1px solid var(--border);
+    padding: 6px 8px; border-radius: 6px; margin-bottom: 8px; word-break: break-all; }
+  .calc table { width: 100%; border-collapse: collapse; }
+  .calc td { padding: 4px 2px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .calc td:first-child { color: var(--muted); white-space: nowrap; padding-right: 8px; }
+  .calc .f { font-family: Consolas, monospace; }
+  .calc .res { font-weight: 700; }
+  .hint { color: var(--muted); font-size: 12px; }
+
+  svg .box { fill-opacity: .12; stroke-width: var(--sw, 2); vector-effect: non-scaling-stroke; }
+  svg g.obj { cursor: pointer; }
+  svg g.obj.hl .box { fill-opacity: .35; stroke-width: calc(var(--sw, 2) + 1); }
+  svg.has-sel g.obj:not(.hl) { opacity: .3; }
+  svg .guide { display: none; }
+  svg g.obj.hl .guide { display: inline; }
+  svg text { font-family: system-ui, sans-serif; font-weight: 600; }
+  @media (max-width: 1000px) {
+    main { grid-template-columns: 1fr; grid-template-rows: 180px minmax(480px, 1fr) auto; }
+    aside { border-right: 0; border-bottom: 1px solid var(--border); }
+    aside.right { border-left: 0; border-top: 1px solid var(--border); }
+    .opts { margin-left: 0; }
+    .ln { grid-template-columns: 30px auto; }
+    .ln .ex { grid-column: 2; white-space: normal; }
+    .ln .raw { white-space: normal; word-break: break-all; line-height: 1.8; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>YOLO 標記檢視器</h1>
+  <div class="pick"><label for="imgDir">選擇圖檔目錄</label>
+    <input id="imgDir" type="file" webkitdirectory directory multiple><span id="imgInfo">未選擇</span></div>
+  <div class="pick"><label for="lblDir">選擇標記目錄</label>
+    <input id="lblDir" type="file" webkitdirectory directory multiple><span id="lblInfo">未選擇</span></div>
+  <div class="pick"><label for="clsFile" class="secondary">類別名稱 (選填)</label>
+    <input id="clsFile" type="file" accept=".yaml,.yml,.txt,.names"><span id="clsInfo">data.yaml / classes.txt</span></div>
+  <div class="opts">
+    <label><input type="checkbox" id="showText" checked> 顯示類別文字</label>
+    <label>線寬 <input type="range" id="lineW" min="1" max="6" value="2"></label>
+  </div>
+</header>
+<main>
+  <aside>
+    <div class="search">
+      <input id="filter" placeholder="搜尋檔名…">
+      <div class="stat" id="stat">尚未載入</div>
+    </div>
+    <ul id="list"></ul>
+  </aside>
+  <section id="stage">
+    <div class="toolbar">
+      <button id="prev" title="上一張 (←)">◀</button>
+      <button id="next" title="下一張 (→)">▶</button>
+      <div class="title" id="title">—</div>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="canvas" id="canvas">
+      <div class="empty">請先選擇「圖檔目錄」與「標記目錄」。<br>系統會依照檔名（不含副檔名）配對圖片與 YOLO .txt 標記檔。<br>若目錄中含 data.yaml / classes.txt，會自動讀取類別名稱。</div>
+    </div>
+    <div class="labelpanel">
+      <div class="lp-head">
+        <b>標記檔預覽</b>
+        <span class="fname" id="lpName"></span>
+        <span>每行格式：<span class="fmt"><span class="tok t-c" style="background:#6b7280">class</span><span class="tok t-xy">x_center</span><span class="tok t-xy">y_center</span><span class="tok t-wh">width</span><span class="tok t-wh">height</span></span></span>
+        <span class="hint">座標皆為 0~1 的比例（除以圖寬／圖高）</span>
+      </div>
+      <div class="lp-body" id="lpBody"><div class="lp-empty">尚未載入標記檔</div></div>
+    </div>
+  </section>
+  <aside class="right">
+    <h3>類別（點擊切換顯示）</h3>
+    <div id="legend"><div class="hint">尚無資料</div></div>
+    <h3>換算說明</h3>
+    <div class="calc" id="calc"><div class="hint">點選下方標記檔的某一行，或點圖上的框，這裡會一步步列出從比例換算成像素座標的過程。</div></div>
+    <div class="hint">快捷鍵：← / → 切換圖片，↑ / ↓ 切換標記行，Esc 取消選取，T 切換文字顯示。</div>
+  </aside>
+</main>
+<footer>版本 2026.11.21.A ｜ 作者：Onion.Jung</footer>
+
+<script>
+const IMG_EXT = /\.(jpe?g|png|bmp|gif|webp|tiff?)$/i;
+const PALETTE = ['#ff3b30','#34c759','#007aff','#ff9500','#af52de','#00c7be','#ffcc00','#ff2d55',
+                 '#5856d6','#a2845e','#30b0c7','#8e8e93','#64d2ff','#bf5af2','#ffd60a','#32d74b'];
+const state = { images: new Map(), labels: new Map(), names: [], items: [], view: [], idx: -1,
+                hidden: new Set(), url: null, cache: new Map(), raw: new Map(), sel: -1, W: 0, H: 0 };
+const $ = id => document.getElementById(id);
+const stem = name => name.replace(/\.[^.]+$/, '');
+const color = c => PALETTE[c % PALETTE.length];
+const clsName = c => state.names[c] ?? `class ${c}`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const r1 = v => (Math.round(v * 10) / 10).toString();
+
+function parseNames(text) {
+  // data.yaml: names: ['a','b']  |  names:\n  - a  |  names:\n  0: a
+  const inline = text.match(/^\s*names\s*:\s*\[(.*)\]/m);
+  if (inline) return inline[1].split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+  const block = text.match(/^\s*names\s*:\s*\n((?:[ \t]+.*\n?)+)/m);
+  if (block) {
+    const out = [];
+    block[1].split('\n').forEach(line => {
+      let m = line.match(/^\s*-\s*(.+)$/); if (m) { out.push(m[1].trim().replace(/^['"]|['"]$/g, '')); return; }
+      m = line.match(/^\s*(\d+)\s*:\s*(.+)$/); if (m) out[+m[1]] = m[2].trim().replace(/^['"]|['"]$/g, '');
+    });
+    return out;
+  }
+  return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+}
+
+// Returns one box per valid line; each box remembers its line number and raw tokens.
+function parseLabels(text) {
+  const out = [];
+  text.split(/\r?\n/).forEach((l, line) => {
+    const tok = l.trim().split(/\s+/);
+    const p = tok.map(Number);
+    if (!l.trim() || p.length < 5 || p.some(isNaN)) return;
+    const [c, ...rest] = p;
+    if (rest.length > 4) { // polygon (segmentation) → bounding box
+      const xs = rest.filter((_, i) => i % 2 === 0), ys = rest.filter((_, i) => i % 2 === 1);
+      const x1 = Math.min(...xs), x2 = Math.max(...xs), y1 = Math.min(...ys), y2 = Math.max(...ys);
+      out.push({ c, x: (x1 + x2) / 2, y: (y1 + y2) / 2, w: x2 - x1, h: y2 - y1, poly: rest, line, tok });
+    } else out.push({ c, x: rest[0], y: rest[1], w: rest[2], h: rest[3], line, tok });
+  });
+  return out;
+}
+
+async function loadNamesFrom(files) {
+  const f = files.find(f => /^data\.ya?ml$/i.test(f.name)) || files.find(f => /^(classes|obj)\.(txt|names)$/i.test(f.name));
+  if (f && !state.namesLocked) { state.names = parseNames(await f.text()); $('clsInfo').textContent = `${f.name}（${state.names.length} 類）`; }
+}
+
+$('imgDir').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  state.images = new Map(files.filter(f => IMG_EXT.test(f.name)).map(f => [stem(f.name), f]));
+  $('imgInfo').textContent = `${state.images.size} 張圖片`;
+  await loadNamesFrom(files); rebuild();
+});
+$('lblDir').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  state.labels = new Map(files.filter(f => /\.txt$/i.test(f.name) && !/^classes\.txt$/i.test(f.name)).map(f => [stem(f.name), f]));
+  state.cache.clear(); state.raw.clear();
+  $('lblInfo').textContent = `${state.labels.size} 個標記檔`;
+  await loadNamesFrom(files); rebuild();
+});
+$('clsFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  state.names = parseNames(await f.text()); state.namesLocked = true;
+  $('clsInfo').textContent = `${f.name}（${state.names.length} 類）`;
+  renderLegendAll(); render();
+});
+
+async function getLabels(key) {
+  if (state.cache.has(key)) return state.cache.get(key);
+  const f = state.labels.get(key);
+  let boxes = null;
+  if (f) { const text = await f.text(); state.raw.set(key, text); boxes = parseLabels(text); }
+  state.cache.set(key, boxes);
+  return boxes;
+}
+
+async function rebuild() {
+  state.items = [...state.images.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  await Promise.all(state.items.map(getLabels));
+  state.idx = state.items.length ? 0 : -1;
+  applyFilter(); renderLegendAll(); render();
+}
+
+function applyFilter() {
+  const q = $('filter').value.trim().toLowerCase();
+  const cur = state.items[state.idx];
+  state.view = state.items.filter(k => k.toLowerCase().includes(q));
+  const ul = $('list'); ul.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  state.view.forEach(k => {
+    const boxes = state.cache.get(k);
+    const li = document.createElement('li');
+    li.dataset.key = k;
+    if (!boxes) li.classList.add('nolabel');
+    if (k === cur) li.classList.add('active');
+    li.innerHTML = `<span class="name" title="${esc(k)}">${esc(k)}</span><span class="cnt">${boxes ? boxes.length + ' 框' : '無標記'}</span>`;
+    li.onclick = () => { state.idx = state.items.indexOf(k); render(); };
+    frag.appendChild(li);
+  });
+  ul.appendChild(frag);
+  const noLbl = state.items.filter(k => !state.cache.get(k)).length;
+  $('stat').textContent = state.items.length
+    ? `共 ${state.items.length} 張，顯示 ${state.view.length} 張，${noLbl} 張無標記`
+    : '尚未載入';
+}
+$('filter').addEventListener('input', applyFilter);
+
+function renderLegendAll() {
+  const counts = new Map();
+  for (const boxes of state.cache.values()) (boxes || []).forEach(b => counts.set(b.c, (counts.get(b.c) || 0) + 1));
+  state.names.forEach((_, i) => counts.has(i) || counts.set(i, 0));
+  const lg = $('legend'); lg.innerHTML = '';
+  if (!counts.size) { lg.innerHTML = '<div class="hint">尚無資料</div>'; return; }
+  [...counts.keys()].sort((a, b) => a - b).forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'legend-item' + (state.hidden.has(c) ? ' off' : '');
+    d.innerHTML = `<span class="swatch" style="background:${color(c)}"></span><span>${c}: ${esc(clsName(c))}</span><span class="n">${counts.get(c)}</span>`;
+    d.onclick = () => { state.hidden.has(c) ? state.hidden.delete(c) : state.hidden.add(c); renderLegendAll(); render(true); };
+    lg.appendChild(d);
+  });
+}
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
+
+async function render(keepSel = false) {
+  const key = state.items[state.idx];
+  document.querySelectorAll('#list li').forEach(li => li.classList.toggle('active', li.dataset.key === key));
+  document.querySelector('#list li.active')?.scrollIntoView({ block: 'nearest' });
+  if (!key) return;
+  if (!keepSel || key !== state.curKey) state.sel = -1;
+  state.curKey = key;
+  const file = state.images.get(key);
+  const boxes = (await getLabels(key)) || [];
+  if (state.url) URL.revokeObjectURL(state.url);
+  state.url = URL.createObjectURL(file);
+  const img = new Image();
+  img.src = state.url;
+  await img.decode().catch(() => {});
+  const W = img.naturalWidth || 640, H = img.naturalHeight || 640;
+  state.W = W; state.H = H;
+
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+  svg.style.setProperty('--sw', $('lineW').value);
+  svg.appendChild(el('image', { href: state.url, x: 0, y: 0, width: W, height: H }));
+  svg.addEventListener('click', e => { if (!e.target.closest('g.obj')) select(-1); });
+  const fs = Math.max(12, Math.round(Math.min(W, H) / 40));
+  const sw = Math.max(1, Math.min(W, H) / 300);
+  const showText = $('showText').checked;
+  boxes.forEach((b, i) => {
+    if (state.hidden.has(b.c)) return;
+    const col = color(b.c);
+    const cx = b.x * W, cy = b.y * H, w = b.w * W, h = b.h * H, x = cx - w / 2, y = cy - h / 2;
+    const g = el('g', { class: 'obj', 'data-i': i });
+    // guides (shown only when selected): center cross, dashed lines to the image edges
+    const gd = el('g', { class: 'guide', stroke: '#fff', 'stroke-width': sw, 'stroke-dasharray': `${sw * 4} ${sw * 3}` });
+    gd.appendChild(el('line', { x1: cx, y1: 0, x2: cx, y2: H }));
+    gd.appendChild(el('line', { x1: 0, y1: cy, x2: W, y2: cy }));
+    g.appendChild(gd);
+    if (b.poly) {
+      const pts = []; for (let k = 0; k < b.poly.length; k += 2) pts.push(`${b.poly[k] * W},${b.poly[k + 1] * H}`);
+      g.appendChild(el('polygon', { points: pts.join(' '), class: 'box', fill: col, stroke: col }));
+    } else {
+      g.appendChild(el('rect', { x, y, width: w, height: h, class: 'box', fill: col, stroke: col }));
+    }
+    const ctr = el('g', { class: 'guide' });
+    ctr.appendChild(el('circle', { cx, cy, r: sw * 4, fill: col, stroke: '#fff', 'stroke-width': sw * 1.5 }));
+    const ct = el('text', { x: cx + sw * 6, y: cy - sw * 6, 'font-size': fs * 0.9, fill: '#fff', stroke: '#000', 'stroke-width': sw * 0.8, 'paint-order': 'stroke' });
+    ct.textContent = `(${r1(cx)}, ${r1(cy)})`;
+    ctr.appendChild(ct);
+    g.appendChild(ctr);
+    const t = el('title'); t.textContent = `第 ${b.line + 1} 行：${clsName(b.c)}`;
+    g.appendChild(t);
+    if (showText) {
+      const label = clsName(b.c);
+      const tw = label.length * fs * 0.62 + 8, th = fs + 6;
+      const ty = y - th < 0 ? y : y - th;
+      g.appendChild(el('rect', { x, y: ty, width: tw, height: th, fill: col }));
+      const tx = el('text', { x: x + 4, y: ty + th - 5, 'font-size': fs, fill: '#fff' });
+      tx.textContent = label; g.appendChild(tx);
+    }
+    g.addEventListener('click', e => { e.stopPropagation(); select(state.sel === i ? -1 : i); });
+    g.addEventListener('mouseenter', () => hoverLine(i, true));
+    g.addEventListener('mouseleave', () => hoverLine(i, false));
+    svg.appendChild(g);
+  });
+  const cv = $('canvas'); cv.innerHTML = ''; cv.appendChild(svg);
+
+  $('title').textContent = file.name;
+  $('meta').textContent = `${state.idx + 1} / ${state.items.length} · ${W}×${H} · ${boxes.length} 框${state.labels.has(key) ? '' : '（無標記檔）'}`;
+  renderLabelPreview(key, boxes);
+  select(state.sel);
+}
+
+function renderLabelPreview(key, boxes) {
+  const f = state.labels.get(key);
+  $('lpName').textContent = f ? f.name : '';
+  const body = $('lpBody');
+  if (!f) { body.innerHTML = '<div class="lp-empty">這張圖片沒有對應的標記檔（代表沒有任何物件，或標記遺失）。</div>'; return; }
+  const text = state.raw.get(key) || '';
+  const lines = text.replace(/\r?\n$/, '').split(/\r?\n/);
+  if (!text.trim()) { body.innerHTML = '<div class="lp-empty">標記檔是空的（此圖為背景圖，沒有任何物件）。</div>'; return; }
+  const byLine = new Map(boxes.map((b, i) => [b.line, i]));
+  const { W, H } = state;
+  body.innerHTML = lines.map((l, n) => {
+    const i = byLine.get(n);
+    if (i === undefined) {
+      return `<div class="ln bad"><span class="no">${n + 1}</span><span class="raw">${esc(l) || ' '}</span><span class="ex">${l.trim() ? '⚠ 格式錯誤，無法解析' : '（空行）'}</span></div>`;
+    }
+    const b = boxes[i], col = color(b.c);
+    const [c, ...rest] = b.tok;
+    const toks = b.poly
+      ? `<span class="tok t-c" style="background:${col}">${esc(c)}</span>` + rest.map((v, k) => `<span class="tok ${k % 2 ? 't-wh' : 't-xy'}">${esc(v)}</span>`).join('')
+      : `<span class="tok t-c" style="background:${col}">${esc(c)}</span><span class="tok t-xy">${esc(rest[0])}</span><span class="tok t-xy">${esc(rest[1])}</span><span class="tok t-wh">${esc(rest[2])}</span><span class="tok t-wh">${esc(rest[3])}</span>`;
+    const ex = b.poly
+      ? `${esc(clsName(b.c))}｜多邊形 ${rest.length / 2} 個點`
+      : `${esc(clsName(b.c))}｜中心 (${r1(b.x * W)}, ${r1(b.y * H)}) px｜寬×高 ${r1(b.w * W)} × ${r1(b.h * H)} px`;
+    return `<div class="ln${state.hidden.has(b.c) ? ' hidden-cls' : ''}" data-i="${i}"><span class="no">${n + 1}</span><span class="raw">${toks}</span><span class="ex">${ex}</span></div>`;
+  }).join('');
+  body.querySelectorAll('.ln[data-i]').forEach(d => {
+    const i = +d.dataset.i;
+    d.onclick = () => select(state.sel === i ? -1 : i);
+    d.onmouseenter = () => hoverBox(i, true);
+    d.onmouseleave = () => hoverBox(i, false);
+  });
+}
+
+function hoverBox(i, on) {
+  if (state.sel >= 0) return;
+  document.querySelector(`#canvas g.obj[data-i="${i}"]`)?.classList.toggle('hl', on);
+}
+function hoverLine(i, on) {
+  document.querySelector(`#lpBody .ln[data-i="${i}"]`)?.classList.toggle('hover', on);
+  hoverBox(i, on);
+}
+
+function select(i) {
+  const boxes = state.cache.get(state.curKey) || [];
+  if (i >= 0 && (!boxes[i] || state.hidden.has(boxes[i].c))) i = -1;
+  state.sel = i;
+  const svg = document.querySelector('#canvas svg');
+  svg?.classList.toggle('has-sel', i >= 0);
+  svg?.querySelectorAll('g.obj').forEach(g => g.classList.toggle('hl', +g.dataset.i === i));
+  document.querySelectorAll('#lpBody .ln').forEach(d => d.classList.toggle('sel', d.dataset.i !== undefined && +d.dataset.i === i));
+  document.querySelector('#lpBody .ln.sel')?.scrollIntoView({ block: 'nearest' });
+  renderCalc(i >= 0 ? boxes[i] : null);
+}
+
+function renderCalc(b) {
+  const box = $('calc');
+  if (!b) { box.innerHTML = '<div class="hint">點選下方標記檔的某一行，或點圖上的框，這裡會一步步列出從比例換算成像素座標的過程。</div>'; return; }
+  const { W, H } = state, col = color(b.c);
+  const cx = b.x * W, cy = b.y * H, w = b.w * W, h = b.h * H;
+  const row = (k, f, r) => `<tr><td>${k}</td><td><span class="f">${f}</span>${r !== undefined ? ` = <span class="res">${r}</span>` : ''}</td></tr>`;
+  let html = `<div class="raw">第 ${b.line + 1} 行：${esc(b.tok.join(' '))}</div><table>`
+    + row('類別', `${b.c} → <span class="swatch" style="background:${col}"></span> ${esc(clsName(b.c))}`)
+    + row('圖片尺寸', `W = ${W}, H = ${H}`);
+  if (b.poly) {
+    html += row('格式', `多邊形，共 ${b.poly.length / 2} 個點 (x₁ y₁ x₂ y₂ …)`)
+      + row('外接框中心', `(${r1(cx)}, ${r1(cy)}) px`)
+      + row('外接框寬高', `${r1(w)} × ${r1(h)} px`);
+  } else {
+    html += row('中心 x', `${b.x} × ${W}`, `${r1(cx)} px`)
+      + row('中心 y', `${b.y} × ${H}`, `${r1(cy)} px`)
+      + row('寬 w', `${b.w} × ${W}`, `${r1(w)} px`)
+      + row('高 h', `${b.h} × ${H}`, `${r1(h)} px`)
+      + row('左上角', `(${r1(cx)} − ${r1(w)}/2, ${r1(cy)} − ${r1(h)}/2)`, `(${r1(cx - w / 2)}, ${r1(cy - h / 2)})`)
+      + row('右下角', `(${r1(cx)} + ${r1(w)}/2, ${r1(cy)} + ${r1(h)}/2)`, `(${r1(cx + w / 2)}, ${r1(cy + h / 2)})`)
+      + row('面積佔比', `${b.w} × ${b.h}`, `${(b.w * b.h * 100).toFixed(2)}%`);
+  }
+  box.innerHTML = html + '</table>';
+}
+
+function step(d) {
+  if (!state.view.length) return;
+  const pos = state.view.indexOf(state.items[state.idx]);
+  const next = state.view[Math.min(state.view.length - 1, Math.max(0, (pos < 0 ? 0 : pos + d)))];
+  state.idx = state.items.indexOf(next); render();
+}
+function stepLine(d) {
+  const boxes = (state.cache.get(state.curKey) || []).map((b, i) => i).filter(i => !state.hidden.has(state.cache.get(state.curKey)[i].c));
+  if (!boxes.length) return;
+  const pos = boxes.indexOf(state.sel);
+  select(boxes[pos < 0 ? (d > 0 ? 0 : boxes.length - 1) : Math.min(boxes.length - 1, Math.max(0, pos + d))]);
+}
+$('prev').onclick = () => step(-1);
+$('next').onclick = () => step(1);
+$('showText').onchange = () => render(true);
+$('lineW').oninput = () => document.querySelector('#canvas svg')?.style.setProperty('--sw', $('lineW').value);
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); stepLine(-1); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); stepLine(1); }
+  if (e.key === 'Escape') select(-1);
+  if (e.key === 't' || e.key === 'T') { $('showText').checked = !$('showText').checked; render(true); }
+});
+</script>
+</body>
+</html>
